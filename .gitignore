@@ -4,6 +4,7 @@ dist/
 jspm_packages/
 typings/
 tsc_output/
+doc/
 
 # Logs
 logs
