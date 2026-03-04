@@ -12,15 +12,15 @@ class Retriever:
         self.vector_store = vector_store or VectorStore()
         self.client = Groq(api_key=GROQ_API_KEY)
 
-    def retrieve(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
-        print(f"Searching: '{query}'")
+    def retrieve(self, query: str, top_k: int = 5, namespace: str = "") -> List[Dict[str, Any]]:
+        print(f"Searching: '{query}' in namespace='{namespace}'")
         query_embedding = self.embedder.embed_query(query)
-        results = self.vector_store.search(query_embedding, top_k=top_k)
+        results = self.vector_store.search(query_embedding, top_k=top_k, namespace=namespace)
         print(f"Found {len(results)} relevant chunks")
         return results
 
-    def generate_answer(self, query: str, top_k: int = 5) -> Dict[str, Any]:
-        chunks = self.retrieve(query, top_k=top_k)
+    def generate_answer(self, query: str, top_k: int = 5, namespace: str = "") -> Dict[str, Any]:
+        chunks = self.retrieve(query, top_k=top_k, namespace=namespace)
 
         if not chunks:
             return {

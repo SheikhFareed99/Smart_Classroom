@@ -42,6 +42,7 @@ class VectorStore:
         embeddings: List[List[float]],
         chunks_data: List[Dict[str, Any]],
         batch_size: int = 50,
+        namespace: str = "",
     ):
         print(f"Upserting {len(embeddings)} vectors...")
         vectors = []
@@ -58,18 +59,19 @@ class VectorStore:
 
         for start in range(0, len(vectors), batch_size):
             batch = vectors[start : start + batch_size]
-            self.index.upsert(vectors=batch)
+            self.index.upsert(vectors=batch, namespace=namespace)
             print(f"   Batch {start // batch_size + 1} ({len(batch)} vectors)")
 
         print("All vectors upserted")
 
     def search(
-        self, query_embedding: List[float], top_k: int = 5
+        self, query_embedding: List[float], top_k: int = 5, namespace: str = ""
     ) -> List[Dict[str, Any]]:
         results = self.index.query(
             vector=query_embedding,
             top_k=top_k,
             include_metadata=True,
+            namespace=namespace,
         )
 
         documents = []
