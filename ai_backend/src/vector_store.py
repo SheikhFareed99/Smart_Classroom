@@ -87,6 +87,28 @@ class VectorStore:
             documents.append(doc)
         return documents
 
+    def count_documents(self, namespace: str = "") -> int:
+        stats = self.index.describe_index_stats()
+        ns_stats = stats.namespaces.get(namespace, None)
+        return ns_stats.vector_count if ns_stats else 0
+
+    def fetch_all_texts(self, namespace: str = "") -> List[Dict[str, Any]]:
+        documents = []
+        try:
+            for id_list in self.index.list(namespace=namespace):
+                if not id_list:
+                    continue
+                fetched = self.index.fetch(ids=list(id_list), namespace=namespace)
+                for vid, vec in fetched.vectors.items():
+                    meta = vec.metadata or {}
+                    text = meta.get("text", "")
+                    if text:
+                        documents.append({"id": vid, "text": text})
+        except Exception as e:
+            print(f"fetch_all_texts fallback: {e}")
+        print(f"Fetched {len(documents)} texts for keyword search")
+        return documents
+
     def delete_all(self):
         self.index.delete(delete_all=True)
         print("All vectors deleted")
