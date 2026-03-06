@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router,Request,Response } from "express";
 import passport from "passport";
 
 // router for authentication routes, currently only google oauth
@@ -8,25 +8,28 @@ const router = Router();
 router.get(
   "/google",
   passport.authenticate("google", { scope: ["profile", "email"] })
+  
 );
 
 router.get(
   "/google/callback",
-  passport.authenticate("google", { failureRedirect: "/" }),
-  (req, res) => {
-
-    // res.redirect("http://localhost:5173/dashboard");
-
-    // for production, use actual frontend, 
-    
-    // FOR DEBUGGING PURPOSES ONLY
-    res.redirect("/dashboard.html")
+  passport.authenticate("google", { failureRedirect: "http://localhost:5173/" }),
+  (req: Request, res: Response) => {
+    res.redirect("http://localhost:5173/dashboard");
   }
 );
 
-router.get("/logout", (req, res) => {
+router.get("/user", (req: Request, res: Response) => {
+  if (req.isAuthenticated()) {
+    res.json(req.user);
+  } else {
+    res.status(401).json({ message: "Not authenticated" });
+  }
+});
+
+router.get("/logout", (req: Request, res: Response) => {
   req.logout(() => {
-    res.redirect("/");
+    res.redirect("http://localhost:5173/");
   });
 });
 
