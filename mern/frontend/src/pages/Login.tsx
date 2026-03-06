@@ -14,7 +14,7 @@ function Login() {
     //for now, redirect to google oauth
     window.location.href = "/auth/google";
   }
-
+  
   return (
     <ThemeProvider>
       {/*dark mode toggle button*/}
