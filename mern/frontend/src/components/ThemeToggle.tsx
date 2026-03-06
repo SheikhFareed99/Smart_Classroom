@@ -1,4 +1,4 @@
-import { useState, createContext, useContext } from "react";
+import { useState, useEffect, createContext, useContext } from "react";
 import "./ThemeToggle.css";
 
 //context so any child component can read dark mode state
@@ -16,6 +16,14 @@ export function useTheme() {
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
   const [darkMode, setDarkMode] = useState(systemPrefersDark);
+
+  //sync html & body background so no white bleeds through on scroll
+  useEffect(() => {
+    const bg = darkMode ? "#0F172A" : "#F8FAFC";
+    document.documentElement.style.backgroundColor = bg;
+    document.body.style.backgroundColor = bg;
+  }, [darkMode]);
+
 
   function toggleTheme() {
     setDarkMode((prev) => !prev);
