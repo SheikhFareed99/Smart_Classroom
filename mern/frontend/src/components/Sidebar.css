@@ -1,0 +1,117 @@
+/* ============================================
+   Sidebar Styles
+   ============================================ */
+
+.sidebar {
+  position: fixed;
+  top: 64px;
+  left: 0;
+  bottom: 0;
+  width: 260px;
+  background: var(--card);
+  border-right: 1px solid var(--border-light);
+  padding: 16px 12px;
+  overflow-y: auto;
+  z-index: 900;
+  transition: transform 0.25s ease;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-section {
+  margin-top: 24px;
+  margin-bottom: 8px;
+  padding: 0 12px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: all 0.15s ease;
+  text-decoration: none;
+}
+
+.sidebar-link svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.sidebar-link:hover {
+  background: var(--border-light);
+  color: var(--text-primary);
+}
+
+.sidebar-link.active {
+  background: var(--primary-bg);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.link-badge {
+  margin-left: auto;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.6875rem;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-weight: 600;
+}
+
+/* ---------- Backdrop for mobile ---------- */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 899;
+}
+
+.sidebar-backdrop.active {
+  display: block;
+}
+
+/* ---------- Dark mode ---------- */
+.dark .sidebar {
+  background: var(--card);
+  border-right-color: var(--border);
+}
+
+.dark .sidebar-link.active {
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.dark .sidebar-link:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.dark .sidebar-backdrop {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+  }
+}
