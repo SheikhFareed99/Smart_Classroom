@@ -193,19 +193,19 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
+  width: 100px;
   padding: 12px;
   border-radius: var(--radius-md);
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
-  border: none;
   font-family: inherit;
   margin-top: 8px;
 }
 
 .btn-primary {
+  width: 100%;
   background: var(--primary);
   color: #fff;
   box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
@@ -258,11 +258,14 @@
 .btn-google {
   background: var(--card);
   color: var(--text-primary);
-  border: 1.5px solid var(--border);
+  border: 1.5px solid beige;
   gap: 10px;
+  width: 100%;
   margin-top: 0;
 }
-
+#google-button {
+  border: 1.5px solid var(--border);
+}
 .btn-google:hover {
   border-color: var(--primary);
   color: var(--primary);
