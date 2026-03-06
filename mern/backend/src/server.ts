@@ -22,6 +22,7 @@ app.get('/', (req: Request, res: Response) => {
     res.send('Hello from MERN Backend (TypeScript)!');
 });
 
+
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });

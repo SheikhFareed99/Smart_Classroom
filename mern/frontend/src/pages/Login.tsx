@@ -14,7 +14,7 @@ function Login() {
     //for now, redirect to google oauth
     window.location.href = "/auth/google";
   }
-  
+
   return (
     <ThemeProvider>
       {/*dark mode toggle button*/}
@@ -92,6 +92,9 @@ function Login() {
               <button
                 type="button"
                 className="btn btn-google"
+                id="google-button"
+
+
                 onClick={() => { window.location.href = "/auth/google"; }}
               >
                 <svg width="20" height="20" viewBox="0 0 24 24">
