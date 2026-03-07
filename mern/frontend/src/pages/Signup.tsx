@@ -1,30 +1,39 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import "./Login.css";
+import { useNavigate, Link } from "react-router-dom";
+import "./Signup.css";
 import { ThemeProvider } from "../components/ThemeToggle";
 import ThemeToggle from "../components/ThemeToggle";
 
-function Login() {
+function Signup() {
   //state for form fields
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
 
   //handle form submit
-  async function handleLogin(e: React.FormEvent) {
+  async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
+
+    if (password !== confirmPassword) {
+      alert("Passwords do not match");
+      return;
+    }
+
     try {
-      const res = await fetch("/auth/login", {
+      const res = await fetch("/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ name, email, password }),
       });
       const data = await res.json();
       if (res.ok) {
-        window.location.href = "/dashboard";
+        navigate("/dashboard");
       } else {
-        alert(data.message || "Login failed");
+        alert(data.message || "Signup failed");
       }
     } catch (err) {
       alert("Something went wrong. Please try again.");
@@ -34,25 +43,41 @@ function Login() {
   return (
     <ThemeProvider>
       {/*dark mode toggle button*/}
-      <ThemeToggle className="login-toggle" />
+      <ThemeToggle className="signup-toggle" />
 
-      {/*login page*/}
-      <div className="login-page">
-        <div className="login-container">
+      {/*signup page*/}
+      <div className="signup-page">
+        <div className="signup-container">
 
           {/*logo*/}
-          <div className="login-logo">
+          <div className="signup-logo">
             <div className="logo-icon">AI</div>
             <h1>AI<span>Co</span></h1>
           </div>
 
-          <p className="login-subtitle">
-            AI Classroom Dashboard — Sign in to continue
+          <p className="signup-subtitle">
+            Create your account to get started
           </p>
 
-          {/*login card*/}
-          <div className="login-card">
-            <form className="login-form" onSubmit={handleLogin}>
+          {/*signup card*/}
+          <div className="signup-card">
+            <form className="signup-form" onSubmit={handleSignup}>
+
+              {/*name field*/}
+              <div className="form-group">
+                <label className="form-label" htmlFor="name">
+                  Full Name
+                </label>
+                <input
+                  className="form-input"
+                  type="text"
+                  id="name"
+                  placeholder="John Doe"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
 
               {/*email field*/}
               <div className="form-group">
@@ -80,7 +105,7 @@ function Login() {
                     className="form-input"
                     type={showPassword ? "text" : "password"}
                     id="password"
-                    placeholder="Enter your password"
+                    placeholder="Create a password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -102,32 +127,52 @@ function Login() {
                 </div>
               </div>
 
-              {/*remember me / forgot password*/}
-              <div className="login-extras">
-                <label>
-                  <input type="checkbox" /> Remember me
+              {/*confirm password field*/}
+              <div className="form-group">
+                <label className="form-label" htmlFor="confirmPassword">
+                  Confirm Password
                 </label>
-                <a href="#">Forgot password?</a>
+                <div className="input-wrapper">
+                  <input
+                    className="form-input"
+                    type={showPassword ? "text" : "password"}
+                    id="confirmPassword"
+                    placeholder="Confirm your password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                  />
+                  <button type="button" className="eye-toggle" onClick={() => setShowPassword(!showPassword)}>
+                    {showPassword ? (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                        <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                        <line x1="1" y1="1" x2="23" y2="23" />
+                      </svg>
+                    ) : (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
               </div>
 
               {/*submit button*/}
-              <button type="submit" className="btn btn-primary"
-              onClick={handleLogin}>
-                Sign In
+              <button type="submit" className="btn btn-primary">
+                Create Account
               </button>
 
               {/*divider*/}
-              <div className="login-divider">
+              <div className="signup-divider">
                 <span>or continue with</span>
               </div>
 
-              {/*google sign in*/}
+              {/*google sign up*/}
               <button
                 type="button"
                 className="btn btn-google"
-                id="google-button"
-
-
                 onClick={() => { window.location.href = "/auth/google"; }}
               >
                 <svg width="20" height="20" viewBox="0 0 24 24">
@@ -136,17 +181,17 @@ function Login() {
                   <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                 </svg>
-                Sign in with Google
+                Sign up with Google
               </button>
 
             </form>
           </div>
 
-          <p className="login-footer-link">
-            Don't have an account? <Link to="/signup">Sign Up</Link>
+          <p className="signup-footer-link">
+            Already have an account? <Link to="/">Sign In</Link>
           </p>
 
-          <p className="login-footer">
+          <p className="signup-footer">
             &copy; 2026 AICo — AI Classroom Dashboard. All rights reserved.
           </p>
 
@@ -156,4 +201,4 @@ function Login() {
   );
 }
 
-export default Login;
+export default Signup;
