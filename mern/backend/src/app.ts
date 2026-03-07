@@ -2,6 +2,7 @@ import express from "express";
 import session from "express-session";
 import passport from "passport";
 import mongoose from "mongoose";
+import cors from "cors";
 import dotenv from "dotenv";
 
 import authRoutes from "./routes/auth";
@@ -10,6 +11,14 @@ import "./config/passport";
 dotenv.config();
 
 const app = express();
+
+// CORS
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials: true
+}));
+
+app.use(express.json());
 
 
 // Sessions
