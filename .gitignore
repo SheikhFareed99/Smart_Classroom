@@ -5,7 +5,7 @@ jspm_packages/
 typings/
 tsc_output/
 doc/
-ai_backend/
+
 testing_azure/
 # Logs
 logs
