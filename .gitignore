@@ -6,6 +6,7 @@ typings/
 tsc_output/
 doc/
 
+testing_azure/
 # Logs
 logs
 *.log
