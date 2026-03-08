@@ -1,6 +1,5 @@
 import { Schema } from "mongoose";
 import { IMaterial, MaterialSchema } from "./material.schema";
-
 export interface IModule {
   title: string;
   description?: string;
