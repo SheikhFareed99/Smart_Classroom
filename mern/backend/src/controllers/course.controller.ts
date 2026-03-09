@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import Course from "../models/course";
-import User from "../models/users";
+import Course from "../models/course.model";
+import User from "../models/users.model";
 import crypto from "crypto";
 
 // generates a random 6 character invite code e.g. "XK92P3"

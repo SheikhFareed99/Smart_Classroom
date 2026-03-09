@@ -44,19 +44,20 @@ const UserSchema = new Schema<IUser>(
       sparse: true, // allows multiple null values
     },
 
-    enrolledCourses: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "Course",
-      },
-    ],
+    // these have been removed because we can derive them from the Course model's enrollments and instructor fields
+    // enrolledCourses: [
+    //   {
+    //     type: Schema.Types.ObjectId,
+    //     ref: "Course",
+    //   },
+    // ],
 
-    teachingCourses: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "Course",
-      },
-    ],
+    // teachingCourses: [
+    //   {
+    //     type: Schema.Types.ObjectId,
+    //     ref: "Course",
+    //   },
+    // ],
   },
   { timestamps: true }
 );
