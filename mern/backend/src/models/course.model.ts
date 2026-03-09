@@ -1,21 +1,15 @@
-import mongoose, { Schema, Document } from "mongoose";
-import { IModule, ModuleSchema } from "./course_subdocuments/module.subdoc";
-import { IEnrollment, EnrollmentSchema } from "./course_subdocuments/enrollment.subdoc";
-
-// this is the course schema, it represents a course with modules, enrollments, and settings
-
+import { Schema, Document, model, Types } from "mongoose";
 
 export interface ICourse extends Document {
   title: string;
   description?: string;
   courseCode: string;
-  instructor: mongoose.Types.ObjectId;
-  enrollments: IEnrollment[];
+  instructor: Types.ObjectId;
   inviteCode: string;
-  modules: IModule[];
   isArchived: boolean;
   settings: {
     allowStudentQuestions: boolean;
+    allowStudentComments: boolean;
     pomodoroDefault: {
       focusMinutes: number;
       breakMinutes: number;
@@ -27,61 +21,24 @@ export interface ICourse extends Document {
 
 const CourseSchema = new Schema<ICourse>(
   {
-    title: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-
-    description: {
-      type: String,
-      trim: true,
-    },
-
-    courseCode: {
-      type: String,
-      required: true,
-      unique: true,
-      uppercase: true,
-    },
-
-    instructor: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-
-    enrollments: [EnrollmentSchema],
-
-    inviteCode: {
-      type: String,
-      required: true,
-      unique: true,
-    },
-
-    modules: [ModuleSchema],
-
-    isArchived: {
-      type: Boolean,
-      default: false,
-    },
-
+    title: { type: String, required: true, trim: true },
+    description: { type: String, trim: true },
+    courseCode: { type: String, required: true, unique: true, uppercase: true },
+    instructor: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    inviteCode: { type: String, required: true, unique: true },
+    isArchived: { type: Boolean, default: false },
     settings: {
-      allowStudentQuestions: {
-        type: Boolean,
-        default: true,
+      allowStudentQuestions: { type: Boolean, default: true },
+      allowStudentComments: { type: Boolean, default: true },
+      pomodoroDefault: {
+        focusMinutes: { type: Number, default: 25 },
+        breakMinutes: { type: Number, default: 5 },
       },
-      allowStudentComments:{
-        type: Boolean,
-        default: true,
-      }
     },
   },
   { timestamps: true }
 );
 
-CourseSchema.index({ "enrollments.student": 1 });
-CourseSchema.index({ instructor: 1 });
-CourseSchema.index({ inviteCode: 1 });
+export default model<ICourse>("Course", CourseSchema);
 
-export default mongoose.model<ICourse>("Course", CourseSchema);
+
