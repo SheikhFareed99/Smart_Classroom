@@ -1,39 +1,21 @@
-import { Schema } from "mongoose";
-import { IMaterial, MaterialSchema } from "./material.subdoc";
+import { Schema, Document, model, Types } from "mongoose";
 
-// this is the module schema, it represents a course module containing materials (embedded in Course)
-
-
-export interface IModule {
+export interface IModule extends Document {
   title: string;
   description?: string;
   order: number;
-  materials: IMaterial[];
+  course: Types.ObjectId; // FK to Course
   createdAt: Date;
 }
 
-export const ModuleSchema = new Schema<IModule>(
+const ModuleSchema = new Schema<IModule>(
   {
-    title: {
-      type: String,
-      required: true,
-    },
-
-    description: {
-      type: String,
-    },
-
-    order: {
-      type: Number,
-      default: 0,
-    },
-
-    materials: [MaterialSchema],
-
-    createdAt: {
-      type: Date,
-      default: Date.now,
-    },
+    title: { type: String, required: true },
+    description: { type: String },
+    order: { type: Number, default: 0 },
+    course: { type: Schema.Types.ObjectId, ref: "Course", required: true },
   },
-  { _id: false }
+  { timestamps: true }
 );
+
+export default model<IModule>("Module", ModuleSchema);

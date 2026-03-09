@@ -1,9 +1,6 @@
-import { Schema } from "mongoose";
+import { Schema, Document, model, Types } from "mongoose";
 
-// this is the material schema, it represents learning materials within a module (embedded in Module)
-
-
-export interface IMaterial {
+export interface IMaterial extends Document {
   title: string;
   type: "pdf" | "video" | "link" | "text" | "image";
   url: string;
@@ -11,43 +8,25 @@ export interface IMaterial {
   uploadedAt: Date;
   vectorIndexId?: string;
   isIndexed: boolean;
+  module: Types.ObjectId; // FK to Module
 }
 
-export const MaterialSchema = new Schema<IMaterial>(
+const MaterialSchema = new Schema<IMaterial>(
   {
-    title: {
-      type: String,
-      required: true,
-    },
-
+    title: { type: String, required: true },
     type: {
       type: String,
       enum: ["pdf", "video", "link", "text", "image"],
       required: true,
     },
-
-    url: {
-      type: String,
-      required: true,
-    },
-
-    sizeBytes: {
-      type: Number,
-    },
-
-    uploadedAt: {
-      type: Date,
-      default: Date.now,
-    },
-
-    vectorIndexId: {
-      type: String,
-    },
-
-    isIndexed: {
-      type: Boolean,
-      default: false,
-    },
+    url: { type: String, required: true },
+    sizeBytes: { type: Number },
+    uploadedAt: { type: Date, default: Date.now },
+    vectorIndexId: { type: String },
+    isIndexed: { type: Boolean, default: false },
+    module: { type: Schema.Types.ObjectId, ref: "Module", required: true },
   },
-  { _id: false }
+  { timestamps: true }
 );
+
+export default model<IMaterial>("Material", MaterialSchema);
