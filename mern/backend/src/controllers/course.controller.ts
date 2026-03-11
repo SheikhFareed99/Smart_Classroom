@@ -4,6 +4,9 @@ import User from "../models/users.model";
 import crypto from "crypto";
 
 // generates a random 6 character invite code e.g. "XK92P3"
+
+// THIS FILE NEEDS TO BE FIXED TO ACCOUNT FOR THE NEW MODELS OF ENROLLMENT
+
 const generateInviteCode = (): string => {
   return crypto.randomBytes(3).toString("hex").toUpperCase();
 };
