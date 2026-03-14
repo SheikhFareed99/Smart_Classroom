@@ -7,9 +7,10 @@ import { Server } from "socket.io";
 import mongoose   from "mongoose";
 import cors       from "cors";
 
-import Channel from "./models/Channel";
-import Session from "./models/Session";
-import channelRoutes from "./routes/Channels";
+import Channel from "../models/Channel";
+import Session from "../models/Session";
+
+import channelRoutes from "./Channels";
 
 const app    = express();
 const server = http.createServer(app);
@@ -32,7 +33,9 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok", service: "voice_service" });
 });
 
+// ── ADD THIS LINE ─────────────────────────────────────────
 app.use("/api/channels", channelRoutes);
+// ─────────────────────────────────────────────────────────
 
 mongoose
   .connect(process.env.MONGO_URI as string)
