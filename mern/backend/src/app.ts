@@ -7,6 +7,7 @@ import dotenv from "dotenv";
 
 import authRoutes from "./routes/auth";
 import courseRouter from "./routes/course";
+import voiceAuthRouter from "./routes/voiceAuth";
 
 import "./config/passport";
 
@@ -42,6 +43,7 @@ app.use(express.static("src/public"));
 
 
 // Routes
+app.use("/api/auth", voiceAuthRouter);
 app.use("/auth", authRoutes);
 app.use("/api/courses", courseRouter);
 app.get("/", (req, res) => {
