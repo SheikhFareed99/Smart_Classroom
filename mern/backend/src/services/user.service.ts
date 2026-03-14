@@ -1,5 +1,6 @@
 import User, { IUser } from "../models/users.model";
 import Course from "../models/course.model";
+import Enrollment from "../models/enrollment.model";
 import bcrypt from "bcrypt";
 import { Profile } from "passport-google-oauth20";
 
@@ -86,11 +87,8 @@ export const deleteUser = async (userId: string): Promise<boolean> => {
   const user = await User.findById(userId);
   if (!user) return false;
 
-  // Remove user from all course enrollments
-  await Course.updateMany(
-    { "enrollments.student": user._id },
-    { $pull: { enrollments: { student: user._id } } }
-  );
+  // Remove user from all enrollments
+  await Enrollment.deleteMany({ student: user._id });
 
   // Remove user as instructor from courses
   await Course.updateMany(
@@ -105,8 +103,13 @@ export const deleteUser = async (userId: string): Promise<boolean> => {
 
 // Get user's courses (both enrolled and teaching)
 export const getUserCourses = async (userId: string) => {
+  const enrolledCourseIds = await Enrollment.find({
+    student: userId,
+    status: "active",
+  }).distinct("course");
+
   const enrolledCourses = await Course.find({
-    "enrollments.student": userId,
+    _id: { $in: enrolledCourseIds },
   }).populate("instructor", "name email");
 
   const teachingCourses = await Course.find({

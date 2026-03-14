@@ -1,33 +1,12 @@
 import { Request, Response } from "express";
-import Course from "../models/course.model";
-import User from "../models/users.model";
-import crypto from "crypto";
-
-// generates a random 6 character invite code e.g. "XK92P3"
-
-// THIS FILE NEEDS TO BE FIXED TO ACCOUNT FOR THE NEW MODELS OF ENROLLMENT
-
-const generateInviteCode = (): string => {
-  return crypto.randomBytes(3).toString("hex").toUpperCase();
-};
+import * as CourseService from "../services/course.service";
+import * as EnrollmentService from "../services/enrollment.service";
 
 // POST /api/courses
 export const createCourse = async (req: Request, res: Response) => {
   try {
     const { title, description, courseCode, instructorId } = req.body;
-
-    const course = await Course.create({
-      title,
-      description,
-      courseCode,
-      instructor: instructorId,
-      inviteCode: generateInviteCode(),
-    });
-
-    await User.findByIdAndUpdate(instructorId, {
-      $push: { teachingCourses: course._id },
-    });
-
+    const course = await CourseService.createCourse({ title, description, courseCode, instructorId });
     res.status(201).json({ success: true, course });
   } catch (error) {
     res.status(500).json({ success: false, message: "Failed to create course", error });
@@ -37,15 +16,21 @@ export const createCourse = async (req: Request, res: Response) => {
 // GET /api/courses/:id
 export const getCourse = async (req: Request, res: Response) => {
   try {
-    const course = await Course.findById(req.params.id)
-      .populate("instructor", "name email")
-      .populate("enrollments.student", "name email");
+    const course = await CourseService.findCourseByIdPopulated(String(req.params.id));
 
     if (!course) {
       return res.status(404).json({ success: false, message: "Course not found" });
     }
 
-    res.status(200).json({ success: true, course });
+    const enrollments = await EnrollmentService.getCourseEnrollments(course._id.toString());
+
+    res.status(200).json({
+      success: true,
+      course: {
+        ...course.toObject(),
+        enrollments,
+      },
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: "Failed to get course", error });
   }
@@ -56,33 +41,26 @@ export const joinCourse = async (req: Request, res: Response) => {
   try {
     const { inviteCode, studentId } = req.body;
 
-    const course = await Course.findOne({ inviteCode });
+    const course = await CourseService.findCourseByInviteCode(inviteCode);
 
     if (!course) {
       return res.status(404).json({ success: false, message: "Invalid invite code" });
     }
 
-    // check if already enrolled
-    const alreadyEnrolled = course.enrollments.some(
-      (e) => e.student.toString() === studentId
-    );
+    const alreadyEnrolled = await EnrollmentService.isStudentEnrolled(course._id.toString(), studentId);
 
     if (alreadyEnrolled) {
       return res.status(400).json({ success: false, message: "Already enrolled" });
     }
 
-    course.enrollments.push({
-      student: studentId,
-      enrolledAt: new Date(),
-      status: "active",
-    });
-    await course.save();
+    const enrollment = await EnrollmentService.enrollStudent(course._id.toString(), studentId);
 
-    await User.findByIdAndUpdate(studentId, {
-      $push: { enrolledCourses: course._id },
+    res.status(200).json({
+      success: true,
+      message: "Joined successfully",
+      enrollment,
+      course,
     });
-
-    res.status(200).json({ success: true, message: "Joined successfully", course });
   } catch (error) {
     res.status(500).json({ success: false, message: "Failed to join course", error });
   }
@@ -91,17 +69,15 @@ export const joinCourse = async (req: Request, res: Response) => {
 // DELETE /api/courses/:id
 export const deleteCourse = async (req: Request, res: Response) => {
   try {
-    const course = await Course.findById(req.params.id);
+    const courseId = String(req.params.id);
+    const course = await CourseService.findCourseById(courseId);
 
     if (!course) {
       return res.status(404).json({ success: false, message: "Course not found" });
     }
 
-    await course.deleteOne();
-
-    await User.findByIdAndUpdate(course.instructor, {
-      $pull: { teachingCourses: course._id },
-    });
+    await EnrollmentService.removeAllCourseEnrollments(course._id.toString());
+    await CourseService.deleteCourse(courseId);
 
     res.status(200).json({ success: true, message: "Course deleted" });
   } catch (error) {
@@ -112,13 +88,11 @@ export const deleteCourse = async (req: Request, res: Response) => {
 // GET /api/courses/user/:userId
 export const getMyCourses = async (req: Request, res: Response) => {
   try {
-    const { userId } = req.params;
+    const userId = String(req.params.userId);
 
-    const teaching = await Course.find({ instructor: userId })
-      .select("title courseCode inviteCode isArchived");
-
-    const enrolled = await Course.find({ "enrollments.student": userId })
-      .select("title courseCode instructor");
+    const teaching = await CourseService.getCoursesByInstructor(userId);
+    const enrollments = await EnrollmentService.getStudentEnrollments(userId);
+    const enrolled = enrollments.map((e) => e.course).filter((c) => !!c);
 
     res.status(200).json({ success: true, teaching, enrolled });
   } catch (error) {
