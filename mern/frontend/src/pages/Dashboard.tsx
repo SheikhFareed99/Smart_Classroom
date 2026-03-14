@@ -59,23 +59,27 @@ function Dashboard() {
 
   const [teachingCourses, setTeachingCourses] = useState<Course[]>([]);
   const [enrolledCourses, setEnrolledCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
     async function fetchCourses() {
+      setLoading(true);
       try {
         const ures = await fetch('/auth/user', { credentials: 'include' });
-        if (!ures.ok) return;
+        if (!ures.ok) { if (mounted) setLoading(false); return; }
         const udata = await ures.json();
-        if (!udata || !udata._id) return;
+        if (!udata || !udata._id) { if (mounted) setLoading(false); return; }
         const res = await fetch(`/api/courses/user/${udata._id}`, { credentials: 'include' });
-        if (!res.ok) return;
+        if (!res.ok) { if (mounted) setLoading(false); return; }
         const data = await res.json();
         if (!mounted) return;
         setTeachingCourses(Array.isArray(data.teaching) ? data.teaching : []);
         setEnrolledCourses(Array.isArray(data.enrolled) ? data.enrolled : []);
       } catch (err) {
         // ignore for now
+      } finally {
+        if (mounted) setLoading(false);
       }
     }
     fetchCourses();
@@ -127,9 +131,16 @@ function Dashboard() {
         </div>
 
         <div className="course-grid">
-          {teachingCourses.map((course) => (
-            <CourseCard key={course.title} {...course} />
-          ))}
+          {loading ? (
+            <div className="courses-loading">
+              <span className="courses-loading-spinner" />
+              Loading courses…
+            </div>
+          ) : (
+            teachingCourses.map((course) => (
+              <CourseCard key={course.title} {...course} />
+            ))
+          )}
         </div>
 
         {/* ===== Enrolled Section ===== */}
@@ -145,24 +156,31 @@ function Dashboard() {
         </div>
 
         <div className="course-grid">
-          {enrolledCourses.map((course) => (
-            <Link to={`/enrolled/${course._id || ''}`} key={course._id || course.title} className="course-card">
-              <div className={`course-card-banner ${course.color || 'green'}`}>
-                <h3>{course.title}</h3>
-              </div>
-              <div className="course-card-body">
-                
-                <p className="course-card-section">{course.courseCode || ''} </p>
-                
-                <div className="course-card-meta">
-                  <p id="enrolled-text">enrolled</p>
-                  
-                  <div className="course-card-students">{course.inviteCode ? `Invite: ${course.inviteCode}` : ""}</div>
-                
+          {loading ? (
+            <div className="courses-loading">
+              <span className="courses-loading-spinner" />
+              Loading courses…
+            </div>
+          ) : (
+            enrolledCourses.map((course) => (
+              <Link to={`/enrolled/${course._id || ''}`} key={course._id || course.title} className="course-card">
+                <div className={`course-card-banner ${course.color || 'green'}`}>
+                  <h3>{course.title}</h3>
                 </div>
-              </div>
-            </Link>
-          ))}
+                <div className="course-card-body">
+                  
+                  <p className="course-card-section">{course.courseCode || ''} </p>
+                  
+                  <div className="course-card-meta">
+                    <p id="enrolled-text">enrolled</p>
+                    
+                    <div className="course-card-students">{course.inviteCode ? `Invite: ${course.inviteCode}` : ""}</div>
+                  
+                  </div>
+                </div>
+              </Link>
+            ))
+          )}
         </div>
 
       </main>
