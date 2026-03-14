@@ -10,6 +10,7 @@ import cors       from "cors";
 import Channel from "./models/Channel";
 import Session from "./models/Session";
 import channelRoutes from "./routes/Channels";
+import { registerSignalingHandlers } from "./sockets/signaling";
 
 const app    = express();
 const server = http.createServer(app);
@@ -39,11 +40,12 @@ mongoose
   .then(() => console.log("[voice_service] MongoDB connected"))
   .catch((err) => console.error("[voice_service] MongoDB error:", err));
 
+// ── Socket.io ─────────────────────────────────────────────
+// Pass both io and socket to the signaling handler so it can
+// emit to specific rooms and specific socket IDs.
 io.on("connection", (socket) => {
   console.log(`[socket] connected: ${socket.id}`);
-  socket.on("disconnect", () => {
-    console.log(`[socket] disconnected: ${socket.id}`);
-  });
+  registerSignalingHandlers(io, socket);
 });
 
 const PORT = process.env.PORT || 4001;
