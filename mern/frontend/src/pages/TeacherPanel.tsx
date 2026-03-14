@@ -22,8 +22,12 @@ export default function TeacherPanel() {
   const [teaching, setTeaching] = useState<Course[]>([]);
   const [enrolled, setEnrolled] = useState<Course[]>([]);
 
+
+
   const activeCount = (teaching.filter((c) => !c.isArchived).length);
-  
+//   for each course, we can calculate the number of active students by looking at the length of the enrollments array (after filtering out archived courses). However, since we don't have the enrollments data in this component, we'll just display the count of active courses for now. In a real implementation, we would likely need to fetch the enrollments data for each course to get the student count, or have that data included in the course object from the backend.
+ 
+  const activeStudents = enrolled.length;
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -201,7 +205,7 @@ export default function TeacherPanel() {
             <div className="stat-icon" style={{ background: "var(--accent-bg)", color: "var(--accent)" }}>
               <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/></svg>
             </div>
-            <div className="stat-value">—</div>
+            <div className="stat-value">{loading ? "…" : activeStudents ? activeStudents : 0}</div>
             <div className="stat-label">Total Students</div>
           </div>
 
