@@ -1,19 +1,17 @@
-import Course from "../models/course.model";
-import { IEnrollment } from "../models/course_subdocuments/enrollment.subdoc";
+import Enrollment, { IEnrollment } from "../models/enrollment.model";
 import { Types } from "mongoose";
-
-// Note: Enrollments are embedded subdocuments in the Course model
 
 // Check if student is enrolled in a course
 export const isStudentEnrolled = async (
   courseId: string,
   studentId: string
 ): Promise<boolean> => {
-  const course = await Course.findOne({
-    _id: courseId,
-    "enrollments.student": studentId,
+  const enrollment = await Enrollment.findOne({
+    course: courseId,
+    student: studentId,
+    status: "active",
   });
-  return !!course;
+  return !!enrollment;
 };
 
 // Enroll student in course
@@ -21,18 +19,23 @@ export const enrollStudent = async (
   courseId: string,
   studentId: string
 ): Promise<IEnrollment> => {
-  const enrollment: IEnrollment = {
-    student: new Types.ObjectId(studentId),
-    enrolledAt: new Date(),
-    status: "active",
-  };
-
-  await Course.findByIdAndUpdate(courseId, {
-    $push: { enrollments: enrollment },
-  });
+  const enrollment = await Enrollment.findOneAndUpdate(
+    { course: courseId, student: studentId },
+    {
+      $set: {
+        status: "active",
+        enrolledAt: new Date(),
+      },
+      $setOnInsert: {
+        course: new Types.ObjectId(courseId),
+        student: new Types.ObjectId(studentId),
+      },
+    },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
 
   console.log("Enrolled student:", studentId, "in course:", courseId);
-  return enrollment;
+  return enrollment as IEnrollment;
 };
 
 // Unenroll student from course (set status to dropped)
@@ -40,9 +43,9 @@ export const unenrollStudent = async (
   courseId: string,
   studentId: string
 ): Promise<boolean> => {
-  const result = await Course.findOneAndUpdate(
-    { _id: courseId, "enrollments.student": studentId },
-    { $set: { "enrollments.$.status": "dropped" } }
+  const result = await Enrollment.findOneAndUpdate(
+    { course: courseId, student: studentId },
+    { $set: { status: "dropped" } }
   );
   return !!result;
 };
@@ -52,28 +55,28 @@ export const removeEnrollment = async (
   courseId: string,
   studentId: string
 ): Promise<boolean> => {
-  const result = await Course.findByIdAndUpdate(courseId, {
-    $pull: { enrollments: { student: studentId } },
-  });
-  return !!result;
+  const result = await Enrollment.deleteOne({ course: courseId, student: studentId });
+  return result.deletedCount > 0;
 };
 
 // Get all enrollments for a course
 export const getCourseEnrollments = async (
   courseId: string
 ): Promise<IEnrollment[]> => {
-  const course = await Course.findById(courseId)
-    .select("enrollments")
-    .populate("enrollments.student", "name email");
-
-  return (course as any)?.enrollments || [];
+  return Enrollment.find({ course: courseId })
+    .populate("student", "name email")
+    .sort({ enrolledAt: -1 });
 };
 
 // Get all courses a student is enrolled in
 export const getStudentEnrollments = async (studentId: string) => {
-  return Course.find({ "enrollments.student": studentId })
-    .select("title courseCode instructor")
-    .populate("instructor", "name email");
+  return Enrollment.find({ student: studentId, status: "active" })
+    .populate({
+      path: "course",
+      select: "title courseCode instructor",
+      populate: { path: "instructor", select: "name email" },
+    })
+    .sort({ enrolledAt: -1 });
 };
 
 // Get enrollment status
@@ -81,12 +84,10 @@ export const getEnrollmentStatus = async (
   courseId: string,
   studentId: string
 ): Promise<IEnrollment["status"] | null> => {
-  const course = await Course.findOne(
-    { _id: courseId, "enrollments.student": studentId },
-    { "enrollments.$": 1 }
-  );
+  const enrollment = await Enrollment.findOne({ course: courseId, student: studentId })
+    .select("status");
 
-  return (course as any)?.enrollments?.[0]?.status || null;
+  return enrollment?.status || null;
 };
 
 // Update enrollment status
@@ -95,19 +96,20 @@ export const updateEnrollmentStatus = async (
   studentId: string,
   status: IEnrollment["status"]
 ): Promise<boolean> => {
-  const result = await Course.findOneAndUpdate(
-    { _id: courseId, "enrollments.student": studentId },
-    { $set: { "enrollments.$.status": status } }
+  const result = await Enrollment.findOneAndUpdate(
+    { course: courseId, student: studentId },
+    { $set: { status } }
   );
   return !!result;
 };
 
 // Count active enrollments in a course
 export const countActiveEnrollments = async (courseId: string): Promise<number> => {
-  const course = await Course.findById(courseId).select("enrollments");
-  if (!course) return 0;
+  return Enrollment.countDocuments({ course: courseId, status: "active" });
+};
 
-  return ((course as any).enrollments || []).filter(
-    (e: IEnrollment) => e.status === "active"
-  ).length;
+// Remove all enrollments for a course (used when deleting a course)
+export const removeAllCourseEnrollments = async (courseId: string): Promise<number> => {
+  const result = await Enrollment.deleteMany({ course: courseId });
+  return result.deletedCount;
 };
