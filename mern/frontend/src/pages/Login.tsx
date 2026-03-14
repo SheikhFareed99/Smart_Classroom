@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import "./Login.css";
-import { ThemeProvider } from "../components/ThemeToggle";
 import ThemeToggle from "../components/ThemeToggle";
 
 function Login() {
@@ -32,7 +31,7 @@ function Login() {
   }
 
   return (
-    <ThemeProvider>
+    <>
       {/*dark mode toggle button*/}
       <ThemeToggle className="login-toggle" />
 
@@ -152,7 +151,7 @@ function Login() {
 
         </div>
       </div>
-    </ThemeProvider>
+    </>
   );
 }
 
