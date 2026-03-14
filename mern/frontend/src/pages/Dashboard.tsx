@@ -1,32 +1,50 @@
-import { useState } from "react";
+
 import "./Dashboard.css";
-import { ThemeProvider } from "../components/ThemeToggle";
-import Navbar from "../components/Navbar";
-import Sidebar from "../components/Sidebar";
+import JoinCourse from "../components/JoinCourse";
+import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+
+type Course = {
+  _id?: string;
+  title: string;
+  courseCode?: string;
+  inviteCode?: string;
+  students?: number;
+  color?: string;
+  badge?: string;
+};
 
 // A single course card — keeps things simple and readable
-function CourseCard({ title, code, students, color, badge }: {
+function CourseCard({ title, code, courseCode, students, color, badge }: {
   title: string;
-  code: string;
-  students: number;
-  color: string;
-  badge: string;
+  code?: string;
+  courseCode?: string;
+  students?: number;
+  color?: string;
+  badge?: string;
 }) {
+  const displayCode = code || courseCode || '';
   return (
     <a href="#" className="course-card">
-      <div className={`course-card-banner ${color}`}>
+      <div className={`course-card-banner ${color || 'blue'}`}>
         <h3>{title}</h3>
       </div>
       <div className="course-card-body">
-        <p className="course-card-section">{code}</p>
+        
+        <p className="course-card-section">{displayCode}</p>
         <div className="course-card-meta">
           <div className="course-card-students">
             <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
               <circle cx="9" cy="7" r="4" />
             </svg>
+            
             {students} students
+
           </div>
+          <p id="active-text">
+          active
+          </p>
           <span className={`badge badge-${badge === "Active" ? "primary" : "accent"}`}>
             {badge}
           </span>
@@ -38,36 +56,52 @@ function CourseCard({ title, code, students, color, badge }: {
 
 function Dashboard() {
   // Sidebar open/close state (for mobile)
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  function toggleSidebar() {
-    setSidebarOpen((prev) => !prev);
-  }
+  const [teachingCourses, setTeachingCourses] = useState<Course[]>([]);
+  const [enrolledCourses, setEnrolledCourses] = useState<Course[]>([]);
 
-  // Teaching courses data
-  const teachingCourses = [
-    { title: "Artificial Intelligence", code: "CS-401 · Section A · Fall 2026", students: 42, color: "blue", badge: "Active" },
-    { title: "Machine Learning", code: "CS-471 · Section B · Fall 2026", students: 38, color: "green", badge: "Active" },
-    { title: "Data Structures", code: "CS-201 · Section A · Fall 2026", students: 55, color: "purple", badge: "Active" },
-  ];
-
-  // Enrolled courses data
-  const enrolledCourses = [
-    { title: "Human Computer Interaction", code: "CS-312 · Section C · Fall 2026", students: 35, color: "orange", badge: "Enrolled" },
-    { title: "Natural Language Processing", code: "CS-482 · Section A · Fall 2026", students: 30, color: "pink", badge: "Enrolled" },
-    { title: "Computer Vision", code: "CS-491 · Section B · Fall 2026", students: 28, color: "teal", badge: "Enrolled" },
-    { title: "Deep Learning", code: "CS-495 · Section A · Fall 2026", students: 33, color: "indigo", badge: "Enrolled" },
-  ];
+  useEffect(() => {
+    let mounted = true;
+    async function fetchCourses() {
+      try {
+        const ures = await fetch('/auth/user', { credentials: 'include' });
+        if (!ures.ok) return;
+        const udata = await ures.json();
+        if (!udata || !udata._id) return;
+        const res = await fetch(`/api/courses/user/${udata._id}`, { credentials: 'include' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!mounted) return;
+        setTeachingCourses(Array.isArray(data.teaching) ? data.teaching : []);
+        setEnrolledCourses(Array.isArray(data.enrolled) ? data.enrolled : []);
+      } catch (err) {
+        // ignore for now
+      }
+    }
+    fetchCourses();
+    return () => { mounted = false; };
+  }, []);
 
   return (
-    <ThemeProvider>
-      {/* Top navigation bar */}
-      <Navbar onMenuToggle={toggleSidebar} />
+   <>
+   <JoinCourse onJoined={async () => {
+     // refresh courses after join
+     try {
+       const ures = await fetch('/auth/user', { credentials: 'include' });
+       if (!ures.ok) return;
+       const udata = await ures.json();
+       if (!udata || !udata._id) return;
+       const res = await fetch(`/api/courses/user/${udata._id}`, { credentials: 'include' });
+       if (!res.ok) return;
+       const data = await res.json();
+       setTeachingCourses(Array.isArray(data.teaching) ? data.teaching : []);
+       setEnrolledCourses(Array.isArray(data.enrolled) ? data.enrolled : []);
+     } catch (err) {
+       // ignore
+     }
+   }} />
 
-      {/* Left sidebar */}
-      <Sidebar isOpen={sidebarOpen} />
-
-      {/* Main content area */}
+      
       <main className="main-content">
 
         {/* Page header */}
@@ -112,12 +146,27 @@ function Dashboard() {
 
         <div className="course-grid">
           {enrolledCourses.map((course) => (
-            <CourseCard key={course.title} {...course} />
+            <Link to={`/enrolled/${course._id || ''}`} key={course._id || course.title} className="course-card">
+              <div className={`course-card-banner ${course.color || 'green'}`}>
+                <h3>{course.title}</h3>
+              </div>
+              <div className="course-card-body">
+                
+                <p className="course-card-section">{course.courseCode || ''} </p>
+                
+                <div className="course-card-meta">
+                  <p id="enrolled-text">enrolled</p>
+                  
+                  <div className="course-card-students">{course.inviteCode ? `Invite: ${course.inviteCode}` : ""}</div>
+                
+                </div>
+              </div>
+            </Link>
           ))}
         </div>
 
       </main>
-    </ThemeProvider>
+    </>
   );
 }
 

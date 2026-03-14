@@ -85,6 +85,42 @@ export const deleteCourse = async (req: Request, res: Response) => {
   }
 };
 
+// POST /api/courses/:id/leave
+export const leaveCourse = async (req: Request, res: Response) => {
+  try {
+    const courseId = String(req.params.id);
+    const { studentId } = req.body;
+
+    const course = await CourseService.findCourseById(courseId);
+    if (!course) return res.status(404).json({ success: false, message: "Course not found" });
+
+    const result = await EnrollmentService.unenrollStudent(courseId, studentId);
+    if (!result) return res.status(400).json({ success: false, message: "Not enrolled or already dropped" });
+
+    res.status(200).json({ success: true, message: "Left course" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Failed to leave course", error });
+  }
+};
+
+// DELETE /api/courses/:id/students/:studentId
+export const removeStudentFromCourse = async (req: Request, res: Response) => {
+  try {
+    const courseId = String(req.params.id);
+    const studentId = String(req.params.studentId);
+
+    const course = await CourseService.findCourseById(courseId);
+    if (!course) return res.status(404).json({ success: false, message: "Course not found" });
+
+    const removed = await EnrollmentService.removeEnrollment(courseId, studentId);
+    if (!removed) return res.status(400).json({ success: false, message: "Student not found in course" });
+
+    res.status(200).json({ success: true, message: "Student removed" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Failed to remove student", error });
+  }
+};
+
 // GET /api/courses/user/:userId
 export const getMyCourses = async (req: Request, res: Response) => {
   try {

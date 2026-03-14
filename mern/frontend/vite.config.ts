@@ -20,8 +20,10 @@ export default defineConfig({
         rewrite:      (path) => path.replace(/^\/voice/, ''),
         ws:           true,   // ← required for Socket.io WebSocket upgrade
       },
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
     },
   },
-
-
 })

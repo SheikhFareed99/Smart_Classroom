@@ -33,7 +33,7 @@
 
 /*---------- dark mode button position ----------*/
 .signup-toggle {
-  top: auto;
+  top: 20px;
   bottom: 20px;
   left: auto;
   right: 20px;
