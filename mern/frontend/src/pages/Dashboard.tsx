@@ -164,11 +164,21 @@ function Dashboard() {
           ) : (
             enrolledCourses.map((course) => (
               <Link to={`/enrolled/${course._id || ''}`} key={course._id || course.title} className="course-card">
-                <div className={`course-card-banner ${course.color || 'green'}`}>
+                <div className={`course-card-banner ${course.color || ('purple')}`}>
                   <h3>{course.title}</h3>
                 </div>
                 <div className="course-card-body">
-                  
+
+                  <svg
+      className="classroom-logo"
+      width="32"
+      height="32"
+      viewBox="0 0 64 64"
+      fill="white"
+    >
+      <path d="M4 12h56v28H4zM8 16v20h48V16zM12 44h40v4H12zM20 48h24v4H20z"/>
+      <path d="M16 22h32v4H16zM16 28h20v4H16z"/>
+    </svg>
                   <p className="course-card-section">{course.courseCode || ''} </p>
                   
                   <div className="course-card-meta">
