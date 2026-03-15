@@ -41,12 +41,12 @@ interface ScheduleEvent {
 const CARD_COLORS = ["orange", "blue", "purple", "green", "pink"] as const;
 
 const TIMETABLE_ROWS = [
-  { time: "8:00 AM",  mon: { label: "AI (CS-401)", color: "" },    tue: null,                                wed: { label: "AI (CS-401)", color: "" },    thu: null,                                  fri: { label: "AI Lab", color: "" }         },
-  { time: "9:30 AM",  mon: null,                                    tue: { label: "HCI (CS-312)", color: "green" },  wed: null,                            thu: { label: "HCI (CS-312)", color: "green" },  fri: null                               },
-  { time: "11:00 AM", mon: { label: "NLP (CS-482)", color: "purple" }, tue: null,                           wed: { label: "NLP (CS-482)", color: "purple" }, thu: null,                                  fri: { label: "NLP Lab", color: "purple" }  },
-  { time: "12:30 PM", mon: null, tue: null, wed: null, thu: null, fri: null, isLunch: true                                                                                                                                                                },
-  { time: "2:00 PM",  mon: null,                                    tue: { label: "CV (CS-491)", color: "orange" },  wed: null,                            thu: { label: "CV (CS-491)", color: "orange" },  fri: null                               },
-  { time: "3:30 PM",  mon: { label: "CV Lab", color: "orange" },   tue: null,                                wed: null,                                    thu: null,                                  fri: null                                   },
+  { time: "8:00 AM", mon: { label: "AI (CS-401)", color: "" }, tue: null, wed: { label: "AI (CS-401)", color: "" }, thu: null, fri: { label: "AI Lab", color: "" } },
+  { time: "9:30 AM", mon: null, tue: { label: "HCI (CS-312)", color: "green" }, wed: null, thu: { label: "HCI (CS-312)", color: "green" }, fri: null },
+  { time: "11:00 AM", mon: { label: "NLP (CS-482)", color: "purple" }, tue: null, wed: { label: "NLP (CS-482)", color: "purple" }, thu: null, fri: { label: "NLP Lab", color: "purple" } },
+  { time: "12:30 PM", mon: null, tue: null, wed: null, thu: null, fri: null, isLunch: true },
+  { time: "2:00 PM", mon: null, tue: { label: "CV (CS-491)", color: "orange" }, wed: null, thu: { label: "CV (CS-491)", color: "orange" }, fri: null },
+  { time: "3:30 PM", mon: { label: "CV Lab", color: "orange" }, tue: null, wed: null, thu: null, fri: null },
 ] as const;
 
 const DEFAULT_NOTES: StickyNote[] = [
@@ -58,27 +58,27 @@ const DEFAULT_NOTES: StickyNote[] = [
 ];
 
 const DEFAULT_TODOS: TodoItem[] = [
-  { id: 1, text: "Read HCI Chapter 1-2",              completed: true  },
-  { id: 2, text: "Complete AI Assignment 1",           completed: false },
-  { id: 3, text: "Study for NLP quiz",                 completed: false },
+  { id: 1, text: "Read HCI Chapter 1-2", completed: true },
+  { id: 2, text: "Complete AI Assignment 1", completed: false },
+  { id: 3, text: "Study for NLP quiz", completed: false },
   { id: 4, text: "Prepare wireframes for HCI project", completed: false },
   { id: 5, text: "Review Deep Learning lecture notes", completed: false },
 ];
 
 const SCHEDULE_EVENTS: ScheduleEvent[] = [
-  { date: "Feb 15, 2026 · 8:00 AM",  title: "AI Lecture – Game Trees",  desc: "Room 301, CS Building",                          variant: "default" },
-  { date: "Feb 15, 2026 · 9:30 AM",  title: "HCI Lab Session",          desc: "Lab 205, Design Wing",                           variant: "accent"  },
-  { date: "Feb 18, 2026 · 11:59 PM", title: "NLP Quiz 2 Deadline",      desc: "Online submission via portal",                   variant: "warning" },
-  { date: "Feb 28, 2026 · 11:59 PM", title: "AI Assignment 1 Due",      desc: "Search Algorithms — Submit online",              variant: "danger"  },
-  { date: "Mar 1, 2026 · 11:59 PM",  title: "HCI Assignment 1 Due",     desc: "Heuristic Evaluation — PDF only",                variant: "default" },
-  { date: "Mar 5, 2026 · 2:00 PM",   title: "CV Guest Lecture",         desc: "Auditorium — Dr. Li Wei on Object Detection",    variant: "accent"  },
+  { date: "Feb 15, 2026 · 8:00 AM", title: "AI Lecture – Game Trees", desc: "Room 301, CS Building", variant: "default" },
+  { date: "Feb 15, 2026 · 9:30 AM", title: "HCI Lab Session", desc: "Lab 205, Design Wing", variant: "accent" },
+  { date: "Feb 18, 2026 · 11:59 PM", title: "NLP Quiz 2 Deadline", desc: "Online submission via portal", variant: "warning" },
+  { date: "Feb 28, 2026 · 11:59 PM", title: "AI Assignment 1 Due", desc: "Search Algorithms — Submit online", variant: "danger" },
+  { date: "Mar 1, 2026 · 11:59 PM", title: "HCI Assignment 1 Due", desc: "Heuristic Evaluation — PDF only", variant: "default" },
+  { date: "Mar 5, 2026 · 2:00 PM", title: "CV Guest Lecture", desc: "Auditorium — Dr. Li Wei on Object Detection", variant: "accent" },
 ];
 
 const NOTE_COLORS: { color: NoteColor; label: string }[] = [
   { color: "#FEF9C3", label: "Yellow" },
-  { color: "#DBEAFE", label: "Blue"   },
-  { color: "#DCFCE7", label: "Green"  },
-  { color: "#FCE7F3", label: "Pink"   },
+  { color: "#DBEAFE", label: "Blue" },
+  { color: "#DCFCE7", label: "Green" },
+  { color: "#FCE7F3", label: "Pink" },
   { color: "#F3E8FF", label: "Purple" },
 ];
 
@@ -409,7 +409,7 @@ function Jamboard() {
                 key={i}
                 className="sticky-note"
                 style={{ background: note.color }}
-                onClick={() => {/* open note editor */}}
+                onClick={() => {/* open note editor */ }}
               >
                 <div className="sticky-note-header">
                   <span className="sticky-note-date">{note.date}</span>

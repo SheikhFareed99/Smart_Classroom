@@ -21,43 +21,43 @@ export interface ICourse extends Document {
 
 const CourseSchema = new Schema<ICourse>(
   {
-    title: { 
-      type: String, 
-      required: true, 
-      trim: true 
-    },
-    description: { 
-      type: String, 
-      trim: true 
-    },
-    courseCode: { 
-      type: String, 
-      required: true, 
-      unique: true, 
-      uppercase: true 
-    },
-    instructor: { 
-      type: Schema.Types.ObjectId, 
-      ref: "User", 
-      required: true 
-    },
-    inviteCode: { 
+    title: {
       type: String,
-      required: true, 
-      unique: true 
+      required: true,
+      trim: true
     },
-    isArchived: { 
-      type: Boolean, 
-      default: false 
+    description: {
+      type: String,
+      trim: true
+    },
+    courseCode: {
+      type: String,
+      required: true,
+      unique: true,
+      uppercase: true
+    },
+    instructor: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true
+    },
+    inviteCode: {
+      type: String,
+      required: true,
+      unique: true
+    },
+    isArchived: {
+      type: Boolean,
+      default: false
     },
     settings: {
-      allowStudentQuestions: { 
-        type: Boolean, 
-        default: true 
+      allowStudentQuestions: {
+        type: Boolean,
+        default: true
       },
-      allowStudentComments: { 
-        type: Boolean, 
-        default: true 
+      allowStudentComments: {
+        type: Boolean,
+        default: true
       },
 
       // commenting this out since pomodoro timers r user specific n not course specific

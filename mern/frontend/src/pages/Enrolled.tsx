@@ -197,7 +197,7 @@ function StudentCourse({
 
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [leaveMessage, setLeaveMessage] = useState<string | null>(null);
-  const [leaveMsgType, setLeaveMsgType] = useState<'success'|'error'|null>(null);
+  const [leaveMsgType, setLeaveMsgType] = useState<'success' | 'error' | null>(null);
 
   // Auto-scroll chat to bottom
   useEffect(() => {
@@ -291,18 +291,18 @@ function StudentCourse({
       <main className="main-content">
         {/* ── Course Banner ── */}
         <div className="course-banner" style={{ background: bannerGradient }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-              <div>
-                <h1>{courseData?.title || courseName}</h1>
-                <p>
-                  {courseData?.courseCode || courseCode} · {section} · {term} · {courseData?.instructor?.name || professor}
-                </p>
-                <span className="course-code">Code: {courseData?._id || courseId}</span>
-              </div>
-              <div>
-                <button className="btn btn-outline" onClick={() => setShowLeaveConfirm(true)}>Unenroll</button>
-              </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+            <div>
+              <h1>{courseData?.title || courseName}</h1>
+              <p>
+                {courseData?.courseCode || courseCode} · {section} · {term} · {courseData?.instructor?.name || professor}
+              </p>
+              <span className="course-code">Code: {courseData?._id || courseId}</span>
             </div>
+            <div>
+              <button className="btn btn-outline" onClick={() => setShowLeaveConfirm(true)}>Unenroll</button>
+            </div>
+          </div>
           {leaveMessage && (
             <div style={{ marginTop: 12 }}>
               <div className={`badge ${leaveMsgType === 'success' ? 'badge-accent' : 'badge-danger'}`}>{leaveMessage}</div>

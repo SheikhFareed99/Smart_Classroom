@@ -21,46 +21,46 @@ export default function TeacherPanel() {
 
 
   const activeCount = (teaching.filter((c) => !c.isArchived).length);
-//   for each course, we can calculate the number of active students by looking at the length of the enrollments array (after filtering out archived courses). However, since we don't have the enrollments data in this component, we'll just display the count of active courses for now. In a real implementation, we would likely need to fetch the enrollments data for each course to get the student count, or have that data included in the course object from the backend.
- 
+  //   for each course, we can calculate the number of active students by looking at the length of the enrollments array (after filtering out archived courses). However, since we don't have the enrollments data in this component, we'll just display the count of active courses for now. In a real implementation, we would likely need to fetch the enrollments data for each course to get the student count, or have that data included in the course object from the backend.
+
   const activeStudents = enrolled.length;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
 
 
-    useEffect(() => {
-        let mounted = true;
-        const fetchCourses = async () => {
-            setLoading(true);
-            setError(null);
-            try {
-              if (!currentUser?._id) throw new Error("Not authenticated");
+  useEffect(() => {
+    let mounted = true;
+    const fetchCourses = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        if (!currentUser?._id) throw new Error("Not authenticated");
 
-              const res = await apiFetch(`/api/courses/user/${currentUser._id}`);
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const data = await res.json();
-                if (mounted) {
-                    setTeaching(Array.isArray(data.teaching) ? data.teaching : []);
-                    setEnrolled(Array.isArray(data.enrolled) ? data.enrolled : []);
-                }
-            } catch (err: any) {
-                if (mounted) setError(err.message || "Failed to load courses");
-            } finally {
-                if (mounted) setLoading(false);
-            }
-        };
+        const res = await apiFetch(`/api/courses/user/${currentUser._id}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (mounted) {
+          setTeaching(Array.isArray(data.teaching) ? data.teaching : []);
+          setEnrolled(Array.isArray(data.enrolled) ? data.enrolled : []);
+        }
+      } catch (err: any) {
+        if (mounted) setError(err.message || "Failed to load courses");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
 
-        fetchCourses();
-        return () => {
-            mounted = false;
-        };
-    }, [currentUser]);
+    fetchCourses();
+    return () => {
+      mounted = false;
+    };
+  }, [currentUser]);
 
   // Create course handler
   async function handleCreateCourse(e: React.FormEvent) {
     e.preventDefault();
-    
+
     if (!currentUser) return alert("Not authenticated");
     const titleInput = (document.getElementById("create-title") as HTMLInputElement)?.value;
     const codeInput = (document.getElementById("create-code") as HTMLInputElement)?.value;
@@ -172,7 +172,7 @@ export default function TeacherPanel() {
         <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-icon" style={{ background: "var(--primary-bg)", color: "var(--primary)" }}>
-              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/></svg>
+              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /></svg>
             </div>
             <div className="stat-value">{loading ? "…" : activeCount ? activeCount : 0}</div>
             <div className="stat-label">Active Courses</div>
@@ -180,7 +180,7 @@ export default function TeacherPanel() {
 
           <div className="stat-card">
             <div className="stat-icon" style={{ background: "var(--accent-bg)", color: "var(--accent)" }}>
-              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/></svg>
+              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /></svg>
             </div>
             <div className="stat-value">{loading ? "…" : activeStudents ? activeStudents : 0}</div>
             <div className="stat-label">Total Students</div>
@@ -188,7 +188,7 @@ export default function TeacherPanel() {
 
           <div className="stat-card">
             <div className="stat-icon" style={{ background: "var(--warning-bg)", color: "var(--warning)" }}>
-              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /></svg>
             </div>
             <div className="stat-value">—</div>
             <div className="stat-label">Assignments</div>
@@ -196,7 +196,7 @@ export default function TeacherPanel() {
 
           <div className="stat-card">
             <div className="stat-icon" style={{ background: "var(--danger-bg)", color: "var(--danger)" }}>
-              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
             </div>
             <div className="stat-value">—</div>
             <div className="stat-label">Pending Reviews</div>
@@ -205,7 +205,7 @@ export default function TeacherPanel() {
 
         <div className="section-header">
           <h2 className="section-title">
-            <svg className="icon" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            <svg className="icon" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
             Quick Actions
           </h2>
         </div>
@@ -213,7 +213,7 @@ export default function TeacherPanel() {
         <div className="action-grid mb-32">
           <div className="action-card" onClick={() => document.getElementById('createClassModal')?.classList.add('active')}>
             <div className="action-card-icon blue">
-              <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+              <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg>
             </div>
             <h3>Create Class</h3>
             <p>Set up a new course with sections and students</p>
@@ -221,7 +221,7 @@ export default function TeacherPanel() {
 
           <div className="action-card" onClick={() => document.getElementById('generateQuestionsModal')?.classList.add('active')}>
             <div className="action-card-icon purple">
-              <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
             </div>
             <h3>Generate Questions</h3>
             <p>Use AI to auto-generate quiz and exam questions</p>
@@ -229,7 +229,7 @@ export default function TeacherPanel() {
 
           <div className="action-card" onClick={() => document.getElementById('generateSummaryModal')?.classList.add('active')}>
             <div className="action-card-icon blue">
-              <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>
+              <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><line x1="17" y1="10" x2="3" y2="10" /><line x1="21" y1="6" x2="3" y2="6" /><line x1="21" y1="14" x2="3" y2="14" /><line x1="17" y1="18" x2="3" y2="18" /></svg>
             </div>
             <h3>Generate Summary</h3>
             <p>AI-powered summaries from lecture notes and materials</p>
@@ -238,7 +238,7 @@ export default function TeacherPanel() {
 
         <div className="section-header">
           <h2 className="section-title">
-            <svg className="icon" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/></svg>
+            <svg className="icon" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /></svg>
             My Courses
           </h2>
         </div>
@@ -276,7 +276,7 @@ export default function TeacherPanel() {
           ))}
         </div>
 
-   
+
 
       </main>
       {/* Modals (keep forms empty; submission is a no-op) */}
@@ -381,7 +381,7 @@ export default function TeacherPanel() {
             <button className="btn btn-primary">Generate Summary</button>
           </div>
         </div>
-        </div>
-      </>
-    );
+      </div>
+    </>
+  );
 }
