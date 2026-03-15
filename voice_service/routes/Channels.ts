@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import Channel from "../models/Channel";
 import auth = require("../middleware/auth");
+import { getParticipantsInChannel } from "../sockets/participantstore";
 
 const { requireAuth } = auth;
 
@@ -82,5 +83,21 @@ router.delete("/:id", requireAuth, async (req: Request, res: Response) => {
     return res.status(500).json({ message: err.message });
   }
 });
+
+// ── GET /api/channels/:id/participants ────────────────────
+// Returns live participant list from memory store.
+// Faster than querying MongoDB — reflects real-time state.
+router.get("/:id/participants", requireAuth, (req: Request, res: Response) => {
+  const { id } = req.params;
+  const channelId = Array.isArray(id) ? id[0] : id;
+
+  if (!channelId) {
+    return res.status(400).json({ message: "channel id is required" });
+  }
+
+  const participants = getParticipantsInChannel(channelId);
+  return res.status(200).json({ participants, count: participants.length });
+});
+
 
 export default router;
