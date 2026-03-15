@@ -99,13 +99,13 @@ passport.use(
 
 // serialize is used to decide what to store in the session
 passport.serializeUser((user: any, done) => {
-    done(null, user);
+  done(null, user?._id?.toString());
 });
 
 // deserialize the whole profile for now
 passport.deserializeUser(async (id: string, done) => {
   try {
-    const user = await User.findById(id);
+    const user = await User.findById(id).select("_id name email createdAt updatedAt");
     done(null, user);
   } catch (err) {
     done(err, null);

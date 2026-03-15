@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { apiFetch } from "../lib/api";
 
 import "./Enrolled.css";
 
@@ -208,7 +209,7 @@ function StudentCourse({
     async function loadCourse() {
       if (!id) return;
       try {
-        const res = await fetch(`/api/courses/${id}`, { credentials: 'include' });
+        const res = await apiFetch(`/api/courses/${id}`);
         if (!res.ok) return;
         const data = await res.json();
         if (!mounted) return;
@@ -240,14 +241,10 @@ function StudentCourse({
     if (!id) return;
     setLeaveMessage(null);
     try {
-      const ures = await fetch('/auth/user', { credentials: 'include' });
-      if (!ures.ok) throw new Error('Not authenticated');
-      const udata = await ures.json();
-      const res = await fetch(`/api/courses/${id}/leave`, {
+      const res = await apiFetch(`/api/courses/${id}/leave`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ studentId: udata._id }),
+        body: JSON.stringify({}),
       });
       const dj = await res.json();
       if (!res.ok) throw new Error(dj.message || 'Failed to leave');

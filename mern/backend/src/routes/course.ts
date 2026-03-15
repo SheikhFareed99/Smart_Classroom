@@ -1,4 +1,5 @@
 import express from "express";
+import { requireAuth, requireSameUserFromParam } from "../middleware/auth.middleware";
 import {
   createCourse,
   getCourse,
@@ -11,8 +12,10 @@ import {
 
 const router = express.Router();
 
+router.use(requireAuth);
+
 router.post("/", createCourse);                // create a course
-router.get("/user/:userId", getMyCourses);     // get my courses
+router.get("/user/:userId", requireSameUserFromParam("userId"), getMyCourses);     // get my courses
 router.get("/:id", getCourse);                 // get a single course
 router.post("/join", joinCourse);              // join via invite code
 router.delete("/:id", deleteCourse);           // delete a course

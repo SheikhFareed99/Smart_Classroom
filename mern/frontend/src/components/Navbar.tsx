@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useTheme } from "./ThemeToggle";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext";
 import "./Navbar.css";
 
 type NavbarProps = {
@@ -12,6 +13,8 @@ type NavbarProps = {
 
 export default function Navbar({  user }: NavbarProps) {
   const { darkMode, toggleTheme } = useTheme();
+  const { logout } = useAuth();
+  const navigate = useNavigate();
 
   const [searchText, setSearchText] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
@@ -115,8 +118,9 @@ export default function Navbar({  user }: NavbarProps) {
             <div className="profile-menu">
               <button
                 className="profile-menu-item"
-                onClick={() => {
-                  window.location.href = "/auth/logout";
+                onClick={async () => {
+                  await logout();
+                  navigate("/");
                 }}
               >
                 Sign out

@@ -3,6 +3,8 @@ import "./Dashboard.css";
 import JoinCourse from "../components/JoinCourse";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { useAuth } from "../auth/AuthContext";
+import { apiFetch } from "../lib/api";
 
 type Course = {
   _id?: string;
@@ -56,6 +58,7 @@ function CourseCard({ title, code, courseCode, students, color, badge }: {
 
 function Dashboard() {
   // Sidebar open/close state (for mobile)
+  const { user } = useAuth();
 
   const [teachingCourses, setTeachingCourses] = useState<Course[]>([]);
   const [enrolledCourses, setEnrolledCourses] = useState<Course[]>([]);
@@ -66,11 +69,11 @@ function Dashboard() {
     async function fetchCourses() {
       setLoading(true);
       try {
-        const ures = await fetch('/auth/user', { credentials: 'include' });
-        if (!ures.ok) { if (mounted) setLoading(false); return; }
-        const udata = await ures.json();
-        if (!udata || !udata._id) { if (mounted) setLoading(false); return; }
-        const res = await fetch(`/api/courses/user/${udata._id}`, { credentials: 'include' });
+        if (!user?._id) {
+          if (mounted) setLoading(false);
+          return;
+        }
+        const res = await apiFetch(`/api/courses/user/${user._id}`);
         if (!res.ok) { if (mounted) setLoading(false); return; }
         const data = await res.json();
         if (!mounted) return;
@@ -84,18 +87,15 @@ function Dashboard() {
     }
     fetchCourses();
     return () => { mounted = false; };
-  }, []);
+  }, [user]);
 
   return (
    <>
    <JoinCourse onJoined={async () => {
      // refresh courses after join
      try {
-       const ures = await fetch('/auth/user', { credentials: 'include' });
-       if (!ures.ok) return;
-       const udata = await ures.json();
-       if (!udata || !udata._id) return;
-       const res = await fetch(`/api/courses/user/${udata._id}`, { credentials: 'include' });
+       if (!user?._id) return;
+       const res = await apiFetch(`/api/courses/user/${user._id}`);
        if (!res.ok) return;
        const data = await res.json();
        setTeachingCourses(Array.isArray(data.teaching) ? data.teaching : []);
