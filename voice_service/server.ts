@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
 dotenv.config();
+import iceRoutes      from "./routes/ice";       
 
 import express    from "express";
 import http       from "http";
@@ -34,6 +35,7 @@ app.get("/health", (req, res) => {
 });
 
 app.use("/api/channels", channelRoutes);
+app.use("/api/ice-config", iceRoutes);             
 
 mongoose
   .connect(process.env.MONGO_URI as string)
