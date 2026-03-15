@@ -5,8 +5,10 @@ import {
   login,
   googleCallback,
   getCurrentUser,
+  getCsrfToken,
   logout,
 } from "../controllers/auth.controller";
+import { requireAuth } from "../middleware/auth.middleware";
 
 // router for authentication routes
 
@@ -15,6 +17,7 @@ const router = Router();
 // local authentication routes
 router.post("/signup", signup);
 router.post("/login", login);
+router.get("/csrf-token", getCsrfToken);
 
 // google oauth routes
 router.get(
@@ -29,7 +32,7 @@ router.get(
 );
 
 // session routes
-router.get("/user", getCurrentUser);
-router.get("/logout", logout);
+router.get("/user", requireAuth, getCurrentUser);
+router.post("/logout", requireAuth, logout);
 
 export default router;

@@ -1,5 +1,6 @@
 import React, { useState, useRef, type JSX } from "react";
 import "./JoinCourse.css";
+import { apiFetch } from "../lib/api";
 
 type Props = {
   onJoined?: () => void;
@@ -18,15 +19,10 @@ export default function JoinCourse({ onJoined }: Props): JSX.Element {
     if (!code.trim()) return;
     setLoading(true);
     try {
-      const ures = await fetch("/auth/user", { credentials: "include" });
-      if (!ures.ok) throw new Error("Not authenticated");
-      const udata = await ures.json();
-
-      const res = await fetch("/api/courses/join", {
+      const res = await apiFetch("/api/courses/join", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ inviteCode: code.trim(), studentId: udata._id }),
+        body: JSON.stringify({ inviteCode: code.trim() }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to join");

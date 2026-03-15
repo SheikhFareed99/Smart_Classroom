@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useAuth } from "../auth/AuthContext";
+import { apiFetch } from "../lib/api";
 
 import "./Dashboard.css";
 import "./TeacherPanel.css";
@@ -11,14 +13,8 @@ type Course = {
   isArchived?: boolean;
 };
 
-type User = {
-  _id: string;
-  name?: string;
-  email?: string;
-};
-
 export default function TeacherPanel() {
-  const [courses, setCourses] = useState<Course[] | null>(null);
+  const { user: currentUser } = useAuth();
   const [teaching, setTeaching] = useState<Course[]>([]);
   const [enrolled, setEnrolled] = useState<Course[]>([]);
 
@@ -28,7 +24,6 @@ export default function TeacherPanel() {
 //   for each course, we can calculate the number of active students by looking at the length of the enrollments array (after filtering out archived courses). However, since we don't have the enrollments data in this component, we'll just display the count of active courses for now. In a real implementation, we would likely need to fetch the enrollments data for each course to get the student count, or have that data included in the course object from the backend.
  
   const activeStudents = enrolled.length;
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,25 +35,14 @@ export default function TeacherPanel() {
             setLoading(true);
             setError(null);
             try {
-                let udata = currentUser;
+              if (!currentUser?._id) throw new Error("Not authenticated");
 
-                if (!udata) {
-                    const ures = await fetch("/auth/user", { credentials: "include" });
-                    if (!ures.ok) throw new Error("Not authenticated");
-                    udata = await ures.json();
-                    if (!mounted) return;
-                    setCurrentUser(udata);
-                }
-
-                if (!udata) return;
-
-                const res = await fetch(`/api/courses/user/${udata._id}`, { credentials: "include" });
+              const res = await apiFetch(`/api/courses/user/${currentUser._id}`);
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const data = await res.json();
                 if (mounted) {
                     setTeaching(Array.isArray(data.teaching) ? data.teaching : []);
                     setEnrolled(Array.isArray(data.enrolled) ? data.enrolled : []);
-                    setCourses([...(Array.isArray(data.teaching) ? data.teaching : []), ...(Array.isArray(data.enrolled) ? data.enrolled : [])]);
                 }
             } catch (err: any) {
                 if (mounted) setError(err.message || "Failed to load courses");
@@ -71,12 +55,7 @@ export default function TeacherPanel() {
         return () => {
             mounted = false;
         };
-    }, []);
-
-  // DEV: show current user debug in console
-  useEffect(() => {
-    console.log("TeacherPanel currentUser:", currentUser);
-  }, [currentUser]);
+    }, [currentUser]);
 
   // Create course handler
   async function handleCreateCourse(e: React.FormEvent) {
@@ -86,11 +65,10 @@ export default function TeacherPanel() {
     const titleInput = (document.getElementById("create-title") as HTMLInputElement)?.value;
     const codeInput = (document.getElementById("create-code") as HTMLInputElement)?.value;
     try {
-      const res = await fetch("/api/courses", {
+      const res = await apiFetch("/api/courses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ title: titleInput, courseCode: codeInput, instructorId: currentUser._id }),
+        body: JSON.stringify({ title: titleInput, courseCode: codeInput }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to create course");
@@ -108,11 +86,10 @@ export default function TeacherPanel() {
     if (!currentUser) return alert("Not authenticated");
     const code = (document.getElementById("join-code") as HTMLInputElement)?.value;
     try {
-      const res = await fetch("/api/courses/join", {
+      const res = await apiFetch("/api/courses/join", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ inviteCode: code, studentId: currentUser._id }),
+        body: JSON.stringify({ inviteCode: code }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to join");
@@ -127,7 +104,7 @@ export default function TeacherPanel() {
   async function handleDeleteCourse(courseId: string) {
     if (!confirm("Delete this course? This action cannot be undone.")) return;
     try {
-      const res = await fetch(`/api/courses/${courseId}`, { method: "DELETE", credentials: "include" });
+      const res = await apiFetch(`/api/courses/${courseId}`, { method: "DELETE" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to delete");
       window.location.reload();
@@ -140,7 +117,7 @@ export default function TeacherPanel() {
   // Manage students modal
   async function openManageStudents(courseId: string) {
     try {
-      const res = await fetch(`/api/courses/${courseId}`, { credentials: "include" });
+      const res = await apiFetch(`/api/courses/${courseId}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to load course");
       const body = document.getElementById('manage-students-body');
@@ -164,7 +141,7 @@ export default function TeacherPanel() {
           btn.onclick = async () => {
             if (!confirm('Remove this student from the course?')) return;
             try {
-              const r = await fetch(`/api/courses/${courseId}/students/${en.student._id}`, { method: 'DELETE', credentials: 'include' });
+              const r = await apiFetch(`/api/courses/${courseId}/students/${en.student._id}`, { method: 'DELETE' });
               const dj = await r.json();
               if (!r.ok) throw new Error(dj.message || 'Failed');
               // refresh modal

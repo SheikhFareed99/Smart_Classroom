@@ -1,6 +1,34 @@
 import { Request, Response, NextFunction } from "express";
 import passport from "passport";
 import { findUserByEmail, createLocalUser } from "../services/user.service";
+import { generateCsrfToken } from "../security/csrf";
+
+const sanitizeUser = (user: any) => {
+  if (!user) return null;
+  return {
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
+};
+
+const regenerateSession = (req: Request): Promise<void> =>
+  new Promise((resolve, reject) => {
+    req.session.regenerate((err) => {
+      if (err) return reject(err);
+      return resolve();
+    });
+  });
+
+const loginUser = (req: Request, user: any): Promise<void> =>
+  new Promise((resolve, reject) => {
+    req.login(user, (err) => {
+      if (err) return reject(err);
+      return resolve();
+    });
+  });
 
 // POST /api/auth/signup
 export const signup = async (req: Request, res: Response) => {
@@ -13,13 +41,12 @@ export const signup = async (req: Request, res: Response) => {
     }
 
     const newUser = await createLocalUser(name, email, password);
-
-    req.login(newUser, (err) => {
-      if (err) {
-        return res.status(500).json({ message: "Error logging in after signup" });
-      }
-      console.log("User created and logged in: ", newUser.email);
-      return res.status(201).json({ message: "User created and logged in successfully", user: newUser });
+    await regenerateSession(req);
+    await loginUser(req, newUser);
+    console.log("User created and logged in: ", newUser.email);
+    return res.status(201).json({
+      message: "User created and logged in successfully",
+      user: sanitizeUser(newUser),
     });
   } catch (err) {
     console.log("Error creating user: ", err);
@@ -40,10 +67,10 @@ export const login = (req: Request, res: Response, next: NextFunction) => {
       return res.status(401).json({ message: info.message });
     }
 
-    req.login(user, (err) => {
-      if (err) return next(err);
-      return res.json({ message: "Logged in", user });
-    });
+    regenerateSession(req)
+      .then(() => loginUser(req, user))
+      .then(() => res.json({ message: "Logged in", user: sanitizeUser(user) }))
+      .catch((sessionErr) => next(sessionErr));
   })(req, res, next);
 };
 
@@ -55,16 +82,38 @@ export const googleCallback = (req: Request, res: Response) => {
 // GET /api/auth/user
 export const getCurrentUser = (req: Request, res: Response) => {
   if (req.isAuthenticated()) {
-    res.json(req.user);
+    res.json(sanitizeUser(req.user));
   } else {
     console.log("User not authenticated");
     res.status(401).json({ message: "Not authenticated" });
   }
 };
 
-// GET /api/auth/logout
+// GET /api/auth/csrf-token
+export const getCsrfToken = (req: Request, res: Response) => {
+  (req.session as any).csrfInitialized = true;
+  req.session.save((err) => {
+    if (err) {
+      return res.status(500).json({ message: "Failed to initialize CSRF session" });
+    }
+    const token = generateCsrfToken(req, res);
+    return res.json({ csrfToken: token });
+  });
+};
+
+// POST /api/auth/logout
 export const logout = (req: Request, res: Response) => {
-  req.logout(() => {
-    res.redirect("http://localhost:5173/");
+  req.logout((err) => {
+    if (err) {
+      return res.status(500).json({ message: "Failed to logout" });
+    }
+
+    req.session.destroy((destroyErr) => {
+      if (destroyErr) {
+        return res.status(500).json({ message: "Failed to destroy session" });
+      }
+      res.clearCookie(process.env.SESSION_COOKIE_NAME || "aico.sid");
+      return res.status(200).json({ message: "Logged out" });
+    });
   });
 };

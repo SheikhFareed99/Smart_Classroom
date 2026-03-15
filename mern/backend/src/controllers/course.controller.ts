@@ -5,7 +5,13 @@ import * as EnrollmentService from "../services/enrollment.service";
 // POST /api/courses
 export const createCourse = async (req: Request, res: Response) => {
   try {
-    const { title, description, courseCode, instructorId } = req.body;
+    const { title, description, courseCode } = req.body;
+    const instructorId = String((req.user as any)?._id || "");
+
+    if (!instructorId) {
+      return res.status(401).json({ success: false, message: "Not authenticated" });
+    }
+
     const course = await CourseService.createCourse({ title, description, courseCode, instructorId });
     res.status(201).json({ success: true, course });
   } catch (error) {
@@ -39,7 +45,12 @@ export const getCourse = async (req: Request, res: Response) => {
 // POST /api/courses/join
 export const joinCourse = async (req: Request, res: Response) => {
   try {
-    const { inviteCode, studentId } = req.body;
+    const { inviteCode } = req.body;
+    const studentId = String((req.user as any)?._id || "");
+
+    if (!studentId) {
+      return res.status(401).json({ success: false, message: "Not authenticated" });
+    }
 
     const course = await CourseService.findCourseByInviteCode(inviteCode);
 
@@ -89,7 +100,11 @@ export const deleteCourse = async (req: Request, res: Response) => {
 export const leaveCourse = async (req: Request, res: Response) => {
   try {
     const courseId = String(req.params.id);
-    const { studentId } = req.body;
+    const studentId = String((req.user as any)?._id || "");
+
+    if (!studentId) {
+      return res.status(401).json({ success: false, message: "Not authenticated" });
+    }
 
     const course = await CourseService.findCourseById(courseId);
     if (!course) return res.status(404).json({ success: false, message: "Course not found" });
@@ -125,6 +140,14 @@ export const removeStudentFromCourse = async (req: Request, res: Response) => {
 export const getMyCourses = async (req: Request, res: Response) => {
   try {
     const userId = String(req.params.userId);
+     const sessionUserId = String((req.user as any)?._id || "");
+
+    if (!sessionUserId) {
+      return res.status(401).json({ success: false, message: "Not authenticated" });
+    }
+    if (sessionUserId !== userId) {
+      return res.status(403).json({ success: false, message: "Forbidden" });
+    }
 
     const teaching = await CourseService.getCoursesByInstructor(userId);
     const enrollments = await EnrollmentService.getStudentEnrollments(userId);
