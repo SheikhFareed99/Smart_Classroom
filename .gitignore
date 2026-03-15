@@ -259,6 +259,10 @@ cython_debug/
 # OS X
 .DS_Store
 
+# Keep frontend source utilities tracked even with the broad Python lib/ ignore above
+!mern/frontend/src/lib/
+!mern/frontend/src/lib/**
+
 # Windows
 Thumbs.db
 ehthumbs.db
