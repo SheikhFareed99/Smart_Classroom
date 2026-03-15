@@ -14,11 +14,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-<<<<<<< HEAD
-  transition-duration: all 2s ease;
-=======
   transition: all 0.15s ease;
->>>>>>> feature/rag-pipeline
 }
 
 .theme-toggle:hover {
