@@ -17,7 +17,8 @@ type Course = {
 };
 
 // A single course card — keeps things simple and readable
-function CourseCard({ title, code, courseCode, students, color, badge }: {
+function CourseCard({ _id, title, code, courseCode, students, color, badge }: {
+  _id?: string;
   title: string;
   code?: string;
   courseCode?: string;
@@ -27,7 +28,7 @@ function CourseCard({ title, code, courseCode, students, color, badge }: {
 }) {
   const displayCode = code || courseCode || '';
   return (
-    <a href="#" className="course-card">
+    <Link to={`/teacher-course/${_id || ''}`} className="course-card">
       <div className={`course-card-banner ${color || 'blue'}`}>
         <h3>{title}</h3>
       </div>
@@ -52,7 +53,7 @@ function CourseCard({ title, code, courseCode, students, color, badge }: {
           </span>
         </div>
       </div>
-    </a>
+    </Link>
   );
 }
 
