@@ -9,6 +9,7 @@ import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import Enrolled from "./pages/Enrolled";
 import TeacherPanel from "./pages/TeacherPanel";
+import TeacherCourse from "./pages/TeacherCourse";
 import StudentPanel from "./pages/StudentPanel";
 
 
@@ -50,6 +51,7 @@ function App() {
               <Route path="/student-panel" element={<StudentPanel />} />
               <Route path="/enrolled" element={<Enrolled />} />
               <Route path="/enrolled/:id" element={<Enrolled />} />
+              <Route path="/teacher-course/:id" element={<TeacherCourse />} />
             </Route>
           </Routes>
         </AuthProvider>

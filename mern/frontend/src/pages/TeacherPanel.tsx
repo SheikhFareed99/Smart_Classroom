@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { apiFetch } from "../lib/api";
 
@@ -15,6 +16,7 @@ type Course = {
 
 export default function TeacherPanel() {
   const { user: currentUser } = useAuth();
+  const navigate = useNavigate();
   const [teaching, setTeaching] = useState<Course[]>([]);
   const [enrolled, setEnrolled] = useState<Course[]>([]);
 
@@ -259,7 +261,11 @@ export default function TeacherPanel() {
         <div className="course-grid">
           {teaching.map((c) => (
             <div key={c._id} className="course-card">
-              <div className={`course-card-banner blue`}>
+              <div
+                className={`course-card-banner blue`}
+                style={{ cursor: "pointer" }}
+                onClick={() => navigate(`/teacher-course/${c._id}`)}
+              >
                 <h3>{c.title}</h3>
               </div>
               <div className="course-card-body">
