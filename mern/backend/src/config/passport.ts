@@ -3,7 +3,7 @@ import { Strategy as GoogleStrategy, Profile } from "passport-google-oauth20";
 import { Strategy as localStrategy } from "passport-local";
 import dotenv from "dotenv";
 import bcrypt from "bcrypt";
-import User from "../models/users"; 
+import User from "../models/users.model"; 
 
 
 dotenv.config();
