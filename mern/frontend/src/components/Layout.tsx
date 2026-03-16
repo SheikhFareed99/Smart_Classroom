@@ -10,7 +10,7 @@ export default function Layout() {
   return (
     <>
       <Navbar user={user} />
-      <Sidebar isOpen={false} />
+      <Sidebar isOpen={false} user={user} />
       <main>
         <Outlet />
       </main>

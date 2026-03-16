@@ -1,17 +1,15 @@
-// Shared types for the voice calling feature
-
-export interface VoicePeer {
+export type VoicePeer = {
   socketId: string;
   userId:   string;
   name:     string;
   isMuted:  boolean;
-}
+};
 
-export interface IceConfig {
+export type IceConfig = {
   iceServers: RTCIceServer[];
-}
+};
 
-export interface Channel {
+export type Channel = {
   _id:          string;
   name:         string;
   courseId:     string;
@@ -20,17 +18,17 @@ export interface Channel {
   isActive:     boolean;
   createdAt:    string;
   updatedAt:    string;
-}
+};
 
-export interface Participant {
+export type Participant = {
   userId:   string;
   name:     string;
   role:     "host" | "participant";
   isMuted:  boolean;
   joinedAt: string;
-}
+};
 
-export interface UseWebRTCReturn {
+export type UseWebRTCReturn = {
   localStream:   MediaStream | null;
   remoteStreams: Map<string, MediaStream>;
   peers:         VoicePeer[];
@@ -39,4 +37,4 @@ export interface UseWebRTCReturn {
   joinChannel:   (channelId: string) => Promise<void>;
   leaveChannel:  () => void;
   toggleMute:    () => void;
-}
+};
