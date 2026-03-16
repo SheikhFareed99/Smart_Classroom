@@ -1,0 +1,36 @@
+/*---------- theme toggle button ----------*/
+.theme-toggle {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 100;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1.5px solid #E2E8F0;
+  background: #FFFFFF;
+  color: #64748B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition-duration: all 2s ease;
+}
+
+.theme-toggle:hover {
+  border-color: #2563EB;
+  color: #2563EB;
+  background: #EFF6FF;
+}
+
+.dark .theme-toggle {
+  border-color: #334155;
+  background: #1E293B;
+  color: #94A3B8;
+}
+
+.dark .theme-toggle:hover {
+  border-color: #3B82F6;
+  color: #3B82F6;
+  background: #1E293B;
+}
