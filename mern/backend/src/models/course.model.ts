@@ -1,15 +1,17 @@
 import { Schema, Document, model, Types } from "mongoose";
 
+
 export interface ICourse extends Document {
   title: string;
   description?: string;
   courseCode: string;
-  instructor: Types.ObjectId;
+  instructor: mongoose.Types.ObjectId;
+  enrollments: IEnrollment[];
   inviteCode: string;
+  modules: IModule[];
   isArchived: boolean;
   settings: {
     allowStudentQuestions: boolean;
-    allowStudentComments: boolean;
     pomodoroDefault: {
       focusMinutes: number;
       breakMinutes: number;
