@@ -2,6 +2,7 @@ import passport from "passport";
 import { Strategy as GoogleStrategy, Profile } from "passport-google-oauth20";
 import { Strategy as localStrategy } from "passport-local";
 import dotenv from "dotenv";
+
 import User from "../models/users.model";
 import {
   findUserByEmail,
@@ -10,6 +11,7 @@ import {
   linkGoogleAccount,
   verifyPassword,
 } from "../services/user.service";
+
 
 dotenv.config();
 
