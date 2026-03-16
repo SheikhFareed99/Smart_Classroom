@@ -15,7 +15,7 @@
   --bg: #F8FAFC;
   --card: #FFFFFF;
   --text-primary: #0F172A;
-  --text-secondary: #64748B;
+  --text-secondary: #1d1d1f;
   --text-muted: #94A3B8;
   --border: #E2E8F0;
   --border-light: #F1F5F9;
@@ -33,7 +33,7 @@
   --bg: #0F172A;
   --card: #1E293B;
   --text-primary: #F1F5F9;
-  --text-secondary: #94A3B8;
+  --text-secondary: #ffffff;
   --text-muted: #64748B;
   --border: #334155;
   --border-light: #1E293B;
@@ -47,7 +47,8 @@
   margin-top: 64px;
   padding: 32px;
   min-height: calc(100vh - 64px);
-  background: var(--bg);
+
+  background:var(--bg);
 }
 
 /* ---------- Page Header ---------- */
@@ -151,7 +152,7 @@
   transition: all 0.25s ease;
   cursor: pointer;
   text-decoration: none;
-  color: inherit;
+  color: var(--text-primary) ;
   display: block;
 }
 
@@ -160,8 +161,23 @@
   transform: translateY(-2px);
 }
 
+#active-text{
+  position: relative;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  right: -112px;
+  background-color: var(--bg);
+  padding: 2px 6px;
+  border-radius: 8px;
+  border: .5px solid rgb(172, 165, 165);
+
+  
+
+}
+
 /* ---------- Course Card Banner ---------- */
 .course-card-banner {
+  
   height: 100px;
   position: relative;
   display: flex;
@@ -189,17 +205,20 @@
 }
 
 /* Banner color variants */
-.course-card-banner.blue   { background: linear-gradient(135deg, #2563EB, #3B82F6); }
-.course-card-banner.green  { background: linear-gradient(135deg, #059669, #10B981); }
-.course-card-banner.purple { background: linear-gradient(135deg, #7C3AED, #8B5CF6); }
-.course-card-banner.orange { background: linear-gradient(135deg, #D97706, #F59E0B); }
-.course-card-banner.pink   { background: linear-gradient(135deg, #DB2777, #EC4899); }
-.course-card-banner.teal   { background: linear-gradient(135deg, #0D9488, #14B8A6); }
-.course-card-banner.indigo { background: linear-gradient(135deg, #4338CA, #6366F1); }
+.course-card-banner.blue   { background: linear-gradient(135deg, #80a3ce, #6e9fd6); }
+.course-card-banner.green  { background: linear-gradient(135deg, #66b180, #55b678); }
+.course-card-banner.purple { background: linear-gradient(135deg, #9070b3, #9167bd); }
+.course-card-banner.orange { background: linear-gradient(135deg, #bb996e, #bb9365); }
+.course-card-banner.pink   { background: linear-gradient(135deg, #c0787d, #c47171); }
+.course-card-banner.teal   { background: linear-gradient(135deg, #69a89a, #6ecab8); }
+.course-card-banner.indigo { background: linear-gradient(135deg, #7787bb, #717fb6); }
 
 /* ---------- Course Card Body ---------- */
 .course-card-body {
+
+  
   padding: 16px;
+
 }
 
 .course-card-section {
@@ -227,6 +246,57 @@
 .course-card-students svg {
   color: var(--text-muted);
   flex-shrink: 0;
+}
+
+#enrolled-text{
+  position: relative;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  right: -245px;
+  background-color: var(--bg);
+  padding: 2px 6px;
+  border-radius: 8px;
+  border: .5px solid rgb(172, 165, 165);
+
+  top: -34px;
+
+}
+
+ .classroom-logo {
+
+  color: var(--primary);
+
+
+} 
+/* .course-banner-content{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+} */
+/* ---------- Loading State ---------- */
+.courses-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 0;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.courses-loading-spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 /* ---------- Badges ---------- */

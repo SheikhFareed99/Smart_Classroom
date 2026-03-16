@@ -1,0 +1,561 @@
+import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import "./Dashboard.css";
+import "./StudentPanel.css";
+import { useAuth } from "../auth/AuthContext";
+import { apiFetch } from "../lib/api";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type NoteColor = "#FEF9C3" | "#DBEAFE" | "#DCFCE7" | "#FCE7F3" | "#F3E8FF";
+
+interface CourseAPIItem {
+  _id: string;
+  title: string;
+  courseCode?: string;
+  instructor?: { _id?: string; name?: string; email?: string } | null;
+}
+
+interface StickyNote {
+  color: NoteColor;
+  date: string;
+  title: string;
+  text: string;
+}
+
+interface TodoItem {
+  id: number;
+  text: string;
+  completed: boolean;
+}
+
+interface ScheduleEvent {
+  date: string;
+  title: string;
+  desc: string;
+  variant?: "accent" | "warning" | "danger" | "default";
+}
+
+// ─── Static data ──────────────────────────────────────────────────────────────
+
+const CARD_COLORS = ["orange", "blue", "purple", "green", "pink"] as const;
+
+const TIMETABLE_ROWS = [
+  { time: "8:00 AM", mon: { label: "AI (CS-401)", color: "" }, tue: null, wed: { label: "AI (CS-401)", color: "" }, thu: null, fri: { label: "AI Lab", color: "" } },
+  { time: "9:30 AM", mon: null, tue: { label: "HCI (CS-312)", color: "green" }, wed: null, thu: { label: "HCI (CS-312)", color: "green" }, fri: null },
+  { time: "11:00 AM", mon: { label: "NLP (CS-482)", color: "purple" }, tue: null, wed: { label: "NLP (CS-482)", color: "purple" }, thu: null, fri: { label: "NLP Lab", color: "purple" } },
+  { time: "12:30 PM", mon: null, tue: null, wed: null, thu: null, fri: null, isLunch: true },
+  { time: "2:00 PM", mon: null, tue: { label: "CV (CS-491)", color: "orange" }, wed: null, thu: { label: "CV (CS-491)", color: "orange" }, fri: null },
+  { time: "3:30 PM", mon: { label: "CV Lab", color: "orange" }, tue: null, wed: null, thu: null, fri: null },
+] as const;
+
+const DEFAULT_NOTES: StickyNote[] = [
+  { color: "#FEF9C3", date: "Feb 14", title: "", text: "Key HCI Principles:\n- Visibility\n- Feedback\n- Constraints\n- Consistency\n- Affordance" },
+  { color: "#DBEAFE", date: "Feb 13", title: "", text: "AI Search Algorithms:\n- BFS, DFS, UCS\n- A* (f = g + h)\n- Heuristic must be admissible" },
+  { color: "#DCFCE7", date: "Feb 12", title: "", text: "Project Ideas:\n1. AI-powered study planner\n2. Gesture-based whiteboard\n3. Smart campus navigation" },
+  { color: "#FCE7F3", date: "Feb 11", title: "", text: "NLP Tokenization:\n- Word-level\n- Subword (BPE)\n- Character-level\nRemember: preprocessing matters!" },
+  { color: "#F3E8FF", date: "Feb 10", title: "", text: "Meeting with group:\n- Discuss wireframes\n- Divide tasks\n- Deadline: Feb 28" },
+];
+
+const DEFAULT_TODOS: TodoItem[] = [
+  { id: 1, text: "Read HCI Chapter 1-2", completed: true },
+  { id: 2, text: "Complete AI Assignment 1", completed: false },
+  { id: 3, text: "Study for NLP quiz", completed: false },
+  { id: 4, text: "Prepare wireframes for HCI project", completed: false },
+  { id: 5, text: "Review Deep Learning lecture notes", completed: false },
+];
+
+const SCHEDULE_EVENTS: ScheduleEvent[] = [
+  { date: "Feb 15, 2026 · 8:00 AM", title: "AI Lecture – Game Trees", desc: "Room 301, CS Building", variant: "default" },
+  { date: "Feb 15, 2026 · 9:30 AM", title: "HCI Lab Session", desc: "Lab 205, Design Wing", variant: "accent" },
+  { date: "Feb 18, 2026 · 11:59 PM", title: "NLP Quiz 2 Deadline", desc: "Online submission via portal", variant: "warning" },
+  { date: "Feb 28, 2026 · 11:59 PM", title: "AI Assignment 1 Due", desc: "Search Algorithms — Submit online", variant: "danger" },
+  { date: "Mar 1, 2026 · 11:59 PM", title: "HCI Assignment 1 Due", desc: "Heuristic Evaluation — PDF only", variant: "default" },
+  { date: "Mar 5, 2026 · 2:00 PM", title: "CV Guest Lecture", desc: "Auditorium — Dr. Li Wei on Object Detection", variant: "accent" },
+];
+
+const NOTE_COLORS: { color: NoteColor; label: string }[] = [
+  { color: "#FEF9C3", label: "Yellow" },
+  { color: "#DBEAFE", label: "Blue" },
+  { color: "#DCFCE7", label: "Green" },
+  { color: "#FCE7F3", label: "Pink" },
+  { color: "#F3E8FF", label: "Purple" },
+];
+
+const POMODORO_DURATION = 25 * 60; // seconds
+const CIRCUMFERENCE = 2 * Math.PI * 90; // ~565.48
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+/** A single enrolled course card */
+function EnrolledCourseCard({ course, index }: { course: CourseAPIItem; index: number }) {
+  const color = CARD_COLORS[index % CARD_COLORS.length];
+  const instructorName =
+    course.instructor && typeof course.instructor === "object" && course.instructor.name
+      ? course.instructor.name
+      : "Instructor";
+  return (
+    <Link to={`/enrolled/${course._id}`} className="course-card">
+      <div className={`course-card-banner ${color}`}>
+        <h3>{course.title}</h3>
+      </div>
+      <div className="course-card-body">
+        <p className="course-card-section">{course.courseCode || ""}</p>
+        <div className="course-card-meta">
+          <div className="course-card-students">
+            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+            </svg>
+            {instructorName}
+          </div>
+          <span className="badge badge-primary">Active</span>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+/** Pomodoro timer widget */
+function PomodoroTimer() {
+  const [timeLeft, setTimeLeft] = useState(POMODORO_DURATION);
+  const [running, setRunning] = useState(false);
+  const [label, setLabel] = useState("Focus Session");
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const mins = String(Math.floor(timeLeft / 60)).padStart(2, "0");
+  const secs = String(timeLeft % 60).padStart(2, "0");
+  const progress = (POMODORO_DURATION - timeLeft) / POMODORO_DURATION;
+  const offset = CIRCUMFERENCE * progress;
+
+  function start() {
+    if (running) return;
+    setRunning(true);
+    setLabel("Focus in progress…");
+    intervalRef.current = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(intervalRef.current!);
+          setRunning(false);
+          setLabel("Time's up! Take a break.");
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }
+
+  function pause() {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    setRunning(false);
+    setLabel("Paused");
+  }
+
+  function reset() {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    setRunning(false);
+    setTimeLeft(POMODORO_DURATION);
+    setLabel("Focus Session");
+  }
+
+  // Cleanup on unmount
+  useEffect(() => () => { if (intervalRef.current) clearInterval(intervalRef.current); }, []);
+
+  return (
+    <div className="card">
+      <div className="card-header">
+        <h3 className="font-semibold flex items-center gap-8">
+          <svg width="20" height="20" fill="none" stroke="var(--danger)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+          Pomodoro Timer
+        </h3>
+      </div>
+      <div className="card-body pomodoro-card">
+        <div className="pomodoro-progress">
+          <svg width="200" height="200" viewBox="0 0 200 200">
+            <circle className="bg" cx="100" cy="100" r="90" />
+            <circle
+              className="fg"
+              cx="100" cy="100" r="90"
+              strokeDasharray={CIRCUMFERENCE}
+              strokeDashoffset={offset}
+            />
+          </svg>
+          <div className="pomodoro-time-inside">{mins}:{secs}</div>
+        </div>
+        <p className="pomodoro-label">{label}</p>
+        <div className="pomodoro-controls">
+          <button className="btn btn-primary" onClick={start}>
+            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+            Start
+          </button>
+          <button className="btn btn-outline" onClick={pause}>
+            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <rect x="6" y="4" width="4" height="16" />
+              <rect x="14" y="4" width="4" height="16" />
+            </svg>
+            Pause
+          </button>
+          <button className="btn btn-ghost" onClick={reset}>
+            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <polyline points="23 4 23 10 17 10" />
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+            </svg>
+            Reset
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** To-do list widget */
+function TodoList() {
+  const [todos, setTodos] = useState<TodoItem[]>(DEFAULT_TODOS);
+  const [input, setInput] = useState("");
+  const nextId = useRef(DEFAULT_TODOS.length + 1);
+
+  function addTodo() {
+    const text = input.trim();
+    if (!text) return;
+    setTodos((prev) => [...prev, { id: nextId.current++, text, completed: false }]);
+    setInput("");
+  }
+
+  function toggleTodo(id: number) {
+    setTodos((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
+    );
+  }
+
+  function deleteTodo(id: number) {
+    setTodos((prev) => prev.filter((t) => t.id !== id));
+  }
+
+  return (
+    <div className="card">
+      <div className="card-header">
+        <h3 className="font-semibold flex items-center gap-8">
+          <svg width="20" height="20" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <polyline points="9 11 12 14 22 4" />
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+          </svg>
+          To-Do List
+        </h3>
+      </div>
+      <div className="card-body">
+        <div className="todo-input-group">
+          <input
+            type="text"
+            placeholder="Add a new task…"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") addTodo(); }}
+          />
+          <button className="btn btn-primary btn-sm" onClick={addTodo}>Add</button>
+        </div>
+        <div className="todo-list">
+          {todos.map((todo) => (
+            <div key={todo.id} className="todo-item">
+              <div
+                className={`todo-checkbox${todo.completed ? " checked" : ""}`}
+                onClick={() => toggleTodo(todo.id)}
+              >
+                <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="10 2 4 8 1 5" />
+                </svg>
+              </div>
+              <span className={`todo-text${todo.completed ? " completed" : ""}`}>{todo.text}</span>
+              <button className="todo-delete" onClick={() => deleteTodo(todo.id)}>
+                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** A single timetable cell */
+function TimetableCell({ block }: { block: { label: string; color: string } | null }) {
+  if (!block) return <td />;
+  return (
+    <td>
+      <span className={`class-block${block.color ? ` ${block.color}` : ""}`}>
+        {block.label}
+      </span>
+    </td>
+  );
+}
+
+/** Weekly timetable */
+function WeeklyTimetable() {
+  return (
+    <div className="card mb-32">
+      <div className="card-header">
+        <h3 className="font-semibold flex items-center gap-8">
+          <svg width="20" height="20" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+          </svg>
+          Weekly Timetable
+        </h3>
+      </div>
+      <div className="card-body" style={{ overflowX: "auto" }}>
+        <table className="timetable">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Monday</th>
+              <th>Tuesday</th>
+              <th>Wednesday</th>
+              <th>Thursday</th>
+              <th>Friday</th>
+            </tr>
+          </thead>
+          <tbody>
+            {TIMETABLE_ROWS.map((row) => (
+              <tr key={row.time}>
+                <td className="time-col">{row.time}</td>
+                {"isLunch" in row && row.isLunch ? (
+                  <td colSpan={5} style={{ textAlign: "center", color: "var(--text-muted)", fontStyle: "italic" }}>
+                    — Lunch Break —
+                  </td>
+                ) : (
+                  <>
+                    <TimetableCell block={"mon" in row ? row.mon as { label: string; color: string } | null : null} />
+                    <TimetableCell block={"tue" in row ? row.tue as { label: string; color: string } | null : null} />
+                    <TimetableCell block={"wed" in row ? row.wed as { label: string; color: string } | null : null} />
+                    <TimetableCell block={"thu" in row ? row.thu as { label: string; color: string } | null : null} />
+                    <TimetableCell block={"fri" in row ? row.fri as { label: string; color: string } | null : null} />
+                  </>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/** Jamboard / sticky notes */
+function Jamboard() {
+  const [notes, setNotes] = useState<StickyNote[]>(DEFAULT_NOTES);
+  const [activeColor, setActiveColor] = useState<NoteColor>("#FEF9C3");
+
+  function addNote() {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    setNotes((prev) => [{ color: activeColor, date: dateStr, title: "", text: "" }, ...prev]);
+  }
+
+  function deleteNote(index: number) {
+    if (!window.confirm("Delete this note?")) return;
+    setNotes((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  return (
+    <div className="card mb-32">
+      <div className="card-header">
+        <h3 className="font-semibold flex items-center gap-8">
+          <svg width="20" height="20" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <rect x="2" y="2" width="16" height="16" rx="2" />
+            <path d="M8 2v16" />
+            <path d="M2 8h6" />
+          </svg>
+          Jamboard — Quick Notes
+        </h3>
+        <div className="jamboard-actions">
+          <div className="jam-color-picker">
+            {NOTE_COLORS.map(({ color, label }) => (
+              <button
+                key={color}
+                className={`jam-color-btn${activeColor === color ? " active" : ""}`}
+                style={{ background: color }}
+                title={label}
+                onClick={() => setActiveColor(color)}
+              />
+            ))}
+          </div>
+          <button className="btn btn-primary btn-sm" onClick={addNote}>
+            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="7" y1="1" x2="7" y2="13" />
+              <line x1="1" y1="7" x2="13" y2="7" />
+            </svg>
+            Add Note
+          </button>
+        </div>
+      </div>
+      <div className="card-body">
+        {notes.length === 0 ? (
+          <p style={{ color: "var(--text-muted)", textAlign: "center", padding: "32px 0", gridColumn: "1 / -1" }}>
+            No notes yet. Click <strong>Add Note</strong> to create one.
+          </p>
+        ) : (
+          <div className="jamboard">
+            {notes.map((note, i) => (
+              <div
+                key={i}
+                className="sticky-note"
+                style={{ background: note.color }}
+                onClick={() => {/* open note editor */ }}
+              >
+                <div className="sticky-note-header">
+                  <span className="sticky-note-date">{note.date}</span>
+                  <button
+                    className="sticky-note-delete"
+                    title="Delete note"
+                    onClick={(e) => { e.stopPropagation(); deleteNote(i); }}
+                  >
+                    &times;
+                  </button>
+                </div>
+                {note.title && <div className="sticky-note-title">{note.title}</div>}
+                <div className="sticky-note-preview">
+                  {note.text.length > 180 ? note.text.slice(0, 180) + "…" : note.text || "Empty note"}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Upcoming schedule */
+function UpcomingSchedule() {
+  return (
+    <div className="card">
+      <div className="card-header flex justify-between items-center">
+        <h3 className="font-semibold flex items-center gap-8">
+          <svg width="20" height="20" fill="none" stroke="var(--warning)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+          </svg>
+          Upcoming Schedule
+        </h3>
+        <button className="btn btn-outline btn-sm">+ Add Event</button>
+      </div>
+      <div className="card-body">
+        <div className="scheduler-grid">
+          {SCHEDULE_EVENTS.map((ev, i) => (
+            <div key={i} className={`schedule-card${ev.variant && ev.variant !== "default" ? ` ${ev.variant}` : ""}`}>
+              <p className="schedule-date">{ev.date}</p>
+              <p className="schedule-title">{ev.title}</p>
+              <p className="schedule-desc">{ev.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
+function StudentDashboard() {
+  const { user } = useAuth();
+  const [enrolledCourses, setEnrolledCourses] = useState<CourseAPIItem[]>([]);
+  const [coursesLoading, setCoursesLoading] = useState(true);
+  const [userName, setUserName] = useState("");
+
+  useEffect(() => {
+    let mounted = true;
+    async function fetchCourses() {
+      try {
+        if (!user?._id) {
+          if (mounted) setCoursesLoading(false);
+          return;
+        }
+
+        if (mounted) setUserName(user.name || "");
+        const res = await apiFetch(`/api/courses/user/${user._id}`);
+        if (!res.ok) { if (mounted) setCoursesLoading(false); return; }
+        const data = await res.json();
+        if (!mounted) return;
+        setEnrolledCourses(Array.isArray(data.enrolled) ? data.enrolled : []);
+      } catch {
+        // ignore network errors
+      } finally {
+        if (mounted) setCoursesLoading(false);
+      }
+    }
+    fetchCourses();
+    return () => { mounted = false; };
+  }, [user]);
+
+  return (
+    <main className="main-content">
+
+      {/* Page header */}
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Student Panel</h1>
+          <p className="page-subtitle">
+            {userName ? `Welcome, ${userName}. ` : ""}Manage your study tools, schedule, and productivity.
+          </p>
+        </div>
+      </div>
+
+      {/* ===== Enrolled Courses ===== */}
+      <div className="section-header">
+        <h2 className="section-title">
+          <svg className="icon" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+          </svg>
+          Enrolled Courses
+        </h2>
+      </div>
+
+      {coursesLoading ? (
+        <div className="courses-loading mb-32">
+          <span className="courses-loading-spinner" />
+          Loading courses…
+        </div>
+      ) : enrolledCourses.length === 0 ? (
+        <p className="mb-32" style={{ color: "var(--text-muted)", padding: "16px 0" }}>
+          You are not enrolled in any courses yet.
+        </p>
+      ) : (
+        <div className="course-grid mb-32">
+          {enrolledCourses.map((course, i) => (
+            <EnrolledCourseCard key={course._id} course={course} index={i} />
+          ))}
+        </div>
+      )}
+
+      {/* ===== Two-column: Pomodoro + To-Do ===== */}
+      <div className="two-col-grid mb-32">
+        <PomodoroTimer />
+        <TodoList />
+      </div>
+
+      {/* ===== Weekly Timetable ===== */}
+      <WeeklyTimetable />
+
+      {/* ===== Jamboard ===== */}
+      <Jamboard />
+
+      {/* ===== Upcoming Schedule ===== */}
+      <UpcomingSchedule />
+
+    </main>
+  );
+}
+
+export default StudentDashboard;

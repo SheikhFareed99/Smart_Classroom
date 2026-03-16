@@ -1,4 +1,4 @@
-import { useState, createContext, useContext } from "react";
+import { useState, createContext, useContext, useEffect } from "react";
 import "./ThemeToggle.css";
 
 //context so any child component can read dark mode state
@@ -14,12 +14,40 @@ export function useTheme() {
 
 //provider wraps the app or page, manages dark mode state
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const [darkMode, setDarkMode] = useState(systemPrefersDark);
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem("aico-theme");
+      if (saved === "dark") return true;
+      if (saved === "light") return false;
+    } catch (e) {
+      // ignore
+    }
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  });
 
   function toggleTheme() {
-    setDarkMode((prev) => !prev);
+    setDarkMode((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("aico-theme", next ? "dark" : "light");
+      } catch (e) {
+        // ignore
+      }
+      return next;
+    });
   }
+
+  // keep document root in sync so global selectors work (e.g. [data-theme="dark"] or .dark)
+  useEffect(() => {
+    const root = document.documentElement;
+    if (darkMode) {
+      root.classList.add("dark");
+      root.setAttribute("data-theme", "dark");
+    } else {
+      root.classList.remove("dark");
+      root.setAttribute("data-theme", "light");
+    }
+  }, [darkMode]);
 
   return (
     <ThemeContext.Provider value={{ darkMode, toggleTheme }}>
