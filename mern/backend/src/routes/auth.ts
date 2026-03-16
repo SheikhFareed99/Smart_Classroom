@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import passport from "passport";
-import User from "../models/users";
+import User from "../models/users.model";
 import bcrypt from "bcrypt";
 
 // router for authentication routes, currently only google oauth

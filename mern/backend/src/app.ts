@@ -6,6 +6,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 
 import authRoutes from "./routes/auth";
+import courseRouter from "./routes/course";
+
 import "./config/passport";
 
 dotenv.config();
@@ -41,7 +43,7 @@ app.use(express.static("src/public"));
 
 // Routes
 app.use("/auth", authRoutes);
-
+app.use("/api/courses", courseRouter);
 app.get("/", (req, res) => {
   res.send("Home");
 });
