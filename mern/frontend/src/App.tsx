@@ -16,6 +16,7 @@ import StudentPanel from "./pages/StudentPanel";
 
 function App() {
   return (
+    <>
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
@@ -58,6 +59,8 @@ function App() {
       </ThemeProvider>
 
     </BrowserRouter>
+
+    </>
   );
 }
 

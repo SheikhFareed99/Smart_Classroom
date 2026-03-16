@@ -1,9 +1,15 @@
 import "./Sidebar.css";
 import { NavLink } from "react-router-dom";
 import "./Sidebar.css";
+import VoiceChannel from "../voice/components/VoiceChannel";
+
+type SidebarUser = {
+  _id: string;
+  name?: string;
+} | null;
 
 // Sidebar component — navigation links on the left
-export default function Sidebar({ isOpen }: { isOpen: boolean }) {
+export default function Sidebar({ isOpen, user }: { isOpen: boolean; user: SidebarUser }) {
   return (
     <>
       {/* Backdrop for mobile — closes sidebar when clicked */}
@@ -63,6 +69,16 @@ export default function Sidebar({ isOpen }: { isOpen: boolean }) {
             </svg>
             Settings
           </a>
+
+          {user?._id && (
+            <div className="sidebar-voice-wrap">
+              <VoiceChannel
+                courseId="course_001"
+                userId={user._id}
+                userName={user.name || "User"}
+              />
+            </div>
+          )}
         </nav>
       </aside>
     </>
