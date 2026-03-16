@@ -1,28 +1,31 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "./Login.css";
-import { ThemeProvider } from "../components/ThemeToggle";
 import ThemeToggle from "../components/ThemeToggle";
+import { useAuth } from "../auth/AuthContext";
+import { apiFetch } from "../lib/api";
 
 function Login() {
   //state for form fields
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
+  const { refreshUser } = useAuth();
 
   //handle form submit
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     try {
-      const res = await fetch("/auth/login", {
+      const res = await apiFetch("/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
       if (res.ok) {
-        window.location.href = "/dashboard";
+        await refreshUser();
+        navigate("/dashboard");
       } else {
         alert(data.message || "Login failed");
       }
@@ -32,7 +35,7 @@ function Login() {
   }
 
   return (
-    <ThemeProvider>
+    <>
       {/*dark mode toggle button*/}
       <ThemeToggle className="login-toggle" />
 
@@ -111,8 +114,7 @@ function Login() {
               </div>
 
               {/*submit button*/}
-              <button type="submit" className="btn btn-primary"
-              onClick={handleLogin}>
+              <button type="submit" className="btn btn-primary">
                 Sign In
               </button>
 
@@ -152,7 +154,7 @@ function Login() {
 
         </div>
       </div>
-    </ThemeProvider>
+    </>
   );
 }
 

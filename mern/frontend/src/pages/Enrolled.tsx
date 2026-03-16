@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import { ThemeProvider } from "../components/ThemeToggle";
-import Navbar from "../components/Navbar";
-import Sidebar from "../components/Sidebar";
+import { useParams, useNavigate } from "react-router-dom";
+import { apiFetch } from "../lib/api";
+
 import "./Enrolled.css";
 
 interface StreamPost {
@@ -178,24 +178,85 @@ interface StudentCourseProps {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 function StudentCourse({
-  courseName = "Human Computer Interaction",
-  courseCode = "CS-312",
+  courseName,
+  courseCode,
   section = "Section C",
   term = "Fall 2026",
-  professor = "Prof. Dr. Amina Siddiqui",
-  courseId = "HCI-2026-FC",
+  professor,
+  courseId,
   bannerGradient = "linear-gradient(135deg, #D97706, #F59E0B)",
 }: StudentCourseProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [courseData, setCourseData] = useState<any | null>(null);
   const [activeTab, setActiveTab] = useState<"stream" | "assignments" | "materials" | "chatbot">("stream");
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(INITIAL_CHAT);
   const [chatInput, setChatInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [leaveMessage, setLeaveMessage] = useState<string | null>(null);
+  const [leaveMsgType, setLeaveMsgType] = useState<'success' | 'error' | null>(null);
+
   // Auto-scroll chat to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages]);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadCourse() {
+      if (!id) return;
+      try {
+        const res = await apiFetch(`/api/courses/${id}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!mounted) return;
+        setCourseData(data.course || null);
+      } catch (err) {
+        // ignore
+      }
+    }
+    loadCourse();
+    return () => { mounted = false; };
+  }, [id]);
+
+  // If we're viewing a specific course by id, show a loading state
+  // until `courseData` has been fetched to avoid showing hardcoded defaults.
+  if (id && courseData === null) {
+    return (
+      <>
+        <main className="main-content">
+          <div style={{ padding: 48, textAlign: 'center' }}>
+            <div className="loader" style={{ marginBottom: 12 }} />
+            <div>Loading course…</div>
+          </div>
+        </main>
+      </>
+    );
+  }
+
+  async function handleLeave() {
+    if (!id) return;
+    setLeaveMessage(null);
+    try {
+      const res = await apiFetch(`/api/courses/${id}/leave`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const dj = await res.json();
+      if (!res.ok) throw new Error(dj.message || 'Failed to leave');
+      setLeaveMessage('You have left the class.');
+      setLeaveMsgType('success');
+      setShowLeaveConfirm(false);
+      setTimeout(() => navigate('/dashboard'), 700);
+    } catch (err: any) {
+      setLeaveMessage(err?.message || 'Error leaving the class');
+      setLeaveMsgType('error');
+    }
+  }
 
   function sendMessage() {
     const msg = chatInput.trim();
@@ -226,18 +287,27 @@ function StudentCourse({
   }
 
   return (
-    <ThemeProvider>
-      <Navbar onMenuToggle={() => setSidebarOpen((p) => !p)} />
-      <Sidebar isOpen={sidebarOpen} />
-
+    <>
       <main className="main-content">
         {/* ── Course Banner ── */}
         <div className="course-banner" style={{ background: bannerGradient }}>
-          <h1>{courseName}</h1>
-          <p>
-            {courseCode} · {section} · {term} · {professor}
-          </p>
-          <span className="course-code">Code: {courseId}</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+            <div>
+              <h1>{courseData?.title || courseName}</h1>
+              <p>
+                {courseData?.courseCode || courseCode} · {section} · {term} · {courseData?.instructor?.name || professor}
+              </p>
+              <span className="course-code">Code: {courseData?._id || courseId}</span>
+            </div>
+            <div>
+              <button className="btn btn-outline" onClick={() => setShowLeaveConfirm(true)}>Unenroll</button>
+            </div>
+          </div>
+          {leaveMessage && (
+            <div style={{ marginTop: 12 }}>
+              <div className={`badge ${leaveMsgType === 'success' ? 'badge-accent' : 'badge-danger'}`}>{leaveMessage}</div>
+            </div>
+          )}
         </div>
 
         {/* ── Tabs ── */}
@@ -378,7 +448,25 @@ function StudentCourse({
           </div>
         )}
       </main>
-    </ThemeProvider>
+      {/* Leave confirmation modal */}
+      {showLeaveConfirm && (
+        <div className={`modal-overlay active`}>
+          <div className="modal">
+            <div className="modal-header">
+              <h2>Unenroll</h2>
+              <button className="btn btn-ghost btn-icon" onClick={() => setShowLeaveConfirm(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <p>Are you sure you want to unenroll from this class?</p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-outline" onClick={() => setShowLeaveConfirm(false)}>Cancel</button>
+              <button className="btn btn-danger" onClick={handleLeave}>Unenroll</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

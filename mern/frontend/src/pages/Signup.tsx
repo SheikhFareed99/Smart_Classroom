@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import "./Signup.css";
-import { ThemeProvider } from "../components/ThemeToggle";
 import ThemeToggle from "../components/ThemeToggle";
+import { useAuth } from "../auth/AuthContext";
+import { apiFetch } from "../lib/api";
 
 function Signup() {
   //state for form fields
@@ -12,6 +13,7 @@ function Signup() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const { refreshUser } = useAuth();
 
   //handle form submit
   async function handleSignup(e: React.FormEvent) {
@@ -23,14 +25,14 @@ function Signup() {
     }
 
     try {
-      const res = await fetch("/auth/signup", {
+      const res = await apiFetch("/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ name, email, password }),
       });
       const data = await res.json();
       if (res.ok) {
+        await refreshUser();
         navigate("/dashboard");
       } else {
         alert(data.message || "Signup failed");
@@ -41,7 +43,7 @@ function Signup() {
   }
 
   return (
-    <ThemeProvider>
+    <>
       {/*dark mode toggle button*/}
       <ThemeToggle className="signup-toggle" />
 
@@ -197,7 +199,7 @@ function Signup() {
 
         </div>
       </div>
-    </ThemeProvider>
+    </>
   );
 }
 

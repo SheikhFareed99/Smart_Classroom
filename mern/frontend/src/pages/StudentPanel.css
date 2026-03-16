@@ -1,0 +1,429 @@
+/* Student panel widgets and layout */
+
+.mb-32 {
+  margin-bottom: 32px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.card-header h3 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 1.05rem;
+}
+
+.card-body {
+  padding: 20px;
+}
+
+.two-col-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+/* Pomodoro */
+.pomodoro-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.pomodoro-progress {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  margin: 4px 0 12px;
+}
+
+.pomodoro-progress svg {
+  transform: rotate(-90deg);
+}
+
+.pomodoro-progress .bg {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 10;
+}
+
+.pomodoro-progress .fg {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 10;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.3s ease;
+}
+
+.pomodoro-time-inside {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.pomodoro-label {
+  margin: 0 0 14px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.pomodoro-controls {
+  width: 100%;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+}
+
+.btn-ghost {
+  border: 1.5px solid var(--border-light);
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.btn-ghost:hover {
+  border-color: var(--border);
+  background: var(--bg);
+}
+
+/* Todo */
+.todo-input-group {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.todo-input-group input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--card);
+  color: var(--text-primary);
+}
+
+.todo-list {
+  display: grid;
+  gap: 10px;
+}
+
+.todo-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+}
+
+.todo-checkbox {
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.todo-checkbox svg {
+  opacity: 0;
+}
+
+.todo-checkbox.checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.todo-checkbox.checked svg {
+  opacity: 1;
+}
+
+.todo-text {
+  flex: 1;
+  color: var(--text-primary);
+}
+
+.todo-text.completed {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.todo-delete {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.todo-delete:hover {
+  color: #ef4444;
+}
+
+/* Timetable */
+.timetable {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 740px;
+}
+
+.timetable th,
+.timetable td {
+  border-bottom: 1px solid var(--border-light);
+  padding: 12px 10px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.timetable th {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.time-col {
+  width: 120px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.class-block {
+  display: inline-flex;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #1e293b;
+  background: #dbeafe;
+}
+
+.class-block.green {
+  background: #dcfce7;
+}
+
+.class-block.purple {
+  background: #f3e8ff;
+}
+
+.class-block.orange {
+  background: #ffedd5;
+}
+
+/* Jamboard */
+.jamboard-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.jam-color-picker {
+  display: flex;
+  gap: 8px;
+}
+
+.jam-color-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.15);
+  cursor: pointer;
+}
+
+.jam-color-btn.active {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 1px;
+}
+
+.jamboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.sticky-note {
+  border-radius: 12px;
+  padding: 12px;
+  min-height: 145px;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+}
+
+.sticky-note-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.sticky-note-date {
+  font-size: 0.75rem;
+  color: rgba(15, 23, 42, 0.7);
+  font-weight: 600;
+}
+
+.sticky-note-delete {
+  border: 0;
+  background: transparent;
+  color: rgba(15, 23, 42, 0.6);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sticky-note-title {
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: #0f172a;
+}
+
+.sticky-note-preview {
+  white-space: pre-wrap;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: rgba(15, 23, 42, 0.9);
+}
+
+/* Schedule */
+.scheduler-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 14px;
+}
+
+.schedule-card {
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 14px;
+  background: var(--card);
+}
+
+.schedule-card.accent {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.25);
+}
+
+.schedule-card.warning {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
+.schedule-card.danger {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.schedule-date {
+  margin: 0 0 6px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.schedule-title {
+  margin: 0;
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.schedule-desc {
+  margin: 6px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+
+/* small utility classes used by JSX */
+.font-semibold {
+  font-weight: 600;
+}
+
+.flex {
+  display: flex;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.gap-8 {
+  gap: 8px;
+}
+
+/* Dark theme refinements */
+.dark .card {
+  border-color: var(--border);
+}
+
+.dark .btn-ghost {
+  color: var(--text-primary);
+}
+
+.dark .todo-item,
+.dark .schedule-card,
+.dark .timetable th,
+.dark .timetable td {
+  border-color: var(--border);
+}
+
+.dark .sticky-note {
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.25);
+}
+
+/* Responsive */
+@media (max-width: 980px) {
+  .two-col-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .card-body {
+    padding: 16px;
+  }
+
+  .pomodoro-controls {
+    flex-direction: column;
+  }
+
+  .pomodoro-controls .btn {
+    width: 100%;
+  }
+}
