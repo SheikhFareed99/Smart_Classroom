@@ -1,6 +1,9 @@
 import { Request, Response } from "express";
+
+
 import * as CourseService from "../services/course.service";
 import * as EnrollmentService from "../services/enrollment.service";
+
 
 // POST /api/courses
 export const createCourse = async (req: Request, res: Response) => {

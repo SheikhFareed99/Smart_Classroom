@@ -1,6 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { io } from "socket.io-client";
-import type { Socket } from "socket.io-client";
+import { io, Socket } from "socket.io-client";
 import type { VoicePeer, IceConfig, UseWebRTCReturn } from "../types/voice.types";
 
 export interface UseWebRTCOptions {
@@ -10,18 +9,24 @@ export interface UseWebRTCOptions {
 
 export const useWebRTC = ({ userId, name }: UseWebRTCOptions): UseWebRTCReturn => {
 
-  // ── State 
   const [localStream,   setLocalStream]   = useState<MediaStream | null>(null);
-  const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
+  const [remoteStreams, setRemoteStreams]  = useState<Map<string, MediaStream>>(new Map());
   const [peers,         setPeers]         = useState<VoicePeer[]>([]);
-  const [isMuted,       setIsMuted]       = useState(false);
-  const [isConnected,   setIsConnected]   = useState(false);
+  const [isMuted,       setIsMuted]       = useState<boolean>(false);
+  const [isConnected,   setIsConnected]   = useState<boolean>(false);
 
   const socketRef      = useRef<Socket | null>(null);
   const peerConnsRef   = useRef<Map<string, RTCPeerConnection>>(new Map());
   const localStreamRef = useRef<MediaStream | null>(null);
   const iceConfigRef   = useRef<IceConfig | null>(null);
   const channelIdRef   = useRef<string | null>(null);
+
+  const upsertPeer = useCallback((peer: VoicePeer) => {
+    setPeers((prev) => {
+      const filtered = prev.filter((p) => p.socketId !== peer.socketId);
+      return [...filtered, { ...peer, isMuted: false }];
+    });
+  }, []);
 
   const fetchIceConfig = async (): Promise<IceConfig> => {
     if (iceConfigRef.current) return iceConfigRef.current;
@@ -45,7 +50,6 @@ export const useWebRTC = ({ userId, name }: UseWebRTCOptions): UseWebRTCReturn =
 
       pc.ontrack = (event) => {
         const [remoteStream] = event.streams;
-        if (!remoteStream) return;
         setRemoteStreams((prev) => {
           const updated = new Map(prev);
           updated.set(targetSocketId, remoteStream);
@@ -62,7 +66,6 @@ export const useWebRTC = ({ userId, name }: UseWebRTCOptions): UseWebRTCReturn =
         }
       };
 
-      // store the connection
       peerConnsRef.current.set(targetSocketId, pc);
       return pc;
     },
@@ -83,7 +86,7 @@ export const useWebRTC = ({ userId, name }: UseWebRTCOptions): UseWebRTCReturn =
     setPeers((prev) => prev.filter((p) => p.socketId !== targetSocketId));
   }, []);
 
-  const joinChannel = useCallback(async (channelId: string): Promise<void> => {
+  const joinChannel = useCallback(async (channelId: string) => {
     channelIdRef.current = channelId;
 
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -92,10 +95,10 @@ export const useWebRTC = ({ userId, name }: UseWebRTCOptions): UseWebRTCReturn =
 
     await fetchIceConfig();
 
-    const socket = io("/voice", {
-      path:       "/voice/socket.io",
-      transports: ["websocket"],
-    });
+   const socket = io("http://localhost:4001", {
+  transports: ["websocket"],
+  withCredentials: true,
+});
     socketRef.current = socket;
 
     socket.on("connect", () => {
@@ -105,84 +108,64 @@ export const useWebRTC = ({ userId, name }: UseWebRTCOptions): UseWebRTCReturn =
 
     socket.on("disconnect", () => setIsConnected(false));
 
-
     socket.on("existing-users", async (users: VoicePeer[]) => {
       for (const user of users) {
         if (!user.socketId) continue;
+        if (user.userId === userId || user.socketId === socket.id) continue;
 
-        setPeers((prev) => [...prev, { ...user, isMuted: false }]);
+        upsertPeer(user);
 
         const pc = createPeerConnection(user.socketId);
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
-
-        socket.emit("offer", {
-          targetSocketId: user.socketId,
-          sdp:            offer,
-        });
+        socket.emit("offer", { targetSocketId: user.socketId, sdp: offer });
       }
     });
 
     socket.on("user-joined", (user: VoicePeer) => {
-      setPeers((prev) => [...prev, { ...user, isMuted: false }]);
-      // create connection ready to receive their offer
+      if (!user.socketId) return;
+      if (user.userId === userId || user.socketId === socket.id) return;
+
+      upsertPeer(user);
       createPeerConnection(user.socketId);
     });
 
     socket.on("offer", async ({ sdp, senderSocketId }: { sdp: RTCSessionDescriptionInit; senderSocketId: string }) => {
       let pc = peerConnsRef.current.get(senderSocketId);
       if (!pc) pc = createPeerConnection(senderSocketId);
-
       await pc.setRemoteDescription(new RTCSessionDescription(sdp));
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
-
-      socket.emit("answer", {
-        targetSocketId: senderSocketId,
-        sdp:            answer,
-      });
+      socket.emit("answer", { targetSocketId: senderSocketId, sdp: answer });
     });
 
     socket.on("answer", async ({ sdp, senderSocketId }: { sdp: RTCSessionDescriptionInit; senderSocketId: string }) => {
       const pc = peerConnsRef.current.get(senderSocketId);
-      if (pc) {
-        await pc.setRemoteDescription(new RTCSessionDescription(sdp));
-      }
+      if (pc) await pc.setRemoteDescription(new RTCSessionDescription(sdp));
     });
 
     socket.on("ice-candidate", async ({ candidate, senderSocketId }: { candidate: RTCIceCandidateInit; senderSocketId: string }) => {
       const pc = peerConnsRef.current.get(senderSocketId);
-      if (pc) {
-        await pc.addIceCandidate(new RTCIceCandidate(candidate));
-      }
+      if (pc) await pc.addIceCandidate(new RTCIceCandidate(candidate));
     });
 
     socket.on("user-left", ({ socketId }: { socketId: string }) => {
       closePeerConnection(socketId);
     });
 
-  }, [userId, name, createPeerConnection, closePeerConnection]);
+  }, [userId, name, createPeerConnection, closePeerConnection, upsertPeer]);
 
   const leaveChannel = useCallback(() => {
     const channelId = channelIdRef.current;
-
     if (socketRef.current) {
-      if (channelId) {
-        socketRef.current.emit("leave-channel", { channelId });
-      }
+      if (channelId) socketRef.current.emit("leave-channel", { channelId });
       socketRef.current.disconnect();
       socketRef.current = null;
     }
-
-    //close all peer connections
     peerConnsRef.current.forEach((pc) => pc.close());
     peerConnsRef.current.clear();
-
-    //stop local media tracks
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
     localStreamRef.current = null;
-
-    //reset all state
     setLocalStream(null);
     setRemoteStreams(new Map());
     setPeers([]);
@@ -193,7 +176,6 @@ export const useWebRTC = ({ userId, name }: UseWebRTCOptions): UseWebRTCReturn =
 
   const toggleMute = useCallback(() => {
     if (!localStreamRef.current) return;
-
     const audioTrack = localStreamRef.current.getAudioTracks()[0];
     if (audioTrack) {
       audioTrack.enabled = !audioTrack.enabled;
@@ -202,9 +184,7 @@ export const useWebRTC = ({ userId, name }: UseWebRTCOptions): UseWebRTCReturn =
   }, []);
 
   useEffect(() => {
-    return () => {
-      leaveChannel();
-    };
+    return () => { leaveChannel(); };
   }, [leaveChannel]);
 
   return {
