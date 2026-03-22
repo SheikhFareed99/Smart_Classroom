@@ -112,7 +112,7 @@ function Dashboard() {
         {/* Page header */}
         <div className="page-header">
           <div>
-            <h1 className="page-title">Welcome back, Zaeem 👋</h1>
+            <h1 className="page-title">Welcome back, {user?.name} 👋</h1>
             <p className="page-subtitle">Here's your classroom overview for today.</p>
           </div>
         </div>
