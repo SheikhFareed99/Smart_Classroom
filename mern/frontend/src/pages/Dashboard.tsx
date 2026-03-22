@@ -93,7 +93,7 @@ function Dashboard() {
   return (
    <>
    <JoinCourse onJoined={async () => {
-     // refresh courses after join
+     // refresh courses after join (test is this working)
      try {
        if (!user?._id) return;
        const res = await apiFetch(`/api/courses/user/${user._id}`);
