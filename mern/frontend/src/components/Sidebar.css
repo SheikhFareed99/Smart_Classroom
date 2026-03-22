@@ -73,6 +73,10 @@
   font-weight: 600;
 }
 
+.sidebar-voice-wrap {
+  margin-top: 4px;
+}
+
 /* ---------- Backdrop for mobile ---------- */
 .sidebar-backdrop {
   display: none;
