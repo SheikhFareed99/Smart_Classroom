@@ -52,50 +52,50 @@ passport.use(
 
 // google oauth login strategy
 // handles login, account linking, and registration
-// passport.use(
-//   new GoogleStrategy(
-//     {
-//       clientID: process.env.GOOGLE_CLIENT_ID as string,
-//       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-//       callbackURL: "/auth/google/callback",
-//     },
-//     async (
-//       accessToken: string,
-//       refreshToken: string,
-//       profile: Profile,
-//       done
-//     ) => {
-//       try {
-//         // check if user already exists with this Google ID
-//         let user = await findUserByGoogleId(profile.id);
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: process.env.GOOGLE_CLIENT_ID as string,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+      callbackURL: "/auth/google/callback",
+    },
+    async (
+      accessToken: string,
+      refreshToken: string,
+      profile: Profile,
+      done
+    ) => {
+      try {
+        // check if user already exists with this Google ID
+        let user = await findUserByGoogleId(profile.id);
 
-//         if (user) {
-//           console.log("User already exists, logging in:", user.email);
-//           return done(null, user);
-//         }
+        if (user) {
+          console.log("User already exists, logging in:", user.email);
+          return done(null, user);
+        }
 
-//         // check if a user with the same email exists (previously logged in with email/password)
-//         // link them to their google account
-//         const email = profile.emails?.[0]?.value;
-//         if (email) {
-//           user = await findUserByEmail(email);
+        // check if a user with the same email exists (previously logged in with email/password)
+        // link them to their google account
+        const email = profile.emails?.[0]?.value;
+        if (email) {
+          user = await findUserByEmail(email);
 
-//           if (user) {
-//             user = await linkGoogleAccount(user, profile.id);
-//             return done(null, user);
-//           }
-//         }
+          if (user) {
+            user = await linkGoogleAccount(user, profile.id);
+            return done(null, user);
+          }
+        }
 
-//         // if no user exists, create a new one
-//         const newUser = await createGoogleUser(profile);
-//         return done(null, newUser);
+        // if no user exists, create a new one
+        const newUser = await createGoogleUser(profile);
+        return done(null, newUser);
 
-//       } catch (err) {
-//         return done(err as Error, undefined);
-//       }
-//     }
-//   )
-// );
+      } catch (err) {
+        return done(err as Error, undefined);
+      }
+    }
+  )
+);
 
 // THE FOLLOWING 2 FUNCTIONS WOULD BE MODIFIED WHEN WE USE A DATABSE TO STORE USERS (HAS BEEN MODIFIED)
 
