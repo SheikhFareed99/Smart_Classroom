@@ -8,6 +8,8 @@ import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth";
 import courseRouter from "./routes/course";
 import voiceAuthRouter from "./routes/voiceAuth";
+import deliverableRouter from "./routes/deliverable";
+import materialRouter from "./routes/material";
 import { csrfProtection, initCsrfProtection } from "./security/csrf";
 
 import "./config/passport";
@@ -74,6 +76,8 @@ app.use(express.static("src/public"));
 app.use("/api/auth", voiceAuthRouter);
 app.use("/auth", authRoutes);
 app.use("/api/courses", courseRouter);
+app.use("/api", deliverableRouter);
+app.use("/api", materialRouter);
 app.get("/", (req, res) => {
   res.send("Home");
 });
