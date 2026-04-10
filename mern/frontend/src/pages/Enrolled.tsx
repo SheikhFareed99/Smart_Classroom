@@ -1,151 +1,62 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { apiFetch } from "../lib/api";
-
+import { useAuth } from "../auth/AuthContext";
 import "./Enrolled.css";
 
+// ─── Types ─────────────────────────────────────────────────────────────────────
+
 interface StreamPost {
-  id: number;
-  authorInitials: string;
-  authorName: string;
-  time: string;
-  body: string;
+  id: number; authorInitials: string; authorName: string; time: string; body: string;
 }
-
-interface Assignment {
-  id: number;
-  title: string;
-  due: string;
-  points: number;
-  status: "Submitted" | "Pending" | "Not started";
-}
-
-interface Material {
-  id: number;
-  title: string;
-  type: string;
-  size: string;
-  uploadedDate: string;
-}
-
 interface ChatMessage {
-  id: number;
-  role: "user" | "bot";
-  text: string;
-  time: string;
+  id: number; role: "user" | "bot"; text: string; time: string;
+}
+interface Deliverable {
+  _id: string; title: string; description?: string;
+  deadline?: string; totalPoints: number;
+  status: "draft" | "published"; createdAt: string;
+  attachments: { fileName: string; url: string }[];
+}
+interface Submission {
+  status: "not_submitted" | "submitted" | "late" | "graded";
+  submittedAt?: string;
+}
+interface Module {
+  _id: string; title: string; description?: string; order: number;
+}
+interface Material {
+  _id: string; title: string; type: string; url: string; sizeBytes?: number; uploadedAt: string;
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const SAMPLE_STREAM: StreamPost[] = [
-  {
-    id: 1,
-    authorInitials: "AS",
-    authorName: "Dr. Amina Siddiqui",
-    time: "Feb 14, 2026 · 11:00 AM",
-    body: "Welcome to Human Computer Interaction! This course will cover usability principles, user research methods, prototyping, and evaluation techniques. Please read the first two chapters of  before our next class.",
-  },
-  {
-    id: 2,
-    authorInitials: "AS",
-    authorName: "Dr. Amina Siddiqui",
-    time: "Feb 12, 2026 · 3:00 PM",
-    body: "Assignment 1 on Heuristic Evaluation has been posted. You will work in teams of 3. Check the Assignments tab for details. Deadline: March 1, 2026.",
-  },
-  {
-    id: 3,
-    authorInitials: "AS",
-    authorName: "Dr. Amina Siddiqui",
-    time: "Feb 10, 2026 · 10:15 AM",
-    body: 'Lecture slides for "Nielsen\'s 10 Usability Heuristics" have been uploaded. Please review the material and come prepared for an in-class discussion on Thursday.',
-  },
-];
+function formatBytes(bytes?: number) {
+  if (!bytes) return "";
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
-const SAMPLE_ASSIGNMENTS: Assignment[] = [
-  {
-    id: 1,
-    title: "Assignment 1: Heuristic Evaluation",
-    due: "Mar 1, 2026",
-    points: 100,
-    status: "Submitted",
-  },
-  {
-    id: 2,
-    title: "Assignment 2: User Persona Design",
-    due: "Mar 20, 2026",
-    points: 80,
-    status: "Pending",
-  },
-  {
-    id: 3,
-    title: "Assignment 3: Wireframe Prototype",
-    due: "Apr 10, 2026",
-    points: 120,
-    status: "Not started",
-  },
-];
+function statusBadgeClass(status: Submission["status"]) {
+  if (status === "submitted" || status === "graded") return "badge badge-accent";
+  if (status === "late") return "badge badge-warning";
+  return "badge badge-neutral";
+}
+function statusLabel(status: Submission["status"]) {
+  if (status === "submitted")     return "Submitted";
+  if (status === "graded")        return "Graded";
+  if (status === "late")          return "Late";
+  return "Not started";
+}
 
-const SAMPLE_MATERIALS: Material[] = [
-  {
-    id: 1,
-    title: "Course Outline – HCI Fall 2026",
-    type: "PDF",
-    size: "1.8 MB",
-    uploadedDate: "Feb 1, 2026",
-  },
-  {
-    id: 2,
-    title: "Lecture 1 – Introduction to HCI",
-    type: "PPTX",
-    size: "3.2 MB",
-    uploadedDate: "Feb 5, 2026",
-  },
-  {
-    id: 3,
-    title: "Lecture 2 – Nielsen's 10 Heuristics",
-    type: "PPTX",
-    size: "4.5 MB",
-    uploadedDate: "Feb 10, 2026",
-  },
-  {
-    id: 4,
-    title: "Reading: Don Norman – Design of Everyday Things (Ch. 1–3)",
-    type: "PDF",
-    size: "8.4 MB",
-    uploadedDate: "Feb 3, 2026",
-  },
-];
+// ─── Static chat data ─────────────────────────────────────────────────────────
 
 const INITIAL_CHAT: ChatMessage[] = [
-  {
-    id: 1,
-    role: "bot",
-    text: "👋 Hi! I'm your HCI Course AI Assistant. I can help you with course content, assignment questions, and HCI concepts. How can I help you today?",
-    time: "10:00 AM",
-  },
-  {
-    id: 2,
-    role: "user",
-    text: "Can you explain what a heuristic evaluation is?",
-    time: "10:02 AM",
-  },
-  {
-    id: 3,
-    role: "bot",
-    text: `A heuristic evaluation is a usability inspection method where evaluators examine a user interface and judge its compliance against recognized usability principles (the "heuristics"). Jakob Nielsen's 10 usability heuristics are most commonly used:\n\n1. Visibility of system status\n2. Match between system and real world\n3. User control and freedom\n4. Consistency and standards\n5. Error prevention\n\n…and 5 more. Would you like me to explain any specific heuristic in detail?`,
-    time: "10:02 AM",
-  },
+  { id: 1, role: "bot", text: "👋 Hi! I'm your Course AI Assistant. Ask me anything about the course content!", time: "—" },
 ];
-
-// ─── Badge Component ──────────────────────────────────────────────────────────
-
-function StatusBadge({ status }: { status: Assignment["status"] }) {
-  const map: Record<Assignment["status"], string> = {
-    Submitted: "badge-accent",
-    Pending: "badge-warning",
-    "Not started": "badge-neutral",
-  };
-  return <span className={`badge ${map[status]}`}>{status}</span>;
-}
+const SAMPLE_STREAM: StreamPost[] = [
+  { id: 1, authorInitials: "I", authorName: "Instructor", time: "Recently", body: "Welcome to this course! Check the Assignments and Materials tabs for course content." },
+];
 
 // ─── SVG Icons ────────────────────────────────────────────────────────────────
 
@@ -155,7 +66,11 @@ const FileIcon = () => (
     <polyline points="14 2 14 8 20 8" />
   </svg>
 );
-
+const FolderIcon = () => (
+  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+  </svg>
+);
 const SendIcon = () => (
   <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <line x1="22" y1="2" x2="11" y2="13" />
@@ -163,156 +78,193 @@ const SendIcon = () => (
   </svg>
 );
 
-// ─── Props ────────────────────────────────────────────────────────────────────
-
-interface StudentCourseProps {
-  courseName?: string;
-  courseCode?: string;
-  section?: string;
-  term?: string;
-  professor?: string;
-  courseId?: string;
-  bannerGradient?: string;
-}
-
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-function StudentCourse({
-  courseName,
-  courseCode,
-  section = "Section C",
-  term = "Fall 2026",
-  professor,
-  courseId,
-  bannerGradient = "linear-gradient(135deg, #D97706, #F59E0B)",
-}: StudentCourseProps) {
-
-  const { id } = useParams();
+function StudentCourse() {
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  // Course
   const [courseData, setCourseData] = useState<any | null>(null);
   const [activeTab, setActiveTab] = useState<"stream" | "assignments" | "materials" | "chatbot">("stream");
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(INITIAL_CHAT);
-  const [chatInput, setChatInput] = useState("");
+
+  // Assignments
+  const [deliverables, setDeliverables]   = useState<Deliverable[]>([]);
+  const [submissions, setSubmissions]     = useState<Record<string, Submission>>({});
+  const [aLoading, setALoading]           = useState(false);
+
+  // Modules + Materials
+  const [modules, setModules]             = useState<Module[]>([]);
+  const [moduleMaterials, setModuleMaterials] = useState<Record<string, Material[]>>({});
+  const [expandedMod, setExpandedMod]     = useState<Record<string, boolean>>({});
+  const [mLoading, setMLoading]           = useState(false);
+
+  // Chat
+  const [chatMessages, setChatMessages]   = useState<ChatMessage[]>(INITIAL_CHAT);
+  const [chatInput, setChatInput]         = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Leave modal
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
-  const [leaveMessage, setLeaveMessage] = useState<string | null>(null);
-  const [leaveMsgType, setLeaveMsgType] = useState<'success' | 'error' | null>(null);
+  const [leaveMsg, setLeaveMsg]           = useState<string | null>(null);
+  const [leaveMsgType, setLeaveMsgType]   = useState<"success" | "error" | null>(null);
 
-  // Auto-scroll chat to bottom
+  // ── Load course details ──────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!id) return;
+    let mounted = true;
+    apiFetch(`/api/courses/${id}`)
+      .then(r => r.json())
+      .then(d => { if (mounted && d.success) setCourseData(d.course); })
+      .catch(() => {});
+    return () => { mounted = false; };
+  }, [id]);
+
+  // ── Load deliverables when assignments tab is opened ─────────────────────────
+  useEffect(() => {
+    if (activeTab !== "assignments" || !id) return;
+    let mounted = true;
+    setALoading(true);
+    apiFetch(`/api/courses/${id}/deliverables`)
+      .then(r => r.json())
+      .then(async d => {
+        if (!mounted) return;
+        const list: Deliverable[] = (d.deliverables || []).filter(
+          (a: Deliverable) => a.status === "published"
+        );
+        setDeliverables(list);
+
+        // fetch own submission status for each
+        if (user?._id) {
+          const subs: Record<string, Submission> = {};
+          await Promise.all(list.map(async (a) => {
+            try {
+              const r2 = await apiFetch(`/api/deliverables/${a._id}`);
+              const d2 = await r2.json();
+              subs[a._id] = d2.submission || { status: "not_submitted", attachments: [] };
+            } catch { subs[a._id] = { status: "not_submitted" }; }
+          }));
+          if (mounted) setSubmissions(subs);
+        }
+      })
+      .catch(() => {})
+      .finally(() => { if (mounted) setALoading(false); });
+    return () => { mounted = false; };
+  }, [activeTab, id, user]);
+
+  // ── Load modules + materials when materials tab is opened ────────────────────
+  useEffect(() => {
+    if (activeTab !== "materials" || !id) return;
+    let mounted = true;
+    setMLoading(true);
+
+    const load = async () => {
+      try {
+        const r = await apiFetch(`/api/courses/${id}/modules`);
+        const d = await r.json();
+        if (!mounted) return;
+        const mods: Module[] = d.modules || [];
+        setModules(mods);
+        if (mods.length > 0) setExpandedMod({ [mods[0]._id]: true });
+
+        const entries = await Promise.all(
+          mods.map(async m => {
+            const mr = await apiFetch(`/api/courses/${id}/modules/${m._id}/materials`);
+            const md = await mr.json();
+            return [m._id, md.materials || []] as [string, Material[]];
+          })
+        );
+        if (mounted) setModuleMaterials(Object.fromEntries(entries));
+      } catch {}
+      finally { if (mounted) setMLoading(false); }
+    };
+    load();
+    return () => { mounted = false; };
+  }, [activeTab, id]);
+
+  // ── Chat scroll ──────────────────────────────────────────────────────────────
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages]);
 
-  useEffect(() => {
-    let mounted = true;
-    async function loadCourse() {
-      if (!id) return;
-      try {
-        const res = await apiFetch(`/api/courses/${id}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!mounted) return;
-        setCourseData(data.course || null);
-      } catch (err) {
-        // ignore
-      }
-    }
-    loadCourse();
-    return () => { mounted = false; };
-  }, [id]);
-
-  // If we're viewing a specific course by id, show a loading state
-  // until `courseData` has been fetched to avoid showing hardcoded defaults.
-  if (id && courseData === null) {
-    return (
-      <>
-        <main className="main-content">
-          <div style={{ padding: 48, textAlign: 'center' }}>
-            <div className="loader" style={{ marginBottom: 12 }} />
-            <div>Loading course…</div>
-          </div>
-        </main>
-      </>
-    );
-  }
-
+  // ── Leave course ─────────────────────────────────────────────────────────────
   async function handleLeave() {
     if (!id) return;
-    setLeaveMessage(null);
+    setLeaveMsg(null);
     try {
-      const res = await apiFetch(`/api/courses/${id}/leave`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const r = await apiFetch(`/api/courses/${id}/leave`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
       });
-      const dj = await res.json();
-      if (!res.ok) throw new Error(dj.message || 'Failed to leave');
-      setLeaveMessage('You have left the class.');
-      setLeaveMsgType('success');
+      const dj = await r.json();
+      if (!r.ok) throw new Error(dj.message || "Failed to leave");
+      setLeaveMsg("You have left the class.");
+      setLeaveMsgType("success");
       setShowLeaveConfirm(false);
-      setTimeout(() => navigate('/dashboard'), 700);
+      setTimeout(() => navigate("/dashboard"), 700);
     } catch (err: any) {
-      setLeaveMessage(err?.message || 'Error leaving the class');
-      setLeaveMsgType('error');
+      setLeaveMsg(err?.message || "Error leaving the class");
+      setLeaveMsgType("error");
     }
   }
 
+  // ── Send chat message ────────────────────────────────────────────────────────
   function sendMessage() {
     const msg = chatInput.trim();
     if (!msg) return;
-
     const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-
-    const userMsg: ChatMessage = {
-      id: Date.now(),
-      role: "user",
-      text: msg,
-      time: now,
-    };
-
-    setChatMessages((prev) => [...prev, userMsg]);
+    setChatMessages(prev => [...prev, { id: Date.now(), role: "user", text: msg, time: now }]);
     setChatInput("");
-
-    // Simulated bot reply — replace with real API call
     setTimeout(() => {
-      const botMsg: ChatMessage = {
-        id: Date.now() + 1,
-        role: "bot",
-        text: "That's a great question about HCI! Based on what we've covered in lectures, I can help you understand this concept better. Would you like me to provide specific examples or reference the lecture slides?",
+      setChatMessages(prev => [...prev, {
+        id: Date.now() + 1, role: "bot",
+        text: "That's a great question! Based on the course content, I can help you understand this concept better. Check the Materials tab for related resources.",
         time: now,
-      };
-      setChatMessages((prev) => [...prev, botMsg]);
+      }]);
     }, 800);
+  }
+
+  // ── Render ───────────────────────────────────────────────────────────────────
+
+  const courseName = courseData?.title || "Course";
+  const instructorName = courseData?.instructor?.name || "Instructor";
+
+  if (!courseData) {
+    return (
+      <main className="main-content">
+        <div style={{ padding: 48, textAlign: "center" }}>
+          <div className="loader" style={{ marginBottom: 12 }} />
+          <div>Loading course…</div>
+        </div>
+      </main>
+    );
   }
 
   return (
     <>
       <main className="main-content">
         {/* ── Course Banner ── */}
-        <div className="course-banner" style={{ background: bannerGradient }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+        <div className="course-banner" style={{ background: "linear-gradient(135deg, #2563EB, #3B82F6)" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
             <div>
-              <h1>{courseData?.title || courseName}</h1>
-              <p>
-                {courseData?.courseCode || courseCode} · {section} · {term} · {courseData?.instructor?.name || professor}
-              </p>
-              <span className="course-code">Code: {courseData?._id || courseId}</span>
+              <h1>{courseName}</h1>
+              <p>{courseData?.courseCode} · {instructorName}</p>
+              <span className="course-code">ID: {id}</span>
             </div>
-            <div>
-              <button className="btn btn-outline" onClick={() => setShowLeaveConfirm(true)}>Unenroll</button>
-            </div>
+            <button className="btn btn-outline" onClick={() => setShowLeaveConfirm(true)}>Unenroll</button>
           </div>
-          {leaveMessage && (
+          {leaveMsg && (
             <div style={{ marginTop: 12 }}>
-              <div className={`badge ${leaveMsgType === 'success' ? 'badge-accent' : 'badge-danger'}`}>{leaveMessage}</div>
+              <div className={`badge ${leaveMsgType === "success" ? "badge-accent" : "badge-danger"}`}>{leaveMsg}</div>
             </div>
           )}
         </div>
 
         {/* ── Tabs ── */}
         <div className="tabs">
-          {(["stream", "assignments", "materials", "chatbot"] as const).map((tab) => (
+          {(["stream", "assignments", "materials", "chatbot"] as const).map(tab => (
             <button
               key={tab}
               className={`tab-btn${activeTab === tab ? " active" : ""}`}
@@ -323,15 +275,14 @@ function StudentCourse({
           ))}
         </div>
 
-        {/* ══════════════ TAB: Stream ══════════════ */}
+        {/* ══ STREAM ══ */}
         {activeTab === "stream" && (
           <div className="tab-content active" id="stream">
             <div className="stream-compose">
-              <div className="avatar">ZA</div>
+              <div className="avatar">{(user?.name || "S")[0].toUpperCase()}</div>
               <span>Add a class comment…</span>
             </div>
-
-            {SAMPLE_STREAM.map((post) => (
+            {SAMPLE_STREAM.map(post => (
               <div className="stream-post" key={post.id}>
                 <div className="stream-post-header">
                   <div className="avatar" style={{ background: "#FEF3C7", color: "#B45309" }}>
@@ -348,121 +299,184 @@ function StudentCourse({
           </div>
         )}
 
-        {/* ══════════════ TAB: Assignments ══════════════ */}
+        {/* ══ ASSIGNMENTS ══ (real data) */}
         {activeTab === "assignments" && (
           <div className="tab-content active" id="assignments">
             <h3 className="font-semibold mb-24">Your Assignments</h3>
+
+            {aLoading && <p className="ec-loading">Loading assignments…</p>}
+
+            {!aLoading && deliverables.length === 0 && (
+              <div className="ec-empty">
+                <FileIcon />
+                <p>No assignments published yet.</p>
+              </div>
+            )}
+
             <div className="assignment-list">
-              {SAMPLE_ASSIGNMENTS.map((a) => (
-                <Link
-                  to={`/student-assignment/${a.id}`}
-                  state={{ assignment: a, courseId: id }}
-                  className="assignment-item"
-                  key={a.id}
-                >
-                  <div className="assignment-icon">
-                    <FileIcon />
-                  </div>
-                  <div className="assignment-info">
-                    <p className="assignment-title">{a.title}</p>
-                    <p className="assignment-due">
-                      Due: {a.due} · {a.points} points
-                    </p>
-                  </div>
-                  <StatusBadge status={a.status} />
-                </Link>
-              ))}
+              {deliverables.map(a => {
+                const sub = submissions[a._id];
+                const subStatus = sub?.status || "not_submitted";
+                return (
+                  <Link
+                    key={a._id}
+                    to={`/student-assignment/${a._id}`}
+                    state={{ courseId: id }}
+                    className="assignment-item"
+                  >
+                    <div className="assignment-icon"><FileIcon /></div>
+                    <div className="assignment-info">
+                      <p className="assignment-title">{a.title}</p>
+                      <p className="assignment-due">
+                        {a.deadline
+                          ? `Due: ${new Date(a.deadline).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
+                          : "No deadline"
+                        }
+                        {" · "}{a.totalPoints} pts
+                      </p>
+                    </div>
+                    <span className={statusBadgeClass(subStatus as Submission["status"])}>
+                      {statusLabel(subStatus as Submission["status"])}
+                    </span>
+                  </Link>
+                );
+              })}
             </div>
           </div>
         )}
 
-        {/* ══════════════ TAB: Materials ══════════════ */}
+        {/* ══ MATERIALS ══ (real modules + materials) */}
         {activeTab === "materials" && (
           <div className="tab-content active" id="materials">
-            <h3 className="font-semibold mb-24">Course Materials</h3>
-            {SAMPLE_MATERIALS.map((m) => (
-              <div className="material-item" key={m.id}>
-                <div className="material-icon">
-                  <FileIcon />
-                </div>
-                <div className="material-info">
-                  <p className="material-title">{m.title}</p>
-                  <p className="material-meta">
-                    {m.type} · {m.size} · Uploaded {m.uploadedDate}
-                  </p>
-                </div>
-                <button className="btn btn-ghost btn-sm">Download</button>
+            <h3 className="font-semibold mb-24">Course Modules &amp; Materials</h3>
+
+            {mLoading && <p className="ec-loading">Loading materials…</p>}
+
+            {!mLoading && modules.length === 0 && (
+              <div className="ec-empty">
+                <FolderIcon />
+                <p>No modules have been uploaded yet.</p>
               </div>
-            ))}
+            )}
+
+            <div className="ec-module-list">
+              {modules.map(mod => {
+                const mats = moduleMaterials[mod._id] || [];
+                const isOpen = !!expandedMod[mod._id];
+                return (
+                  <div key={mod._id} className="ec-module-card">
+                    {/* Module header */}
+                    <button
+                      className="ec-module-header"
+                      onClick={() => setExpandedMod(p => ({ ...p, [mod._id]: !p[mod._id] }))}
+                    >
+                      <div className="ec-mod-icon"><FolderIcon /></div>
+                      <div className="ec-mod-meta">
+                        <p className="ec-mod-title">{mod.title}</p>
+                        {mod.description && <p className="ec-mod-desc">{mod.description}</p>}
+                        <p className="ec-mod-count">{mats.length} {mats.length === 1 ? "file" : "files"}</p>
+                      </div>
+                      <svg
+                        className={`ec-chevron${isOpen ? " open" : ""}`}
+                        width="18" height="18" fill="none" stroke="currentColor"
+                        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                      >
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </button>
+
+                    {/* Materials inside */}
+                    {isOpen && (
+                      <div className="ec-materials-body">
+                        {mats.length === 0 ? (
+                          <p className="ec-no-mats">No files in this module yet.</p>
+                        ) : (
+                          mats.map(mat => (
+                            <div key={mat._id} className="material-item ec-mat-row">
+                              <div className="material-icon"><FileIcon /></div>
+                              <div className="material-info">
+                                <p className="material-title">{mat.title}</p>
+                                <p className="material-meta">
+                                  {mat.type.toUpperCase()}
+                                  {mat.sizeBytes ? ` · ${formatBytes(mat.sizeBytes)}` : ""}
+                                  {" · "}
+                                  {new Date(mat.uploadedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                                </p>
+                              </div>
+                              <a
+                                href={mat.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn btn-ghost btn-sm"
+                                download
+                                onClick={e => e.stopPropagation()}
+                              >
+                                Download
+                              </a>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
-        {/* ══════════════ TAB: Chatbot ══════════════ */}
+        {/* ══ CHATBOT ══ */}
         {activeTab === "chatbot" && (
           <div className="tab-content active" id="chatbot">
             <div className="chatbot-container">
               <div className="chatbot-card">
-                {/* Header */}
                 <div className="chatbot-header">
                   <div className="chatbot-header-icon">
                     <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="12" cy="12" r="10" />
                       <path d="M8 14s1.5 2 4 2 4-2 4-2" />
-                      <line x1="9" y1="9" x2="9.01" y2="9" />
-                      <line x1="15" y1="9" x2="15.01" y2="9" />
+                      <line x1="9" y1="9" x2="9.01" y2="9" /><line x1="15" y1="9" x2="15.01" y2="9" />
                     </svg>
                   </div>
-                  <div>
-                    <h3>Course AI Assistant</h3>
-                    <p>{courseName}</p>
-                  </div>
+                  <div><h3>Course AI Assistant</h3><p>{courseName}</p></div>
                 </div>
-
-                {/* Messages */}
                 <div className="chatbot-messages" id="chatMessages">
-                  {chatMessages.map((msg) => (
+                  {chatMessages.map(msg => (
                     <div key={msg.id} className={`chat-message ${msg.role}`}>
-                      {msg.text.split("\n").map((line, i) => (
-                        <span key={i}>
-                          {line}
-                          {i < msg.text.split("\n").length - 1 && <br />}
-                        </span>
+                      {msg.text.split("\n").map((line, i, arr) => (
+                        <span key={i}>{line}{i < arr.length - 1 && <br />}</span>
                       ))}
                       <div className="msg-time">{msg.time}</div>
                     </div>
                   ))}
                   <div ref={messagesEndRef} />
                 </div>
-
-                {/* Input */}
                 <div className="chatbot-input">
                   <input
                     type="text"
-                    id="chatInput"
                     placeholder={`Ask about ${courseName} concepts…`}
                     value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+                    onChange={e => setChatInput(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && sendMessage()}
                   />
-                  <button onClick={sendMessage}>
-                    <SendIcon />
-                  </button>
+                  <button onClick={sendMessage}><SendIcon /></button>
                 </div>
               </div>
             </div>
           </div>
         )}
       </main>
-      {/* Leave confirmation modal */}
+
+      {/* ── Leave Confirmation Modal ── */}
       {showLeaveConfirm && (
-        <div className={`modal-overlay active`}>
+        <div className="modal-overlay active">
           <div className="modal">
             <div className="modal-header">
               <h2>Unenroll</h2>
               <button className="btn btn-ghost btn-icon" onClick={() => setShowLeaveConfirm(false)}>✕</button>
             </div>
             <div className="modal-body">
-              <p>Are you sure you want to unenroll from this class?</p>
+              <p>Are you sure you want to unenroll from <strong>{courseName}</strong>?</p>
             </div>
             <div className="modal-footer">
               <button className="btn btn-outline" onClick={() => setShowLeaveConfirm(false)}>Cancel</button>

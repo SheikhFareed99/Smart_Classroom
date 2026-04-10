@@ -644,3 +644,120 @@
     background: var(--warning-bg);
     color: #FBBF24;
   }
+
+/* ── Module accordion (Enrolled – Materials tab) ─────────────────────── */
+.ec-module-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ec-module-card {
+  background: var(--card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: box-shadow 0.15s ease;
+}
+.ec-module-card:hover { box-shadow: var(--shadow-md); }
+
+.ec-module-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: background 0.15s ease;
+}
+.ec-module-header:hover { background: var(--border-light); }
+
+.ec-mod-icon {
+  width: 40px; height: 40px;
+  background: var(--primary-bg);
+  border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--primary); flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+.ec-module-header:hover .ec-mod-icon { background: var(--primary); color: #fff; }
+
+.ec-mod-meta { flex: 1; min-width: 0; }
+.ec-mod-title  { font-size: 0.9375rem; font-weight: 600; color: var(--text-primary); margin: 0 0 2px; }
+.ec-mod-desc   { font-size: 0.8rem; color: var(--text-muted); margin: 0 0 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ec-mod-count  { font-size: 0.75rem; color: var(--text-muted); font-weight: 500; }
+
+.ec-chevron {
+  flex-shrink: 0; color: var(--text-muted);
+  transition: transform 0.2s ease;
+  margin-left: auto;
+}
+.ec-chevron.open { transform: rotate(180deg); }
+
+.ec-materials-body {
+  border-top: 1px solid var(--border-light);
+  background: var(--bg);
+  animation: ec-slide 0.2s ease;
+}
+@keyframes ec-slide {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ec-no-mats {
+  padding: 20px 24px;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.ec-mat-row {
+  border-radius: 0 !important;
+  margin-bottom: 0 !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-top: none !important;
+  border-bottom: 1px solid var(--border-light) !important;
+  padding: 14px 20px !important;
+}
+.ec-mat-row:last-child { border-bottom: none !important; }
+
+/* ── Empty / loading states ──────────────────────────────────────────── */
+.ec-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 60px 24px;
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--card);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+  font-size: 0.9rem;
+}
+
+.ec-loading {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  padding: 24px 0;
+}
+
+/* ── Buttons (if not globally defined) ───────────────────────────────── */
+.btn-danger {
+  background: var(--danger);
+  color: #fff;
+  border: none;
+}
+.btn-danger:hover { background: #DC2626; }
+
+/* ── Dark mode ────────────────────────────────────────────────────────── */
+[data-theme="dark"] .ec-module-card    { background: var(--card); border-color: var(--border); }
+[data-theme="dark"] .ec-materials-body { background: var(--bg); }
+[data-theme="dark"] .ec-mod-icon       { background: rgba(59,130,246,0.15); }
