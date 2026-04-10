@@ -10,8 +10,10 @@ import Dashboard from "./pages/Dashboard";
 import Enrolled from "./pages/Enrolled";
 import TeacherPanel from "./pages/TeacherPanel";
 import TeacherCourse from "./pages/TeacherCourse";
+import TeacherCreateAssignment from "./pages/TeacherCreateAssignment";
 import StudentPanel from "./pages/StudentPanel";
 import StudentAssignment from "./pages/StudentAssignment";
+import StudentMaterials from "./pages/StudentMaterials";
 
 
 
@@ -54,7 +56,9 @@ function App() {
               <Route path="/enrolled" element={<Enrolled />} />
               <Route path="/enrolled/:id" element={<Enrolled />} />
               <Route path="/teacher-course/:id" element={<TeacherCourse />} />
+              <Route path="/teacher-course/:courseId/create-assignment" element={<TeacherCreateAssignment />} />
               <Route path="/student-assignment/:assignmentId" element={<StudentAssignment />} />
+              <Route path="/enrolled/:courseId/materials" element={<StudentMaterials />} />
             </Route>
           </Routes>
         </AuthProvider>
