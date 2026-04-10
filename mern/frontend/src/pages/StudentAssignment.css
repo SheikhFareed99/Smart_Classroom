@@ -1,0 +1,424 @@
+/* ============================================
+   StudentAssignment Page Styles
+   Full standalone CSS – mirrors Dashboard.css
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* ---------- CSS Variables (light mode) ---------- */
+:root {
+  --primary: #2563EB;
+  --primary-light: #3B82F6;
+  --primary-dark: #1D4ED8;
+  --primary-bg: #EFF6FF;
+  --accent: #10B981;
+  --accent-dark: #059669;
+  --accent-bg: #ECFDF5;
+  --danger: #EF4444;
+  --danger-bg: #FEF2F2;
+  --warning: #F59E0B;
+  --warning-bg: #FFFBEB;
+  --bg: #F8FAFC;
+  --card: #FFFFFF;
+  --text-primary: #0F172A;
+  --text-secondary: #64748B;
+  --text-muted: #94A3B8;
+  --border: #E2E8F0;
+  --border-light: #F1F5F9;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+  --sp-4: 4px;
+  --sp-8: 8px;
+  --sp-12: 12px;
+  --sp-16: 16px;
+  --sp-20: 20px;
+  --sp-24: 24px;
+  --sp-32: 32px;
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.25s ease;
+  --shadow-xs: 0 1px 2px rgba(15,23,42,0.04);
+  --shadow-sm: 0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04);
+  --shadow-md: 0 4px 6px -1px rgba(15,23,42,0.06), 0 2px 4px -2px rgba(15,23,42,0.04);
+}
+
+/* ---------- Dark mode variables ---------- */
+.dark, [data-theme="dark"] {
+  --primary: #3B82F6;
+  --primary-light: #60A5FA;
+  --primary-dark: #2563EB;
+  --primary-bg: #1E3A5F;
+  --accent: #34D399;
+  --accent-dark: #10B981;
+  --accent-bg: #1a2e2a;
+  --danger: #F87171;
+  --danger-bg: #2a1a1a;
+  --warning: #FBBF24;
+  --warning-bg: #2a1f0a;
+  --bg: #0F172A;
+  --card: #1E293B;
+  --text-primary: #F1F5F9;
+  --text-secondary: #CBD5E1;
+  --text-muted: #64748B;
+  --border: #334155;
+  --border-light: #1E293B;
+}
+
+/* ---------- Main Content ---------- */
+.main-content {
+  margin-left: 260px;
+  margin-top: 64px;
+  padding: 32px;
+  min-height: calc(100vh - 64px);
+  background: var(--bg);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* ---------- Two-col grid ---------- */
+.two-col-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+/* ---------- Card ---------- */
+.card {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
+  overflow: hidden;
+  transition: box-shadow var(--transition-base);
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.card-body {
+  padding: var(--sp-24);
+}
+
+/* ---------- Divider ---------- */
+.divider {
+  height: 1px;
+  background: var(--border-light);
+  margin: 20px 0;
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  font-size: 0.875rem;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  line-height: 1.4;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(37,99,235,0.3);
+}
+.btn-primary:hover {
+  background: var(--primary-dark);
+  box-shadow: 0 4px 12px rgba(37,99,235,0.35);
+  transform: translateY(-1px);
+}
+
+.btn-ghost {
+  color: var(--text-secondary);
+  background: transparent;
+  padding: 8px 12px;
+}
+.btn-ghost:hover {
+  background: var(--border-light);
+  color: var(--text-primary);
+}
+
+.btn-sm {
+  padding: 6px 14px;
+  font-size: 0.8125rem;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ---------- Badges ---------- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.badge-accent  { background: var(--accent-bg);  color: var(--accent-dark); }
+.badge-warning { background: var(--warning-bg); color: #B45309; }
+.badge-neutral { background: var(--border-light); color: var(--text-secondary); }
+.badge-primary { background: var(--primary-bg); color: var(--primary); }
+
+/* ---------- Breadcrumb ---------- */
+.sa-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 24px;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+}
+
+.sa-breadcrumb-link {
+  color: var(--primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+.sa-breadcrumb-link:hover {
+  color: var(--primary-dark);
+  text-decoration: underline;
+}
+
+.sa-breadcrumb-sep { margin: 0 4px; color: var(--text-muted); }
+.sa-breadcrumb-current { color: var(--text-secondary); }
+
+/* ---------- Assignment title & course label ---------- */
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.sa-assignment-title {
+  font-size: 1.25rem !important;
+  margin-bottom: 4px !important;
+}
+
+.sa-course-label {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+/* ---------- Assignment icon ---------- */
+.assignment-icon {
+  width: 44px;
+  height: 44px;
+  background: var(--primary-bg);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.sa-icon-lg {
+  width: 52px;
+  height: 52px;
+}
+
+/* ---------- Description & requirements ---------- */
+.sa-description {
+  color: var(--text-secondary);
+  line-height: 1.8;
+  font-size: 0.9375rem;
+  margin-bottom: 16px;
+}
+
+.sa-requirements {
+  list-style: disc;
+  padding-left: 20px;
+  color: var(--text-secondary);
+  line-height: 2;
+  font-size: 0.9375rem;
+}
+
+/* ---------- Meta row ---------- */
+.sa-meta-row {
+  flex-wrap: wrap;
+}
+
+.sa-meta-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+/* ---------- Status card ---------- */
+.sa-status-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sa-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.sa-status-row.sa-status-row-last {
+  border-bottom: none;
+}
+
+.sa-status-label { color: var(--text-secondary); }
+
+.sa-grade { color: var(--accent); }
+
+.sa-feedback-link {
+  color: var(--primary);
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: color var(--transition-fast);
+}
+.sa-feedback-link:hover {
+  color: var(--primary-dark);
+  text-decoration: underline;
+}
+
+/* ---------- Upload Zone ---------- */
+.upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-md);
+  padding: 40px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  background: var(--bg);
+  color: var(--text-secondary);
+}
+
+.upload-zone:hover,
+.upload-zone.dragging {
+  border-color: var(--primary);
+  background: var(--primary-bg);
+  color: var(--primary);
+}
+
+.upload-zone svg {
+  margin: 0 auto 16px;
+  display: block;
+  color: var(--text-muted);
+  transition: color var(--transition-fast);
+}
+
+.upload-zone:hover svg,
+.upload-zone.dragging svg {
+  color: var(--primary);
+}
+
+.upload-zone h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text-primary);
+}
+
+.upload-zone p {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+/* ---------- Uploaded file row ---------- */
+.uploaded-file {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--primary-bg);
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+}
+
+.file-icon {
+  width: 36px;
+  height: 36px;
+  background: var(--card);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  box-shadow: var(--shadow-xs);
+  flex-shrink: 0;
+}
+
+.file-info       { flex: 1; min-width: 0; }
+.file-name       { font-size: 0.875rem; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file-size       { font-size: 0.75rem; color: var(--text-muted); }
+
+/* ---------- Success message ---------- */
+.sa-success-msg {
+  margin-top: 12px;
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--accent-dark);
+  background: var(--accent-bg);
+  border-radius: var(--radius-sm);
+  padding: 10px 16px;
+  animation: sa-fade-in 0.3s ease;
+}
+
+@keyframes sa-fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- Utility classes ---------- */
+.font-semibold  { font-weight: 600; }
+.mb-24          { margin-bottom: 24px; }
+.mb-16          { margin-bottom: 16px; }
+.mb-8           { margin-bottom: 8px; }
+.mt-24          { margin-top: 24px; }
+.w-full         { width: 100%; }
+.text-sm        { font-size: 0.875rem; }
+.text-muted     { color: var(--text-muted); }
+.flex           { display: flex; }
+.items-center   { align-items: center; }
+.gap-16         { gap: 16px; }
+.gap-24         { gap: 24px; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1024px) {
+  .two-col-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 0;
+    padding: 20px;
+    margin-top: 64px;
+  }
+
+  .two-col-grid {
+    grid-template-columns: 1fr;
+  }
+}
