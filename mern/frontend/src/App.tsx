@@ -11,6 +11,7 @@ import Enrolled from "./pages/Enrolled";
 import TeacherPanel from "./pages/TeacherPanel";
 import TeacherCourse from "./pages/TeacherCourse";
 import StudentPanel from "./pages/StudentPanel";
+import StudentAssignment from "./pages/StudentAssignment";
 
 
 
@@ -53,6 +54,7 @@ function App() {
               <Route path="/enrolled" element={<Enrolled />} />
               <Route path="/enrolled/:id" element={<Enrolled />} />
               <Route path="/teacher-course/:id" element={<TeacherCourse />} />
+              <Route path="/student-assignment/:assignmentId" element={<StudentAssignment />} />
             </Route>
           </Routes>
         </AuthProvider>

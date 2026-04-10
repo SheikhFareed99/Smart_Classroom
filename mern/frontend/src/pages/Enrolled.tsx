@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 
 import "./Enrolled.css";
@@ -354,7 +354,12 @@ function StudentCourse({
             <h3 className="font-semibold mb-24">Your Assignments</h3>
             <div className="assignment-list">
               {SAMPLE_ASSIGNMENTS.map((a) => (
-                <a href="student_assignment.html" className="assignment-item" key={a.id}>
+                <Link
+                  to={`/student-assignment/${a.id}`}
+                  state={{ assignment: a, courseId: id }}
+                  className="assignment-item"
+                  key={a.id}
+                >
                   <div className="assignment-icon">
                     <FileIcon />
                   </div>
@@ -365,7 +370,7 @@ function StudentCourse({
                     </p>
                   </div>
                   <StatusBadge status={a.status} />
-                </a>
+                </Link>
               ))}
             </div>
           </div>
