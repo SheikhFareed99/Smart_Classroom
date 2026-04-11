@@ -28,6 +28,14 @@ interface SubmissionData {
   grade?: number;
   feedback?: string;
   attachments: { fileName: string; url: string }[];
+  privateComments?: SubmissionComment[];
+}
+
+interface SubmissionComment {
+  _id?: string;
+  author?: { _id: string; name?: string; email?: string } | string;
+  text: string;
+  createdAt: string;
 }
 
 // ─── Badge helper ─────────────────────────────────────────────────────────────
@@ -67,6 +75,11 @@ function StudentAssignment() {
   const [submitting, setSubmitting]     = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError]   = useState<string | null>(null);
+  const [privateCommentText, setPrivateCommentText] = useState("");
+  const [classCommentText, setClassCommentText] = useState("");
+  const [postingScope, setPostingScope] = useState<"private" | "class" | null>(null);
+  const [classComments, setClassComments] = useState<SubmissionComment[]>([]);
+  const [classCommentsLoading, setClassCommentsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Fetch assignment + existing submission ──────────────────────────────────
@@ -82,10 +95,23 @@ function StudentAssignment() {
         if (!res.ok) throw new Error(data.message || "Failed to load assignment");
         if (!mounted) return;
         setAssignment(data.deliverable);
-        setSubmission(data.submission || { status: "not_submitted", attachments: [] });
+        setSubmission(
+          data.submission || {
+            status: "not_submitted",
+            attachments: [],
+            privateComments: [],
+          }
+        );
+
+        setClassCommentsLoading(true);
+        const cRes = await apiFetch(`/api/deliverables/${assignmentId}/class-comments`);
+        const cData = await cRes.json();
+        if (!cRes.ok) throw new Error(cData.message || "Failed to load class comments");
+        if (mounted) setClassComments(cData.comments || []);
       } catch (err: any) {
         if (mounted) setFetchError(err.message || "Failed to load");
       } finally {
+        if (mounted) setClassCommentsLoading(false);
         if (mounted) setLoading(false);
       }
     };
@@ -108,6 +134,64 @@ function StudentAssignment() {
     if (file) handleFileSelect(file);
   }
 
+  function commentAuthorName(comment: SubmissionComment): string {
+    if (!comment.author) return "Unknown";
+    if (typeof comment.author === "string") return "Unknown";
+    return comment.author.name || comment.author.email || "Unknown";
+  }
+
+  function isOwnComment(comment: SubmissionComment): boolean {
+    return typeof comment.author === "object" && comment.author?._id === user?._id;
+  }
+
+  function commentAvatar(comment: SubmissionComment): string {
+    const name = commentAuthorName(comment).trim();
+    if (!name) return "?";
+    const parts = name.split(" ").filter(Boolean);
+    if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase();
+    return `${parts[0][0] || ""}${parts[1][0] || ""}`.toUpperCase();
+  }
+
+  async function postComment(scope: "private" | "class") {
+    if (scope === "class" && !assignmentId) return;
+
+    const text = (scope === "private" ? privateCommentText : classCommentText).trim();
+    if (!text) return;
+
+    setPostingScope(scope);
+    setSubmitError(null);
+    try {
+      const res = scope === "private"
+        ? (submission?._id
+          ? await apiFetch(`/api/submissions/${submission._id}/comments`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ scope, text }),
+            })
+          : await apiFetch(`/api/deliverables/${assignmentId}/private-comments`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ text }),
+            }))
+        : await apiFetch(`/api/deliverables/${assignmentId}/class-comments`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text }),
+          });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to post comment");
+
+      if (scope === "private" && data.submission) setSubmission(data.submission);
+      if (scope === "class") setClassComments(data.comments || []);
+      if (scope === "private") setPrivateCommentText("");
+      else setClassCommentText("");
+    } catch (err: any) {
+      setSubmitError(err.message || "Failed to post comment");
+    } finally {
+      setPostingScope(null);
+    }
+  }
+
   // ── Submit ──────────────────────────────────────────────────────────────────
   async function handleSubmit() {
     if (!uploadedFile || !assignmentId) return;
@@ -122,7 +206,10 @@ function StudentAssignment() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Submission failed");
-      setSubmission(data.submission);
+      setSubmission((prev) => ({
+        ...data.submission,
+        privateComments: data.submission?.privateComments || prev?.privateComments || [],
+      }));
       setSubmitSuccess(true);
       setUploadedFile(null);
     } catch (err: any) {
@@ -270,6 +357,59 @@ function StudentAssignment() {
               </div>
             </div>
           </div>
+
+          <div className="card">
+            <div className="card-body">
+              <h3 className="font-semibold mb-8">Class Comments</h3>
+              
+
+              <div className="sa-comment-list sa-class-thread-list">
+                {classCommentsLoading && (
+                  <p className="sa-comment-empty">Loading class comments...</p>
+                )}
+                {!classCommentsLoading && classComments.length === 0 && (
+                  <p className="sa-comment-empty">No class comments yet.</p>
+                )}
+                {classComments.map((c, idx) => (
+                  <div className="sa-class-comment-row" key={c._id || `${idx}-${c.createdAt}`}>
+                    <div className="sa-class-avatar">{commentAvatar(c)}</div>
+                    <div className="sa-class-comment-body">
+                      <p className="sa-comment-meta">
+                        <strong>{commentAuthorName(c)}</strong> · {
+                          new Date(c.createdAt).toLocaleString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: true
+                          })
+                        }
+                      </p>
+                      <p className="sa-comment-text">{c.text}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="sa-class-input-row">
+                <textarea
+                  className="sa-comment-input sa-class-input"
+                  rows={1}
+                  placeholder="Add class comment..."
+                  value={classCommentText}
+                  onChange={(e) => setClassCommentText(e.target.value)}
+                />
+                <button
+                  className="sa-class-send-btn"
+                  onClick={() => postComment("class")}
+                  disabled={postingScope !== null || !classCommentText.trim()}
+                  title="Send class comment"
+                >
+                  {postingScope === "class" ? "..." : ">"}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* ──────── RIGHT: Upload & Status ──────── */}
@@ -302,7 +442,7 @@ function StudentAssignment() {
 
                 {submission?.grade !== undefined && (
                   <div className="sa-status-row">
-                    <span className="text-sm sa-status-label">Grade</span>
+                    <span className="text-sm sa-status-label">Marked Points</span>
                     <span className="text-sm font-semibold sa-grade">
                       {submission.grade} / {assignment.totalPoints}
                     </span>
@@ -417,6 +557,46 @@ function StudentAssignment() {
               {submitSuccess && (
                 <p className="sa-success-msg">✓ Assignment submitted successfully!</p>
               )}
+            </div>
+          </div>
+
+          <div className="card mt-24">
+            <div className="card-body">
+              <h3 className="font-semibold mb-16">Private Comments</h3>
+
+              <div className="sa-comment-list">
+                {(submission?.privateComments || []).length === 0 && (
+                  <p className="sa-comment-empty">No private comments yet.</p>
+                )}
+                {(submission?.privateComments || []).map((c, idx) => (
+                  <div
+                    className={`sa-comment-item ${isOwnComment(c) ? "sa-comment-own" : ""}`}
+                    key={c._id || `${idx}-${c.createdAt}`}
+                  >
+                    <p className="sa-comment-meta">
+                      <strong>{commentAuthorName(c)}</strong> · {new Date(c.createdAt).toLocaleString()}
+                    </p>
+                    <p className="sa-comment-text">{c.text}</p>
+                  </div>
+                ))}
+              </div>
+
+              <textarea
+                className="sa-comment-input"
+                rows={3}
+                placeholder="Write a private comment to your teacher..."
+                value={privateCommentText}
+                onChange={(e) => setPrivateCommentText(e.target.value)}
+              />
+              <div className="sa-comment-actions">
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={() => postComment("private")}
+                  disabled={postingScope !== null || !privateCommentText.trim()}
+                >
+                  {postingScope === "private" ? "Posting..." : "Post Private"}
+                </button>
+              </div>
             </div>
           </div>
 
