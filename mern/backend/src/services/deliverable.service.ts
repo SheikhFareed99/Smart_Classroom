@@ -56,6 +56,31 @@ export const getDeliverableById = async (
   return Deliverable.findById(id);
 };
 
+export const getDeliverableByIdWithClassComments = async (
+  id: string
+): Promise<IDeliverable | null> => {
+  return Deliverable.findById(id).populate("classComments.author", "name email");
+};
+
+export const addClassCommentToDeliverable = async (data: {
+  deliverableId: string;
+  authorId: string | Types.ObjectId;
+  text: string;
+}): Promise<IDeliverable | null> => {
+  return Deliverable.findByIdAndUpdate(
+    data.deliverableId,
+    {
+      $push: {
+        classComments: {
+          author: data.authorId,
+          text: data.text,
+        },
+      },
+    },
+    { new: true, runValidators: true }
+  ).populate("classComments.author", "name email");
+};
+
 // ─── Update ───────────────────────────────────────────────────────────────────
 
 export const updateDeliverable = async (

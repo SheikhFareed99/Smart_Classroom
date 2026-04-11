@@ -8,6 +8,12 @@ import {
   deleteDeliverable,
   submitAssignment,
   listSubmissions,
+  getSubmissionComments,
+  addSubmissionComment,
+  getDeliverableClassComments,
+  addDeliverableClassComment,
+  addDeliverablePrivateComment,
+  gradeSubmission,
 } from "../controllers/deliverable.controller";
 
 const router = express.Router();
@@ -35,5 +41,19 @@ router.post("/deliverables/:deliverableId/submit", upload.single("file"), submit
 
 // GET    /api/deliverables/:deliverableId/submissions — teacher views all submissions
 router.get("/deliverables/:deliverableId/submissions", listSubmissions);
+
+// GET/POST /api/submissions/:submissionId/comments — comments per submission
+router
+  .route("/submissions/:submissionId/comments")
+  .get(getSubmissionComments)
+  .post(addSubmissionComment);
+
+router
+  .route("/deliverables/:deliverableId/class-comments")
+  .get(getDeliverableClassComments)
+  .post(addDeliverableClassComment);
+
+router.post("/deliverables/:deliverableId/private-comments", addDeliverablePrivateComment);
+router.post("/submissions/:submissionId/grade", gradeSubmission);
 
 export default router;

@@ -20,7 +20,9 @@ export default function Navbar({  user }: NavbarProps) {
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement | null>(null);
 
-  const profileName = user?.name || user?.email || "";
+const profileName = user?.name 
+  ? user.name.split(" ").slice(0, 2).join(" ") 
+  : (user?.email || "");
 
   const profileInitials = profileName
     ? profileName
