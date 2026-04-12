@@ -32,6 +32,13 @@ function getUID(req: Request): string {
   return String((req.user as any)?._id || "");
 }
 
+function idOf(value: any): string {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "object" && value._id) return String(value._id);
+  return String(value);
+}
+
 async function isInstructor(courseId: string, userId: string): Promise<boolean> {
   const course = await CourseService.findCourseById(courseId);
   if (!course) return false;
@@ -226,7 +233,7 @@ export const getSubmissionComments = async (req: Request, res: Response) => {
     const enrolled = instructor
       ? true
       : await EnrollmentService.isStudentEnrolled(submission.course.toString(), userId);
-    const isOwnerStudent = submission.student.toString() === userId;
+    const isOwnerStudent = idOf(submission.student) === userId;
 
     const queryScope = normalizeScope(req.query.scope);
 
@@ -283,7 +290,7 @@ export const addSubmissionComment = async (req: Request, res: Response) => {
     const enrolled = instructor
       ? true
       : await EnrollmentService.isStudentEnrolled(submission.course.toString(), authorId);
-    const isOwnerStudent = submission.student.toString() === authorId;
+    const isOwnerStudent = idOf(submission.student) === authorId;
 
     if (scope === "private" && !instructor && !isOwnerStudent) {
       return res.status(403).json({ success: false, message: "Forbidden" });
@@ -319,6 +326,7 @@ export const addDeliverablePrivateComment = async (req: Request, res: Response) 
   try {
     const deliverableId = p(req.params.deliverableId);
     const studentId = getUID(req);
+
     if (!studentId) return res.status(401).json({ success: false, message: "Not authenticated" });
 
     const text = String(req.body.text || "").trim();
@@ -332,7 +340,7 @@ export const addDeliverablePrivateComment = async (req: Request, res: Response) 
       ? true
       : await EnrollmentService.isStudentEnrolled(deliverable.course.toString(), studentId);
 
-    if (instructor || !enrolled) {
+    if (!instructor && !enrolled) {
       return res.status(403).json({ success: false, message: "Forbidden" });
     }
 
