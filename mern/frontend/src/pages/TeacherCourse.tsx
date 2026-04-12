@@ -14,6 +14,15 @@ interface Deliverable {
   attachments: { fileName: string; url: string }[];
 }
 
+interface SubmissionComment {
+  _id?: string;
+  author?: { _id: string; name?: string; email?: string } | string;
+  text: string;
+  createdAt: string;
+}
+
+type ClassComment = SubmissionComment;
+
 interface Submission {
   _id: string;
   student: { _id: string; name: string; email: string } | null;
@@ -22,6 +31,8 @@ interface Submission {
   grade?: number;
   feedback?: string;
   attachments: { fileName: string; url: string; mimeType?: string; sizeBytes?: number }[];
+  privateComments?: SubmissionComment[];
+  classComments?: SubmissionComment[];
 }
 
 interface Module { _id: string; title: string; description?: string; order: number; }
@@ -82,6 +93,14 @@ function formatBytes(b?: number) {
   return `${(b / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function getDisplayName(name?: string | null): string {
+  return name ? name.split(" ").slice(0, 2).join(" ") : "Unknown Student";
+}
+
+function getInitials(name?: string | null): string {
+  return name ? name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "?";
+}
+
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export default function TeacherCourse() {
@@ -102,6 +121,15 @@ export default function TeacherCourse() {
   const [selectedDeliverable, setSelectedDeliverable] = useState<Deliverable | null>(null);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [subsLoading, setSubsLoading] = useState(false);
+  const [gradeInputs, setGradeInputs] = useState<Record<string, string>>({});
+  const [gradingSubmissionId, setGradingSubmissionId] = useState<string | null>(null);
+  const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
+  const [privateCommentText, setPrivateCommentText] = useState("");
+  const [classCommentText, setClassCommentText] = useState("");
+  const [postingScope, setPostingScope] = useState<"private" | "class" | null>(null);
+  const [showClassComments, setShowClassComments] = useState(false);
+  const [classComments, setClassComments] = useState<ClassComment[]>([]);
+  const [classCommentsLoading, setClassCommentsLoading] = useState(false);
 
   // Enrolled students
   const [enrolledStudents, setEnrolledStudents] = useState<{ _id: string; name: string; email: string }[]>([]);
@@ -184,12 +212,125 @@ export default function TeacherCourse() {
     setSelectedDeliverable(deliv);
     setSubsLoading(true);
     setSubmissions([]);
+    setSelectedSubmission(null);
+    setShowClassComments(false);
+    setClassComments([]);
     try {
       const r = await apiFetch(`/api/deliverables/${deliv._id}/submissions`);
       const d = await r.json();
-      if (d.success) setSubmissions(d.submissions || []);
+      if (d.success) {
+        const rows: Submission[] = d.submissions || [];
+        setSubmissions(rows);
+        setGradeInputs(
+          Object.fromEntries(rows.map((s) => [s._id, s.grade !== undefined ? String(s.grade) : ""]))
+        );
+      }
     } catch { /* ignore */ }
     finally { setSubsLoading(false); }
+  }
+
+  async function saveGrade(sub: Submission) {
+    if (!selectedDeliverable) return;
+    const raw = gradeInputs[sub._id] ?? "";
+    const grade = Number(raw);
+
+    if (!Number.isFinite(grade) || grade < 0) {
+      showToast("Enter a valid non-negative mark", "err");
+      return;
+    }
+    if (grade > selectedDeliverable.totalPoints) {
+      showToast(`Marks cannot exceed ${selectedDeliverable.totalPoints}`, "err");
+      return;
+    }
+
+    setGradingSubmissionId(sub._id);
+    try {
+      const r = await apiFetch(`/api/submissions/${sub._id}/grade`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ grade }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.message || "Failed to save marks");
+
+      if (d.submission) {
+        setSubmissions((prev) => prev.map((s) => (s._id === d.submission._id ? d.submission : s)));
+        if (selectedSubmission?._id === d.submission._id) setSelectedSubmission(d.submission);
+      }
+      showToast("Marks saved");
+    } catch (err: any) {
+      showToast(err.message || "Failed to save marks", "err");
+    } finally {
+      setGradingSubmissionId(null);
+    }
+  }
+
+  async function loadClassComments(deliverableId: string) {
+    setClassCommentsLoading(true);
+    try {
+      const r = await apiFetch(`/api/deliverables/${deliverableId}/class-comments`);
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.message || "Failed to load class comments");
+      setClassComments(d.comments || []);
+    } catch (err: any) {
+      showToast(err.message || "Failed to load class comments", "err");
+    } finally {
+      setClassCommentsLoading(false);
+    }
+  }
+
+  async function postComment(scope: "private" | "class") {
+    if (scope === "private" && !selectedSubmission?._id) {
+      showToast("Select a student submission first", "err");
+      return;
+    }
+    if (scope === "class" && !selectedDeliverable?._id) {
+      showToast("Assignment not selected", "err");
+      return;
+    }
+
+    const text = (scope === "private" ? privateCommentText : classCommentText).trim();
+    if (!text) return;
+
+    setPostingScope(scope);
+    try {
+      const r = scope === "private"
+        ? await apiFetch(`/api/submissions/${selectedSubmission!._id}/comments`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ scope, text }),
+          })
+        : await apiFetch(`/api/deliverables/${selectedDeliverable!._id}/class-comments`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text }),
+          });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.message || "Failed to post comment");
+
+      if (scope === "private" && d.submission) {
+        setSubmissions((prev) => prev.map((sub) => (sub._id === d.submission._id ? d.submission : sub)));
+        setSelectedSubmission(d.submission);
+      }
+
+      if (scope === "class") {
+        setClassComments(d.comments || []);
+      }
+
+      if (scope === "private") setPrivateCommentText("");
+      else setClassCommentText("");
+      showToast("Comment posted");
+    } catch (err: any) {
+      showToast(err.message || "Failed to post comment", "err");
+    } finally {
+      setPostingScope(null);
+    }
+  }
+
+  function authorName(comment: SubmissionComment): string {
+    if (!comment.author) return "Unknown";
+    if (typeof comment.author === "string") return "Unknown";
+    return comment.author.name || comment.author.email || "Unknown";
   }
 
   // ── Load modules when tab active ──────────────────────────────────────────────
@@ -329,6 +470,7 @@ export default function TeacherCourse() {
     return { background: bg, color };
   };
 
+
   return (
     <>
       <main className="main-content">
@@ -390,12 +532,7 @@ export default function TeacherCourse() {
               <div>
                 {/* ── Submissions header ── */}
                 <div className="tc-subs-header">
-                  <button
-                    className="btn btn-ghost btn-sm tc-back-btn"
-                    onClick={() => setSelectedDeliverable(null)}
-                  >
-                    ← Back to Assignments
-                  </button>
+           
                   <div className="tc-subs-title-block">
                     <h3 className="font-semibold">{selectedDeliverable.title}</h3>
                     <p className="text-sm tc-subs-meta">
@@ -406,6 +543,16 @@ export default function TeacherCourse() {
                       {" · "}<AssignmentBadge status={selectedDeliverable.status} />
                     </p>
                   </div>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    onClick={() => {
+                      const next = !showClassComments;
+                      setShowClassComments(next);
+                      if (next && selectedDeliverable?._id) loadClassComments(selectedDeliverable._id);
+                    }}
+                  >
+                    Class Comments
+                  </button>
                 </div>
 
                 {/* ── Submission count bar ── */}
@@ -443,6 +590,7 @@ export default function TeacherCourse() {
                           <th>Student</th>
                           <th>Submitted At</th>
                           <th>File</th>
+                          <th>Marks</th>
                           <th>Status</th>
                         </tr>
                       </thead>
@@ -460,7 +608,11 @@ export default function TeacherCourse() {
                                 <div className="tc-student-cell">
                                   <div className="avatar avatar-sm" style={avatarStyle(i)}>{initials}</div>
                                   <div>
-                                    <p className="tc-stu-name">{student?.name || "Unknown Student"}</p>
+                                    <p className="tc-stu-name">
+                                      {student?.name
+                                        ? student.name.split(" ").slice(0, 2).join(" ")
+                                        : "Unknown Student"}
+                                    </p>
                                     <p className="tc-stu-email">{student?.email || "—"}</p>
                                   </div>
                                 </div>
@@ -489,12 +641,130 @@ export default function TeacherCourse() {
                                   </a>
                                 ) : <span className="tc-no-file">No file</span>}
                               </td>
-                              <td><SubStatusBadge status={sub.status} /></td>
+                              <td>
+                                <div className="tc-grade-cell">
+                                  <input
+                                    className="form-input tc-grade-input"
+                                    type="number"
+                                    min={0}
+                                    max={selectedDeliverable.totalPoints}
+                                    value={gradeInputs[sub._id] ?? ""}
+                                    onChange={(e) => setGradeInputs({ ...gradeInputs, [sub._id]: e.target.value })}
+                                    placeholder="0"
+                                  />
+                                  <span className="tc-grade-total">/ {selectedDeliverable.totalPoints}</span>
+                                  <button
+                                    className="btn btn-outline btn-sm"
+                                    onClick={() => saveGrade(sub)}
+                                    disabled={!file || gradingSubmissionId === sub._id || !(gradeInputs[sub._id] ?? "").trim()}
+                                  >
+                                    {gradingSubmissionId === sub._id ? "Saving..." : "Save"}
+                                  </button>
+                                </div>
+                              </td>
+                              <td>
+                                <div className="tc-sub-actions">
+                                  <SubStatusBadge status={sub.status} />
+                                  <button
+                                    className="btn btn-outline btn-sm"
+                                    onClick={() => setSelectedSubmission(sub)}
+                                  >
+                                    Comments
+                                  </button>
+                                </div>
+                              </td>
                             </tr>
                           );
                         })}
                       </tbody>
                     </table>
+                  </div>
+                )}
+
+                {!subsLoading && selectedSubmission && (
+                  <div className="tc-comments-panel">
+                    <div className="tc-comments-head">
+                      <h4>Comments for {selectedSubmission.student?.name || "Student"}</h4>
+                      <button className="btn btn-ghost btn-sm" onClick={() => setSelectedSubmission(null)}>Close</button>
+                    </div>
+
+                    <div className="tc-comment-thread">
+                      <h5>Private Comments</h5>
+                      <div className="tc-thread-list">
+                        {(selectedSubmission.privateComments || []).length === 0 && (
+                          <p className="tc-thread-empty">No private comments yet.</p>
+                        )}
+                        {(selectedSubmission.privateComments || []).map((c, idx) => (
+                          <div className="tc-comment-item" key={c._id || `${idx}-${c.createdAt}`}>
+                            <p className="tc-comment-meta">
+                              <strong>{authorName(c)}</strong> · {new Date(c.createdAt).toLocaleString()}
+                            </p>
+                            <p className="tc-comment-text">{c.text}</p>
+                          </div>
+                        ))}
+                      </div>
+                      <textarea
+                        className="form-input"
+                        rows={3}
+                        placeholder="Write a private comment..."
+                        value={privateCommentText}
+                        onChange={(e) => setPrivateCommentText(e.target.value)}
+                      />
+                      <div className="tc-comment-actions">
+                        <button
+                          className="btn btn-primary btn-sm"
+                          onClick={() => postComment("private")}
+                          disabled={postingScope !== null || !privateCommentText.trim()}
+                        >
+                          {postingScope === "private" ? "Posting..." : "Post Private"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {!subsLoading && showClassComments && (
+                  <div className="tc-comments-panel">
+                    <div className="tc-comments-head">
+                      <h4>All Class Comments</h4>
+                      <button className="btn btn-ghost btn-sm" onClick={() => setShowClassComments(false)}>Close</button>
+                    </div>
+
+                    <div className="tc-comment-thread">
+
+                      <div className="tc-thread-list">
+                        {classCommentsLoading && <p className="tc-thread-empty">Loading class comments...</p>}
+                        {!classCommentsLoading && classComments.length === 0 && (
+                          <p className="tc-thread-empty">No class comments yet.</p>
+                        )}
+
+                        {classComments.map((c, idx) => (
+                          <div className="tc-comment-item" key={c._id || `${idx}-${c.createdAt}`}>
+                            <p className="tc-comment-meta">
+                              <strong>{authorName(c)}</strong> · {new Date(c.createdAt).toLocaleString()}
+                            </p>
+                            <p className="tc-comment-text">{c.text}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      <textarea
+                        className="form-input"
+                        rows={3}
+                        placeholder="Write a class comment..."
+                        value={classCommentText}
+                        onChange={(e) => setClassCommentText(e.target.value)}
+                      />
+                      <div className="tc-comment-actions">
+                        <button
+                          className="btn btn-primary btn-sm"
+                          onClick={() => postComment("class")}
+                          disabled={postingScope !== null || !classCommentText.trim()}
+                        >
+                          {postingScope === "class" ? "Posting..." : "Post Class"}
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

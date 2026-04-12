@@ -2,6 +2,14 @@ import { Schema, Document, model, Types } from "mongoose";
 import { AttachmentSchema, IAttachment } from "./deliverable_subdocuments/attachment.subdoc";
 
 export type SubmissionStatus = "not_submitted" | "submitted" | "late" | "graded";
+export type SubmissionCommentScope = "private" | "class";
+
+export interface ISubmissionComment {
+  author: Types.ObjectId;
+  text: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 export interface ISubmission extends Document {
   deliverable: Types.ObjectId;    // ref: "Deliverable"
@@ -13,9 +21,28 @@ export interface ISubmission extends Document {
   status: SubmissionStatus;
   grade?: number;                 // points awarded 
   feedback?: string;              // teacher's written feedback after grading
+  privateComments: ISubmissionComment[];
+  classComments: ISubmissionComment[];
   createdAt: Date;
   updatedAt: Date;
 }
+
+const SubmissionCommentSchema = new Schema<ISubmissionComment>(
+  {
+    author: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    text: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 2000,
+    },
+  },
+  { timestamps: true }
+);
 
 const SubmissionSchema = new Schema<ISubmission>(
   {
@@ -53,6 +80,14 @@ const SubmissionSchema = new Schema<ISubmission>(
     feedback: {
       type: String,
       trim: true,
+    },
+    privateComments: {
+      type: [SubmissionCommentSchema],
+      default: [],
+    },
+    classComments: {
+      type: [SubmissionCommentSchema],
+      default: [],
     },
   },
   { timestamps: true }

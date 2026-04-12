@@ -572,10 +572,11 @@
 /* ── Buttons ───────────────────────────────────────────────────── */
 .btn {
   display: inline-flex; align-items: center; justify-content: center;
-  gap: 6px; padding: 9px 18px; border-radius: var(--radius-sm);
+  gap: 6px; padding: 0px 12px; border-radius: var(--radius-sm);
   font-weight: 500; font-size: 0.875rem; transition: all 0.15s ease;
   white-space: nowrap; cursor: pointer; border: none;
   font-family: inherit; text-decoration: none; line-height: 1.4;
+
 }
 .btn-primary { background: var(--primary); color: #fff; }
 .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
@@ -778,6 +779,37 @@
 }
 .tc-no-file { color: var(--text-muted); font-size: 0.8125rem; }
 
+.tc-sub-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tc-grade-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tc-grade-input {
+  width: 92px;
+  padding: 6px 10px;
+  font-size: 0.82rem;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.tc-grade-input::-webkit-outer-spin-button,
+.tc-grade-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.tc-grade-total {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
 /* ── View submissions button ─────────────────────────── */
 .tc-view-subs-btn {
   display: inline-flex;
@@ -794,3 +826,93 @@
 [data-theme="dark"] .tc-stat-submitted  { color: var(--accent); }
 [data-theme="dark"] .tc-stat-late       { background: rgba(251,191,36,0.12); color: #FBBF24; }
 [data-theme="dark"] .tc-stat-total      { background: rgba(59,130,246,0.12); }
+
+/* ── Comments panel ───────────────────────────────────── */
+.tc-comments-panel {
+  margin-top: 18px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  padding: 16px;
+}
+
+.tc-comments-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.tc-comments-head h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.tc-comments-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.tc-comment-thread {
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 12px;
+}
+
+.tc-comment-thread h5 {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.tc-thread-hint {
+  margin: 6px 0 10px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.tc-thread-list {
+  max-height: 220px;
+  overflow: auto;
+  margin-bottom: 10px;
+}
+
+.tc-thread-empty {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  margin: 6px 0;
+}
+
+.tc-comment-item {
+  padding: 8px 9px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+  background: var(--bg);
+}
+
+.tc-comment-meta {
+  margin: 0 0 4px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.tc-comment-text {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+}
+
+.tc-comment-actions {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 1024px) {
+  .tc-comments-grid {
+    grid-template-columns: 1fr;
+  }
+}
