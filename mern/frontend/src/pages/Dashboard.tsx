@@ -5,7 +5,6 @@ import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "../auth/AuthContext";
 import { apiFetch } from "../lib/api";
-
 type Course = {
   _id?: string;
   title: string;
@@ -27,6 +26,7 @@ function CourseCard({ _id, title, code, courseCode, students, color, badge }: {
   badge?: string;
 }) {
   const displayCode = code || courseCode || '';
+  
   return (
     <Link to={`/teacher-course/${_id || ''}`} className="course-card">
       <div className={`course-card-banner ${color || 'blue'}`}>
@@ -89,6 +89,7 @@ function Dashboard() {
     fetchCourses();
     return () => { mounted = false; };
   }, [user]);
+  const name = user?.name ? user.name.split(" ").slice(0, 2).join(" ") : "Unknown Student";
 
   return (
    <>
@@ -112,7 +113,7 @@ function Dashboard() {
         {/* Page header */}
         <div className="page-header">
           <div>
-            <h1 className="page-title">Welcome back, {user?.name} 👋</h1>
+            <h1 className="page-title">Welcome back, {name} 👋</h1>
             <p className="page-subtitle">Here's your classroom overview for today.</p>
           </div>
         </div>

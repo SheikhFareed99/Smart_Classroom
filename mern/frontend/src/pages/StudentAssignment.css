@@ -301,6 +301,133 @@
   text-decoration: underline;
 }
 
+/* ---------- Comments ---------- */
+.sa-comment-hint {
+  margin: -8px 0 12px;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.sa-comment-list {
+  max-height: 220px;
+  overflow: auto;
+  margin-bottom: 12px;
+}
+
+.sa-comment-empty {
+  margin: 6px 0;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.sa-comment-item {
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: var(--bg);
+}
+
+.sa-comment-own {
+  border-color: var(--primary);
+}
+
+.sa-comment-meta {
+  margin: 0 0 5px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.sa-comment-text {
+  margin: 0;
+  white-space: pre-wrap;
+  color: var(--text-primary);
+  font-size: 0.875rem;
+}
+
+.sa-comment-input {
+  width: 100%;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  background: var(--card);
+  box-sizing: border-box;
+}
+
+.sa-comment-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+}
+
+.sa-comment-actions {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.sa-class-thread-list {
+  max-height: 320px;
+}
+
+.sa-class-comment-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.sa-class-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: var(--primary-bg);
+  color: var(--primary);
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sa-class-comment-body {
+  flex: 1;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  background: var(--bg);
+}
+
+.sa-class-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.sa-class-input {
+  min-height: 42px;
+}
+
+.sa-class-send-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.sa-class-send-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 /* ---------- Upload Zone ---------- */
 .upload-zone {
   border: 2px dashed var(--border);

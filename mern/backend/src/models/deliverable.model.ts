@@ -3,17 +3,42 @@ import { AttachmentSchema, IAttachment } from "./deliverable_subdocuments/attach
 
 export type DeliverableStatus = "draft" | "published";
 
+export interface IDeliverableClassComment {
+  author: Types.ObjectId;
+  text: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface IDeliverable extends Document {
   title: string;
   description?: string;
   course: Types.ObjectId;         // ref: "Course"
   attachments: IAttachment[];     
+  classComments: IDeliverableClassComment[];
   deadline?: Date;
   totalPoints: number;
   status: DeliverableStatus;
   createdAt: Date;
   updatedAt: Date;
 }
+
+const DeliverableClassCommentSchema = new Schema<IDeliverableClassComment>(
+  {
+    author: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    text: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 2000,
+    },
+  },
+  { timestamps: true }
+);
 
 const DeliverableSchema = new Schema<IDeliverable>(
   {
@@ -34,6 +59,10 @@ const DeliverableSchema = new Schema<IDeliverable>(
   
     attachments: {
       type: [AttachmentSchema],
+      default: [],
+    },
+    classComments: {
+      type: [DeliverableClassCommentSchema],
       default: [],
     },
     deadline: {
