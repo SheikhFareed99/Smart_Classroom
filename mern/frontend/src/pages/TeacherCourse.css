@@ -184,6 +184,54 @@
   line-height: 1.7;
 }
 
+.tc-ann-comment-toggle {
+  margin-top: 12px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: none;
+  background: transparent;
+  border-top: 1px solid var(--border-light);
+  padding-top: 10px;
+  color: #2563EB;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tc-ann-comment-panel {
+  margin-top: 8px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  background: var(--bg);
+}
+
+.tc-ann-comment-item {
+  margin-bottom: 10px;
+}
+
+.tc-ann-comment-item:last-of-type {
+  margin-bottom: 8px;
+}
+
+.tc-ann-comment-author {
+  color: var(--text-secondary);
+}
+
+.tc-ann-comment-text {
+  margin-top: 2px;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.tc-ann-comment-compose {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
 /* ── Assignment List ───────────────────────────────── */
 .assignment-list {
   display: flex;

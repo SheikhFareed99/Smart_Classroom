@@ -5,7 +5,20 @@ import "./TeacherCourse.css";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-interface StreamPost { id: number; authorInitials: string; authorName: string; time: string; body: string; }
+interface AnnouncementComment {
+  _id?: string;
+  author?: { _id: string; name?: string; email?: string } | string;
+  text: string;
+  createdAt: string;
+}
+
+interface Announcement {
+  _id: string;
+  author?: { _id: string; name?: string; email?: string } | string;
+  text: string;
+  comments: AnnouncementComment[];
+  createdAt: string;
+}
 
 interface Deliverable {
   _id: string; title: string; description?: string;
@@ -37,12 +50,6 @@ interface Submission {
 
 interface Module { _id: string; title: string; description?: string; order: number; }
 interface Material { _id: string; title: string; type: string; url: string; sizeBytes?: number; uploadedAt: string; }
-
-// ─── Static stream data ──────────────────────────────────────────────────────
-
-const DUMMY_STREAM: StreamPost[] = [
-  { id: 1, authorInitials: "T", authorName: "Instructor", time: "Now", body: "Welcome to this course! Check the Assignments and Materials tabs." },
-];
 
 // ─── SVG helpers ─────────────────────────────────────────────────────────────
 
@@ -93,14 +100,6 @@ function formatBytes(b?: number) {
   return `${(b / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function getDisplayName(name?: string | null): string {
-  return name ? name.split(" ").slice(0, 2).join(" ") : "Unknown Student";
-}
-
-function getInitials(name?: string | null): string {
-  return name ? name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "?";
-}
-
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export default function TeacherCourse() {
@@ -112,6 +111,15 @@ export default function TeacherCourse() {
   const [courseName, setCourseName] = useState("Loading…");
   const [courseDetails, setCourseDetails] = useState("");
   const [courseCode, setCourseCode] = useState("");
+
+  // Stream announcements
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [streamLoading, setStreamLoading] = useState(false);
+  const [announcementText, setAnnouncementText] = useState("");
+  const [postingAnnouncement, setPostingAnnouncement] = useState(false);
+  const [postingAnnouncementId, setPostingAnnouncementId] = useState<string | null>(null);
+  const [announcementCommentInputs, setAnnouncementCommentInputs] = useState<Record<string, string>>({});
+  const [expandedAnnouncementComments, setExpandedAnnouncementComments] = useState<Record<string, boolean>>({});
 
   // Assignments
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
@@ -162,6 +170,96 @@ export default function TeacherCourse() {
     setTimeout(() => setToast(null), 3000);
   }
 
+  const announcementApiBase = "/api/announcements";
+
+  function nameFromAuthor(author?: { _id: string; name?: string; email?: string } | string): string {
+    if (!author || typeof author === "string") return "Instructor";
+    return author.name || author.email || "Instructor";
+  }
+
+  function initialsFromAuthor(author?: { _id: string; name?: string; email?: string } | string): string {
+    const name = nameFromAuthor(author);
+    return name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "T";
+  }
+
+  function formatWhen(dateIso?: string): string {
+    if (!dateIso) return "Now";
+    const dt = new Date(dateIso);
+    if (Number.isNaN(dt.getTime())) return "Now";
+    return dt.toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  async function loadAnnouncements() {
+    if (!courseId) return;
+    setStreamLoading(true);
+    try {
+      const r = await apiFetch(`${announcementApiBase}/courses/${courseId}/announcements`);
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.message || "Failed to load announcements");
+      setAnnouncements(Array.isArray(d.announcements) ? d.announcements : []);
+    } catch (err: any) {
+      showToast(err.message || "Failed to load announcements", "err");
+    } finally {
+      setStreamLoading(false);
+    }
+  }
+
+  async function postAnnouncement() {
+    if (!courseId) return;
+    const text = announcementText.trim();
+    if (!text) return;
+
+    setPostingAnnouncement(true);
+    try {
+      const r = await apiFetch(`${announcementApiBase}/courses/${courseId}/announcements`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // backend currently reads courseId from body
+        body: JSON.stringify({ courseId, text }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.message || "Failed to post announcement");
+      setAnnouncementText("");
+      showToast("Announcement posted");
+      await loadAnnouncements();
+    } catch (err: any) {
+      showToast(err.message || "Failed to post announcement", "err");
+    } finally {
+      setPostingAnnouncement(false);
+    }
+  }
+
+  async function postAnnouncementComment(announcementId: string) {
+    const text = (announcementCommentInputs[announcementId] || "").trim();
+    if (!text) return;
+
+    setPostingAnnouncementId(announcementId);
+    try {
+      const r = await apiFetch(`${announcementApiBase}/announcements/${announcementId}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.message || "Failed to post comment");
+      if (d.announcement) {
+        setAnnouncements(prev => prev.map(a => (a._id === announcementId ? d.announcement : a)));
+      }
+      setAnnouncementCommentInputs(prev => ({ ...prev, [announcementId]: "" }));
+      showToast("Comment posted");
+    } catch (err: any) {
+      showToast(err.message || "Failed to post comment", "err");
+    } finally {
+      setPostingAnnouncementId(null);
+    }
+  }
+
   // ── Load course info ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (!courseId) return;
@@ -177,6 +275,11 @@ export default function TeacherCourse() {
       })
       .catch(() => {});
   }, [courseId]);
+
+  useEffect(() => {
+    if (activeTab !== "stream") return;
+    loadAnnouncements();
+  }, [activeTab, courseId]);
 
   // ── Load deliverables when tab active ────────────────────────────────────────
   useEffect(() => {
@@ -506,18 +609,90 @@ export default function TeacherCourse() {
           <div className="tab-content active" id="stream">
             <div className="stream-compose">
               <div className="avatar">T</div>
-              <span>Announce something to your class…</span>
+              <div style={{ width: "100%" }}>
+                <textarea
+                  className="form-input"
+                  rows={3}
+                  placeholder="Announce something to your class..."
+                  value={announcementText}
+                  onChange={(e) => setAnnouncementText(e.target.value)}
+                />
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={postAnnouncement}
+                    disabled={postingAnnouncement || !announcementText.trim()}
+                  >
+                    {postingAnnouncement ? "Posting..." : "Post"}
+                  </button>
+                </div>
+              </div>
             </div>
-            {DUMMY_STREAM.map(post => (
-              <div className="stream-post" key={post.id}>
+
+            {streamLoading && <p className="tc-loading">Loading announcements...</p>}
+
+            {!streamLoading && announcements.length === 0 && (
+              <div className="tc-empty">
+                <p>No announcements yet.</p>
+              </div>
+            )}
+
+            {!streamLoading && announcements.map(post => (
+              <div className="stream-post" key={post._id}>
                 <div className="stream-post-header">
-                  <div className="avatar">{post.authorInitials}</div>
+                  <div className="avatar">{initialsFromAuthor(post.author)}</div>
                   <div>
-                    <p className="stream-post-author">{post.authorName}</p>
-                    <p className="stream-post-time">{post.time}</p>
+                    <p className="stream-post-author">{nameFromAuthor(post.author)}</p>
+                    <p className="stream-post-time">{formatWhen(post.createdAt)}</p>
                   </div>
                 </div>
-                <div className="stream-post-body">{post.body}</div>
+                <div className="stream-post-body">{post.text}</div>
+
+                <button
+                  className="tc-ann-comment-toggle"
+                  onClick={() =>
+                    setExpandedAnnouncementComments((prev) => ({
+                      ...prev,
+                      [post._id]: !prev[post._id],
+                    }))
+                  }
+                >
+                  <span>
+                    {(post.comments || []).length} class {(post.comments || []).length === 1 ? "comment" : "comments"}
+                  </span>
+                  <span>{expandedAnnouncementComments[post._id] ? "Hide" : "Show"}</span>
+                </button>
+
+                {expandedAnnouncementComments[post._id] && (
+                  <div className="tc-ann-comment-panel">
+                    {(post.comments || []).map((c, idx) => (
+                      <div key={c._id || `${idx}-${c.createdAt}`} className="tc-ann-comment-item">
+                        <p className="stream-post-time">
+                          <strong className="tc-ann-comment-author">{nameFromAuthor(c.author)}</strong>
+                          {" · "}
+                          {formatWhen(c.createdAt)}
+                        </p>
+                        <p className="tc-ann-comment-text">{c.text}</p>
+                      </div>
+                    ))}
+
+                    <div className="tc-ann-comment-compose">
+                      <input
+                        className="form-input"
+                        placeholder="Write a public class comment..."
+                        value={announcementCommentInputs[post._id] || ""}
+                        onChange={(e) => setAnnouncementCommentInputs(prev => ({ ...prev, [post._id]: e.target.value }))}
+                      />
+                      <button
+                        className="btn btn-outline btn-sm"
+                        onClick={() => postAnnouncementComment(post._id)}
+                        disabled={postingAnnouncementId === post._id || !(announcementCommentInputs[post._id] || "").trim()}
+                      >
+                        {postingAnnouncementId === post._id ? "Posting..." : "Comment"}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>

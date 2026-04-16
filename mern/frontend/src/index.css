@@ -2,6 +2,7 @@
   font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
+  --text-secondary: #33363b;
 
   color: #0F172A;
   background-color: #F8FAFC;
