@@ -1,0 +1,225 @@
+.jam-editor-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(1200px 600px at -15% -20%, rgba(56, 189, 248, 0.18), transparent 56%),
+    radial-gradient(900px 500px at 120% 0%, rgba(52, 211, 153, 0.18), transparent 52%),
+    var(--bg);
+  color: var(--text-primary);
+  padding: 24px;
+}
+
+.jam-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.jam-editor-kicker {
+  margin: 0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.jam-editor-header h1 {
+  margin: 2px 0 0;
+  font-size: clamp(1.1rem, 2vw, 1.7rem);
+}
+
+.jam-editor-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.jam-save-status {
+  border-radius: 999px;
+  border: 1px solid var(--border-light);
+  background: var(--card);
+  padding: 6px 10px;
+  font-size: 0.77rem;
+  font-weight: 700;
+}
+
+.jam-save-status.saved {
+  color: #0f766e;
+  border-color: rgba(13, 148, 136, 0.3);
+  background: rgba(20, 184, 166, 0.12);
+}
+
+.jam-save-status.dirty,
+.jam-save-status.saving {
+  color: #9a3412;
+  border-color: rgba(251, 146, 60, 0.35);
+  background: rgba(251, 146, 60, 0.14);
+}
+
+.jam-save-status.error {
+  color: #b91c1c;
+  border-color: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.14);
+}
+
+.jam-editor-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border-light);
+  background: color-mix(in srgb, var(--card) 84%, transparent);
+  backdrop-filter: blur(4px);
+}
+
+.jam-tool-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.jam-tool {
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--text-primary);
+  font-size: 0.84rem;
+  font-weight: 600;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+.jam-tool.active {
+  border-color: rgba(37, 99, 235, 0.4);
+  background: rgba(37, 99, 235, 0.12);
+  color: #1d4ed8;
+}
+
+.dark .jam-tool.active {
+  color: #93c5fd;
+}
+
+.jam-toolbar-split {
+  width: 1px;
+  height: 24px;
+  background: var(--border-light);
+}
+
+.jam-control {
+  display: grid;
+  gap: 3px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.jam-control input[type="range"] {
+  width: 112px;
+}
+
+.jam-control.color input {
+  width: 36px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.jam-color-preset-group {
+  display: flex;
+  gap: 6px;
+}
+
+.jam-swatch {
+  width: 22px;
+  height: 22px;
+  border: 1px solid rgba(15, 23, 42, 0.2);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.jam-swatch.active {
+  outline: 2px solid rgba(15, 23, 42, 0.85);
+  outline-offset: 1px;
+}
+
+.jam-swatch.sticky {
+  border-radius: 8px;
+}
+
+.jam-btn {
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--text-primary);
+  font-size: 0.83rem;
+  font-weight: 700;
+  padding: 7px 11px;
+  cursor: pointer;
+}
+
+.jam-btn.primary {
+  border-color: rgba(37, 99, 235, 0.28);
+  background: linear-gradient(180deg, #3b82f6, #2563eb);
+  color: #f8fafc;
+}
+
+.jam-btn.ghost {
+  background: transparent;
+}
+
+.jam-btn.danger {
+  border-color: rgba(220, 38, 38, 0.24);
+  color: #dc2626;
+}
+
+.jam-canvas-shell {
+  margin-top: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--border-light);
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+}
+
+.jam-canvas-shell canvas {
+  display: block;
+}
+
+.jam-error-banner {
+  margin: 10px 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  color: #b91c1c;
+  background: rgba(254, 226, 226, 0.9);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.jam-editor-footer {
+  margin-top: 10px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 880px) {
+  .jam-editor-page {
+    padding: 14px;
+  }
+
+  .jam-editor-toolbar {
+    border-radius: 12px;
+  }
+
+  .jam-control input[type="range"] {
+    width: 96px;
+  }
+}

@@ -93,14 +93,6 @@ function formatBytes(b?: number) {
   return `${(b / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function getDisplayName(name?: string | null): string {
-  return name ? name.split(" ").slice(0, 2).join(" ") : "Unknown Student";
-}
-
-function getInitials(name?: string | null): string {
-  return name ? name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() : "?";
-}
-
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export default function TeacherCourse() {

@@ -77,7 +77,7 @@ export default function StudentMaterials() {
   const [expanded, setExpanded]   = useState<Record<string, boolean>>({});
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState<string | null>(null);
-  const [courseName, setCourseName] = useState("Course");
+  const [courseName] = useState("Course");
 
   // Fetch modules, then materials per module
   useEffect(() => {

@@ -248,70 +248,58 @@
   flex-wrap: wrap;
 }
 
-.jam-color-picker {
-  display: flex;
+.jamboard-create-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.jamboard-title-field {
+  display: grid;
   gap: 8px;
 }
 
-.jam-color-btn {
-  width: 20px;
-  height: 20px;
-  border-radius: 999px;
-  border: 1px solid rgba(15, 23, 42, 0.15);
-  cursor: pointer;
-}
-
-.jam-color-btn.active {
-  outline: 2px solid var(--text-primary);
-  outline-offset: 1px;
-}
-
-.jamboard {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 14px;
-}
-
-.sticky-note {
-  border-radius: 12px;
-  padding: 12px;
-  min-height: 145px;
-  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
-}
-
-.sticky-note-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.sticky-note-date {
-  font-size: 0.75rem;
-  color: rgba(15, 23, 42, 0.7);
+.jamboard-title-field span {
+  font-size: 0.82rem;
+  color: var(--text-muted);
   font-weight: 600;
 }
 
-.sticky-note-delete {
-  border: 0;
-  background: transparent;
-  color: rgba(15, 23, 42, 0.6);
-  font-size: 1.1rem;
-  line-height: 1;
-  cursor: pointer;
+.jamboard-title-field input {
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.92rem;
+  color: var(--text-primary);
+  background: var(--card);
 }
 
-.sticky-note-title {
-  font-weight: 700;
-  margin-bottom: 6px;
-  color: #0f172a;
+.jamboard-note {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.5;
 }
 
-.sticky-note-preview {
-  white-space: pre-wrap;
+.jamboard-error {
+  margin: 0;
+  color: #dc2626;
   font-size: 0.84rem;
-  line-height: 1.45;
-  color: rgba(15, 23, 42, 0.9);
+  font-weight: 600;
+}
+
+.jamboard-helper-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.jamboard-helper-list span {
+  border: 1px solid var(--border-light);
+  background: var(--card);
+  border-radius: 999px;
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  padding: 4px 9px;
 }
 
 /* Schedule */

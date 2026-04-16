@@ -7,20 +7,11 @@ import { apiFetch } from "../lib/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type NoteColor = "#FEF9C3" | "#DBEAFE" | "#DCFCE7" | "#FCE7F3" | "#F3E8FF";
-
 interface CourseAPIItem {
   _id: string;
   title: string;
   courseCode?: string;
   instructor?: { _id?: string; name?: string; email?: string } | null;
-}
-
-interface StickyNote {
-  color: NoteColor;
-  date: string;
-  title: string;
-  text: string;
 }
 
 interface TodoItem {
@@ -49,14 +40,6 @@ const TIMETABLE_ROWS = [
   { time: "3:30 PM", mon: { label: "CV Lab", color: "orange" }, tue: null, wed: null, thu: null, fri: null },
 ] as const;
 
-const DEFAULT_NOTES: StickyNote[] = [
-  { color: "#FEF9C3", date: "Feb 14", title: "", text: "Key HCI Principles:\n- Visibility\n- Feedback\n- Constraints\n- Consistency\n- Affordance" },
-  { color: "#DBEAFE", date: "Feb 13", title: "", text: "AI Search Algorithms:\n- BFS, DFS, UCS\n- A* (f = g + h)\n- Heuristic must be admissible" },
-  { color: "#DCFCE7", date: "Feb 12", title: "", text: "Project Ideas:\n1. AI-powered study planner\n2. Gesture-based whiteboard\n3. Smart campus navigation" },
-  { color: "#FCE7F3", date: "Feb 11", title: "", text: "NLP Tokenization:\n- Word-level\n- Subword (BPE)\n- Character-level\nRemember: preprocessing matters!" },
-  { color: "#F3E8FF", date: "Feb 10", title: "", text: "Meeting with group:\n- Discuss wireframes\n- Divide tasks\n- Deadline: Feb 28" },
-];
-
 const DEFAULT_TODOS: TodoItem[] = [
   { id: 1, text: "Read HCI Chapter 1-2", completed: true },
   { id: 2, text: "Complete AI Assignment 1", completed: false },
@@ -72,14 +55,6 @@ const SCHEDULE_EVENTS: ScheduleEvent[] = [
   { date: "Feb 28, 2026 · 11:59 PM", title: "AI Assignment 1 Due", desc: "Search Algorithms — Submit online", variant: "danger" },
   { date: "Mar 1, 2026 · 11:59 PM", title: "HCI Assignment 1 Due", desc: "Heuristic Evaluation — PDF only", variant: "default" },
   { date: "Mar 5, 2026 · 2:00 PM", title: "CV Guest Lecture", desc: "Auditorium — Dr. Li Wei on Object Detection", variant: "accent" },
-];
-
-const NOTE_COLORS: { color: NoteColor; label: string }[] = [
-  { color: "#FEF9C3", label: "Yellow" },
-  { color: "#DBEAFE", label: "Blue" },
-  { color: "#DCFCE7", label: "Green" },
-  { color: "#FCE7F3", label: "Pink" },
-  { color: "#F3E8FF", label: "Purple" },
 ];
 
 const POMODORO_DURATION = 25 * 60; // seconds
@@ -350,19 +325,38 @@ function WeeklyTimetable() {
 }
 
 /** Jamboard / sticky notes */
-function Jamboard() {
-  const [notes, setNotes] = useState<StickyNote[]>(DEFAULT_NOTES);
-  const [activeColor, setActiveColor] = useState<NoteColor>("#FEF9C3");
+function Jamboard({ studentID }: { studentID?: string }) {
+  const [title, setTitle] = useState("My Whiteboard");
+  const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState("");
 
-  function addNote() {
-    const now = new Date();
-    const dateStr = now.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    setNotes((prev) => [{ color: activeColor, date: dateStr, title: "", text: "" }, ...prev]);
-  }
+  async function createJamboard() {
+    if (!studentID || isCreating) return;
+    setIsCreating(true);
+    setError("");
 
-  function deleteNote(index: number) {
-    if (!window.confirm("Delete this note?")) return;
-    setNotes((prev) => prev.filter((_, i) => i !== index));
+    try {
+      const res = await apiFetch("/api/whiteboard/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          studentID,
+          title: title.trim() || "My Whiteboard",
+        }),
+      });
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.whiteboardID) {
+        throw new Error(data?.error || data?.message || "Failed to create Jamboard");
+      }
+
+      const jamboardUrl = new URL(`/jamboard/${data.whiteboardID}`, window.location.origin).toString();
+      window.open(jamboardUrl, "_blank", "noopener,noreferrer");
+    } catch (err: any) {
+      setError(err?.message || "Could not create Jamboard");
+    } finally {
+      setIsCreating(false);
+    }
   }
 
   return (
@@ -374,61 +368,45 @@ function Jamboard() {
             <path d="M8 2v16" />
             <path d="M2 8h6" />
           </svg>
-          Jamboard — Quick Notes
+          Jamboard
         </h3>
         <div className="jamboard-actions">
-          <div className="jam-color-picker">
-            {NOTE_COLORS.map(({ color, label }) => (
-              <button
-                key={color}
-                className={`jam-color-btn${activeColor === color ? " active" : ""}`}
-                style={{ background: color }}
-                title={label}
-                onClick={() => setActiveColor(color)}
-              />
-            ))}
-          </div>
-          <button className="btn btn-primary btn-sm" onClick={addNote}>
+          <button className="btn btn-primary btn-sm" onClick={createJamboard} disabled={!studentID || isCreating}>
             <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="7" y1="1" x2="7" y2="13" />
               <line x1="1" y1="7" x2="13" y2="7" />
             </svg>
-            Add Note
+            {isCreating ? "Creating..." : "Create Jamboard"}
           </button>
         </div>
       </div>
       <div className="card-body">
-        {notes.length === 0 ? (
-          <p style={{ color: "var(--text-muted)", textAlign: "center", padding: "32px 0", gridColumn: "1 / -1" }}>
-            No notes yet. Click <strong>Add Note</strong> to create one.
+        <div className="jamboard-create-grid">
+          <label className="jamboard-title-field">
+            <span>Board title</span>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              maxLength={120}
+              placeholder="My Whiteboard"
+            />
+          </label>
+          <p className="jamboard-note">
+            A new tab opens with a full canvas where you can draw with pen, marker, and pencil tools, write text,
+            place sticky notes, and move any object.
           </p>
-        ) : (
-          <div className="jamboard">
-            {notes.map((note, i) => (
-              <div
-                key={i}
-                className="sticky-note"
-                style={{ background: note.color }}
-                onClick={() => {/* open note editor */ }}
-              >
-                <div className="sticky-note-header">
-                  <span className="sticky-note-date">{note.date}</span>
-                  <button
-                    className="sticky-note-delete"
-                    title="Delete note"
-                    onClick={(e) => { e.stopPropagation(); deleteNote(i); }}
-                  >
-                    &times;
-                  </button>
-                </div>
-                {note.title && <div className="sticky-note-title">{note.title}</div>}
-                <div className="sticky-note-preview">
-                  {note.text.length > 180 ? note.text.slice(0, 180) + "…" : note.text || "Empty note"}
-                </div>
-              </div>
-            ))}
+          {error && <p className="jamboard-error">{error}</p>}
+          {!studentID && <p className="jamboard-error">Sign in again to create a Jamboard.</p>}
+          <div className="jamboard-helper-list">
+            <span>Tool support:</span>
+            <span>Pen</span>
+            <span>Marker</span>
+            <span>Pencil</span>
+            <span>Text</span>
+            <span>Sticky Notes</span>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
@@ -549,7 +527,7 @@ function StudentDashboard() {
       <WeeklyTimetable />
 
       {/* ===== Jamboard ===== */}
-      <Jamboard />
+      <Jamboard studentID={user?._id} />
 
       {/* ===== Upcoming Schedule ===== */}
       <UpcomingSchedule />
