@@ -202,6 +202,54 @@
     color: var(--text-secondary);
     line-height: 1.7;
   }
+
+  .ec-ann-comment-toggle {
+    margin-top: 12px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: none;
+    background: transparent;
+    border-top: 1px solid var(--border-light);
+    padding-top: 10px;
+    color: #2563EB;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .ec-ann-comment-panel {
+    margin-top: 8px;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    background: var(--bg);
+  }
+
+  .ec-ann-comment-item {
+    margin-bottom: 10px;
+  }
+
+  .ec-ann-comment-item:last-of-type {
+    margin-bottom: 8px;
+  }
+
+  .ec-ann-comment-author {
+    color: var(--text-secondary);
+  }
+
+  .ec-ann-comment-text {
+    margin-top: 2px;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+  }
+
+  .ec-ann-comment-compose {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
   
   /* ============================================
      ASSIGNMENTS TAB
@@ -760,4 +808,4 @@
 /* ── Dark mode ────────────────────────────────────────────────────────── */
 [data-theme="dark"] .ec-module-card    { background: var(--card); border-color: var(--border); }
 [data-theme="dark"] .ec-materials-body { background: var(--bg); }
-[data-theme="dark"] .ec-mod-icon       { background: rgba(59,130,246,0.15); }
+[data-theme="dark"] .ec-mod-icon       { background: rgba(59,130,246,0.15); }
