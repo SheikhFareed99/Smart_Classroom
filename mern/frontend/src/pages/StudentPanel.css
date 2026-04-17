@@ -273,6 +273,49 @@
   background: var(--card);
 }
 
+.jamboard-boards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.jamboard-board-card {
+  text-align: left;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 12px;
+  padding: 12px;
+  background: var(--card);
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease, filter 0.15s ease;
+}
+
+.jamboard-board-card:hover {
+  border-color: rgba(37, 99, 235, 0.4);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+  filter: saturate(1.03);
+}
+
+.jamboard-board-card:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.jamboard-board-title {
+  margin: 0;
+  color: #0b1220;
+  font-size: 0.96rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.jamboard-board-meta {
+  margin: 7px 0 0;
+  color: #1f2937;
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
 .jamboard-note {
   margin: 0;
   color: var(--text-secondary);
@@ -413,5 +456,9 @@
 
   .pomodoro-controls .btn {
     width: 100%;
+  }
+
+  .jamboard-boards-grid {
+    grid-template-columns: 1fr;
   }
 }

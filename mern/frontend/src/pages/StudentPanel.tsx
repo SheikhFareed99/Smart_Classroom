@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import "./Dashboard.css";
 import "./StudentPanel.css";
@@ -27,9 +27,36 @@ interface ScheduleEvent {
   variant?: "accent" | "warning" | "danger" | "default";
 }
 
+interface WhiteboardItem {
+  _id?: string;
+  whiteboardID: string;
+  title?: string;
+  createdAt?: string;
+  lastSavedAt?: string;
+}
+
+type JamboardColorFamily = "pink" | "purple" | "red" | "green" | "blue";
+
+type JamboardColorOption = {
+  shade: string;
+  family: JamboardColorFamily;
+};
+
 // ─── Static data ──────────────────────────────────────────────────────────────
 
 const CARD_COLORS = ["orange", "blue", "purple", "green", "pink"] as const;
+const JAMBOARD_SOFT_COLORS = [
+  { shade: "#FFD6E5", family: "pink" },
+  { shade: "#FBCFE8", family: "pink" },
+  { shade: "#E9D5FF", family: "purple" },
+  { shade: "#DDD6FE", family: "purple" },
+  { shade: "#FECACA", family: "red" },
+  { shade: "#FECDD3", family: "red" },
+  { shade: "#BBF7D0", family: "green" },
+  { shade: "#D9F99D", family: "green" },
+  { shade: "#BFDBFE", family: "blue" },
+  { shade: "#C7D2FE", family: "blue" },
+] as const satisfies readonly JamboardColorOption[];
 
 const TIMETABLE_ROWS = [
   { time: "8:00 AM", mon: { label: "AI (CS-401)", color: "" }, tue: null, wed: { label: "AI (CS-401)", color: "" }, thu: null, fri: { label: "AI Lab", color: "" } },
@@ -328,7 +355,72 @@ function WeeklyTimetable() {
 function Jamboard({ studentID }: { studentID?: string }) {
   const [title, setTitle] = useState("My Whiteboard");
   const [isCreating, setIsCreating] = useState(false);
+  const [isLoadingBoards, setIsLoadingBoards] = useState(false);
+  const [boards, setBoards] = useState<WhiteboardItem[]>([]);
   const [error, setError] = useState("");
+  const boardCardColors = useMemo(() => {
+    const colorMap: Record<string, string> = {};
+    let previousFamily: JamboardColorFamily | null = null;
+
+    boards.forEach((board) => {
+      const eligibleColors = previousFamily
+        ? JAMBOARD_SOFT_COLORS.filter((color) => color.family !== previousFamily)
+        : JAMBOARD_SOFT_COLORS;
+      const pool = eligibleColors.length ? eligibleColors : JAMBOARD_SOFT_COLORS;
+      const randomIndex = Math.floor(Math.random() * pool.length);
+      const chosen = pool[randomIndex];
+
+      colorMap[board.whiteboardID] = chosen.shade;
+      previousFamily = chosen.family;
+    });
+
+    return colorMap;
+  }, [boards]);
+
+  async function loadBoards(currentStudentID: string) {
+    setIsLoadingBoards(true);
+    try {
+      const res = await apiFetch(`/api/whiteboard/student/${currentStudentID}`);
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !Array.isArray(data)) {
+        throw new Error("Failed to load saved Jamboards");
+      }
+
+      const sortedBoards = [...data].sort((a: WhiteboardItem, b: WhiteboardItem) => {
+        const aTime = new Date(a.lastSavedAt || a.createdAt || 0).getTime();
+        const bTime = new Date(b.lastSavedAt || b.createdAt || 0).getTime();
+        return bTime - aTime;
+      });
+
+      setBoards(sortedBoards);
+    } catch (err: any) {
+      setError(err?.message || "Could not load saved Jamboards");
+    } finally {
+      setIsLoadingBoards(false);
+    }
+  }
+
+  function openJamboard(whiteboardID: string) {
+    const jamboardUrl = new URL(`/jamboard/${whiteboardID}`, window.location.origin).toString();
+    window.open(jamboardUrl, "_blank", "noopener,noreferrer");
+  }
+
+  function getBoardDisplayDate(board: WhiteboardItem) {
+    const raw = board.lastSavedAt || board.createdAt;
+    if (!raw) return "No activity yet";
+    const date = new Date(raw);
+    if (Number.isNaN(date.getTime())) return "No activity yet";
+    return date.toLocaleString();
+  }
+
+  useEffect(() => {
+    setError("");
+    if (!studentID) {
+      setBoards([]);
+      return;
+    }
+    loadBoards(studentID);
+  }, [studentID]);
 
   async function createJamboard() {
     if (!studentID || isCreating) return;
@@ -350,8 +442,8 @@ function Jamboard({ studentID }: { studentID?: string }) {
         throw new Error(data?.error || data?.message || "Failed to create Jamboard");
       }
 
-      const jamboardUrl = new URL(`/jamboard/${data.whiteboardID}`, window.location.origin).toString();
-      window.open(jamboardUrl, "_blank", "noopener,noreferrer");
+      await loadBoards(studentID);
+      openJamboard(data.whiteboardID);
     } catch (err: any) {
       setError(err?.message || "Could not create Jamboard");
     } finally {
@@ -392,10 +484,35 @@ function Jamboard({ studentID }: { studentID?: string }) {
               placeholder="My Whiteboard"
             />
           </label>
+          <div className="jamboard-title-field">
+            <span>Previously created boards</span>
+            <div className="jamboard-boards-grid">
+              {boards.map((board) => (
+                <button
+                  key={board.whiteboardID}
+                  className="jamboard-board-card"
+                  style={{
+                    backgroundColor: boardCardColors[board.whiteboardID],
+                    borderColor: "rgba(15, 23, 42, 0.08)",
+                  }}
+                  onClick={() => openJamboard(board.whiteboardID)}
+                  type="button"
+                  title="Open board"
+                >
+                  <p className="jamboard-board-title">{board.title?.trim() || "Untitled Whiteboard"}</p>
+                  <p className="jamboard-board-meta">Last updated: {getBoardDisplayDate(board)}</p>
+                </button>
+              ))}
+            </div>
+          </div>
           <p className="jamboard-note">
             A new tab opens with a full canvas where you can draw with pen, marker, and pencil tools, write text,
             place sticky notes, and move any object.
           </p>
+          {isLoadingBoards && <p className="jamboard-note">Refreshing your Jamboards...</p>}
+          {!isLoadingBoards && boards.length === 0 && studentID && (
+            <p className="jamboard-note">No saved Jamboards yet. Create one to get started.</p>
+          )}
           {error && <p className="jamboard-error">{error}</p>}
           {!studentID && <p className="jamboard-error">Sign in again to create a Jamboard.</p>}
           <div className="jamboard-helper-list">
