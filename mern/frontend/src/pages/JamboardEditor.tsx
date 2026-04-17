@@ -42,6 +42,10 @@ function JamboardEditor() {
   const saveTimerRef = useRef<number | null>(null);
   const isHydratingRef = useRef(false);
   const hasUnsavedChangesRef = useRef(false);
+  const toolRef = useRef<ToolMode>("select");
+  const textColorRef = useRef("#111827");
+  const textSizeRef = useRef(24);
+  const stickyColorRef = useRef("#FDE68A");
 
   const [tool, setTool] = useState<ToolMode>("select");
   const [strokeColor, setStrokeColor] = useState("#111827");
@@ -130,6 +134,22 @@ function JamboardEditor() {
   }, [saveBoard]);
 
   useEffect(() => {
+    toolRef.current = tool;
+  }, [tool]);
+
+  useEffect(() => {
+    textColorRef.current = textColor;
+  }, [textColor]);
+
+  useEffect(() => {
+    textSizeRef.current = textSize;
+  }, [textSize]);
+
+  useEffect(() => {
+    stickyColorRef.current = stickyColor;
+  }, [stickyColor]);
+
+  useEffect(() => {
     if (!whiteboardID) {
       setLoadError("Missing whiteboard ID.");
       return;
@@ -157,13 +177,13 @@ function JamboardEditor() {
 
       const point = canvas.getScenePoint(opt.e);
 
-      if (tool === "text") {
+      if (toolRef.current === "text") {
         const text = new Textbox("Type here", {
           left: point.x,
           top: point.y,
           width: 240,
-          fontSize: textSize,
-          fill: textColor,
+          fontSize: textSizeRef.current,
+          fill: textColorRef.current,
           editable: true,
         });
         canvas.add(text);
@@ -173,13 +193,13 @@ function JamboardEditor() {
         scheduleSave();
       }
 
-      if (tool === "sticky") {
+      if (toolRef.current === "sticky") {
         const noteRect = new Rect({
           width: 240,
           height: 180,
           rx: 14,
           ry: 14,
-          fill: stickyColor,
+          fill: stickyColorRef.current,
           stroke: "rgba(17, 24, 39, 0.12)",
           strokeWidth: 1,
           shadow: new Shadow({
@@ -240,6 +260,8 @@ function JamboardEditor() {
 
     resizeCanvas();
 
+    let isCancelled = false;
+
     (async () => {
       try {
         isHydratingRef.current = true;
@@ -253,23 +275,31 @@ function JamboardEditor() {
         }
 
         const board = data as WhiteboardResponse;
+        if (isCancelled || fabricCanvasRef.current !== canvas) return;
         setBoardTitle(board.title || "My Whiteboard");
 
         if (board.dataJSON && board.dataJSON.trim()) {
           await canvas.loadFromJSON(board.dataJSON);
+          if (isCancelled || fabricCanvasRef.current !== canvas) return;
           canvas.requestRenderAll();
         }
 
+        if (isCancelled || fabricCanvasRef.current !== canvas) return;
         hasUnsavedChangesRef.current = false;
         setStatus("saved");
       } catch (err: any) {
+        if (isCancelled) return;
         setLoadError(err?.message || "Unable to load whiteboard");
       } finally {
-        isHydratingRef.current = false;
+        if (!isCancelled) {
+          isHydratingRef.current = false;
+        }
       }
     })();
 
     return () => {
+      isCancelled = true;
+      isHydratingRef.current = false;
       if (saveTimerRef.current) {
         window.clearTimeout(saveTimerRef.current);
       }
@@ -281,7 +311,7 @@ function JamboardEditor() {
       canvas.dispose();
       fabricCanvasRef.current = null;
     };
-  }, [scheduleSave, textColor, textSize, stickyColor, tool, whiteboardID]);
+  }, [scheduleSave, whiteboardID]);
 
   useEffect(() => {
     const canvas = fabricCanvasRef.current;
