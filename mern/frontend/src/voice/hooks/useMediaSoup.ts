@@ -262,9 +262,10 @@ export const useMediasoup = ({
     localStreamRef.current = stream;
 
     // connect socket
-    const socket = io("/voice", {
-      path:       "/voice/socket.io",
-      transports: ["websocket"],
+    const socket = io({
+        path:            "/voice/socket.io",
+        transports:      ["polling", "websocket"],  // polling first, then upgrade
+        withCredentials: true,
     });
     socketRef.current = socket;
 

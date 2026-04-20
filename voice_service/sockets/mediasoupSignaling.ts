@@ -5,7 +5,7 @@ import {
   connectTransport,
   createProducer,
   createConsumer,
-  getProducerId,
+  resumeConsumer,       // ── FIX 3: new import
   getProducersInChannel,
   cleanupPeer,
 } from "./mediasoupManager";
@@ -18,19 +18,14 @@ import {
 export const registerMediasoupHandlers = (io: Server, socket: Socket) => {
 
   // ── ms-join ───────────────────────────────────────────
-  // First event — client joins a mediasoup channel.
-  // Server responds with router RTP capabilities.
   socket.on("ms-join", async ({ channelId, userId, name }) => {
     try {
       socket.join(channelId);
       addParticipant(socket.id, { userId, channelId, name });
 
       const rtpCapabilities = await getRouterRtpCapabilities(channelId);
-
-      // send capabilities back — client uses these to create a Device
       socket.emit("ms-router-rtp-capabilities", { rtpCapabilities });
 
-      // tell everyone else a new user joined
       socket.to(channelId).emit("ms-user-joined", {
         socketId: socket.id,
         userId,
@@ -45,8 +40,6 @@ export const registerMediasoupHandlers = (io: Server, socket: Socket) => {
   });
 
   // ── ms-create-transport ───────────────────────────────
-  // Client requests a WebRTC transport (send or recv).
-  // Server creates it and returns connection parameters.
   socket.on("ms-create-transport", async ({ channelId, direction }) => {
     try {
       const transport = await createWebRtcTransport(
@@ -71,8 +64,6 @@ export const registerMediasoupHandlers = (io: Server, socket: Socket) => {
   });
 
   // ── ms-connect-transport ──────────────────────────────
-  // Client has connected their side of the transport.
-  // Server finalises the DTLS handshake.
   socket.on("ms-connect-transport", async ({ direction, dtlsParameters }) => {
     try {
       await connectTransport(socket.id, direction, dtlsParameters);
@@ -84,16 +75,12 @@ export const registerMediasoupHandlers = (io: Server, socket: Socket) => {
   });
 
   // ── ms-produce ────────────────────────────────────────
-  // Client starts sending audio.
-  // Server creates a Producer and notifies other peers.
   socket.on("ms-produce", async ({ channelId, rtpParameters }) => {
     try {
       const producer = await createProducer(socket.id, rtpParameters);
 
       socket.emit("ms-produced", { producerId: producer.id });
 
-      // tell all OTHER peers in the channel about this new producer
-      // so they can consume it
       socket.to(channelId).emit("ms-new-producer", {
         producerSocketId: socket.id,
         producerId:       producer.id,
@@ -105,8 +92,6 @@ export const registerMediasoupHandlers = (io: Server, socket: Socket) => {
   });
 
   // ── ms-consume ────────────────────────────────────────
-  // Client wants to receive audio from a specific producer.
-  // Server creates a Consumer and returns its parameters.
   socket.on("ms-consume", async ({ channelId, producerSocketId, rtpCapabilities }) => {
     try {
       const consumer = await createConsumer(
@@ -130,19 +115,24 @@ export const registerMediasoupHandlers = (io: Server, socket: Socket) => {
           rtpParameters: consumer.rtpParameters,
         },
       });
+
+      // ── FIX 3: resume after sending params to client ──
+      // Consumer is created paused — must resume so audio flows.
+      // We resume server-side immediately after the client has the params.
+      await resumeConsumer(socket.id, consumer.producerId);
+
     } catch (err) {
       console.error("[mediasoup] ms-consume error:", err);
       socket.emit("ms-error", { message: "Failed to consume" });
     }
   });
 
-  // ── ms-get-producers ─────────────────────────────────
-  // New joiner asks for list of existing producers
-  // so it can consume them all immediately.
+  // ── ms-get-producers ──────────────────────────────────
   socket.on("ms-get-producers", ({ channelId }) => {
     const producerSocketIds = getProducersInChannel(channelId)
       .filter((sid) => sid !== socket.id);
 
+    console.log(`[mediasoup] ms-get-producers for ${channelId}:`, producerSocketIds);
     socket.emit("ms-existing-producers", { producerSocketIds });
   });
 

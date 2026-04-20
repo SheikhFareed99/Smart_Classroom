@@ -1,7 +1,5 @@
 import * as mediasoup from "mediasoup";
 
-// ── Media codecs we support ───────────────────────────────
-// Opus is the standard for WebRTC audio — high quality, low latency
 const mediaCodecs: mediasoup.types.RtpCodecCapability[] = [
   {
     kind:      "audio",
@@ -12,12 +10,11 @@ const mediaCodecs: mediasoup.types.RtpCodecCapability[] = [
   },
 ];
 
-// ── WebRTC transport options ──────────────────────────────
 const webRtcTransportOptions = {
   listenIps: [
     {
       ip:          "0.0.0.0",
-      announcedIp: "127.0.0.1", // change to public IP in production
+      announcedIp: "127.0.0.1",
     },
   ],
   enableUdp:        true,
@@ -26,27 +23,25 @@ const webRtcTransportOptions = {
   initialAvailableOutgoingBitrate: 1000000,
 };
 
-// ── In-memory state ───────────────────────────────────────
 let worker: mediasoup.types.Worker | null = null;
 
-// channelId → Router
 const routers = new Map<string, mediasoup.types.Router>();
 
-// socketId → { sendTransport, recvTransport, producer, consumers[] }
+// ── FIX 1: added channelId to PeerState ──────────────────
 interface PeerState {
+  channelId:     string;
   sendTransport: mediasoup.types.WebRtcTransport | null;
   recvTransport: mediasoup.types.WebRtcTransport | null;
   producer:      mediasoup.types.Producer | null;
-  consumers:     Map<string, mediasoup.types.Consumer>; // producerId → Consumer
+  consumers:     Map<string, mediasoup.types.Consumer>;
 }
 const peers = new Map<string, PeerState>();
 
-// ── Create mediasoup Worker on server start ───────────────
 export const createWorker = async (): Promise<mediasoup.types.Worker> => {
   worker = await mediasoup.createWorker({
-    logLevel: "warn",
+    logLevel:   "warn",
     rtcMinPort: 10000,
-    rtcMaxPort: 10100,
+    rtcMaxPort: 10999, // ── FIX 2: was 10100, only 100 ports — bumped to 1000
   });
 
   worker.on("died", () => {
@@ -58,14 +53,12 @@ export const createWorker = async (): Promise<mediasoup.types.Worker> => {
   return worker;
 };
 
-// ── Get or create a Router for a channel ─────────────────
 export const getOrCreateRouter = async (
   channelId: string
 ): Promise<mediasoup.types.Router> => {
   if (routers.has(channelId)) {
     return routers.get(channelId)!;
   }
-
   if (!worker) throw new Error("mediasoup Worker not initialised");
 
   const router = await worker.createRouter({ mediaCodecs });
@@ -74,7 +67,6 @@ export const getOrCreateRouter = async (
   return router;
 };
 
-// ── Get router RTP capabilities for a channel ─────────────
 export const getRouterRtpCapabilities = async (
   channelId: string
 ): Promise<mediasoup.types.RtpCapabilities> => {
@@ -82,19 +74,18 @@ export const getRouterRtpCapabilities = async (
   return router.rtpCapabilities;
 };
 
-// ── Create a WebRTC transport (send or receive) ───────────
 export const createWebRtcTransport = async (
   channelId: string,
   socketId:  string,
   direction: "send" | "recv"
 ): Promise<mediasoup.types.WebRtcTransport> => {
-  const router = await getOrCreateRouter(channelId);
+  const router    = await getOrCreateRouter(channelId);
   const transport = await router.createWebRtcTransport(webRtcTransportOptions);
 
-  // store in peer state
   let peer = peers.get(socketId);
   if (!peer) {
     peer = {
+      channelId,     // ── FIX 1: store channelId on peer
       sendTransport: null,
       recvTransport: null,
       producer:      null,
@@ -112,10 +103,9 @@ export const createWebRtcTransport = async (
   return transport;
 };
 
-// ── Connect a transport (called after client connects) ────
 export const connectTransport = async (
-  socketId:    string,
-  direction:   "send" | "recv",
+  socketId:       string,
+  direction:      "send" | "recv",
   dtlsParameters: mediasoup.types.DtlsParameters
 ): Promise<void> => {
   const peer = peers.get(socketId);
@@ -128,7 +118,6 @@ export const connectTransport = async (
   await transport.connect({ dtlsParameters });
 };
 
-// ── Create a producer (peer starts sending audio) ─────────
 export const createProducer = async (
   socketId:      string,
   rtpParameters: object
@@ -146,20 +135,24 @@ export const createProducer = async (
   return producer;
 };
 
-// ── Create a consumer (peer starts receiving someone's audio)
 export const createConsumer = async (
-  channelId:          string,
-  consumerSocketId:   string,  // who is consuming
-  producerSocketId:   string,  // whose audio
-  rtpCapabilities:    mediasoup.types.RtpCapabilities
+  channelId:        string,
+  consumerSocketId: string,
+  producerSocketId: string,
+  rtpCapabilities:  mediasoup.types.RtpCapabilities
 ): Promise<mediasoup.types.Consumer | null> => {
   const router = routers.get(channelId);
-  if (!router) return null;
+  if (!router) {
+    console.warn(`[mediasoup] No router for channel ${channelId}`);
+    return null;
+  }
 
   const producerPeer = peers.get(producerSocketId);
-  if (!producerPeer?.producer) return null;
+  if (!producerPeer?.producer) {
+    console.warn(`[mediasoup] No producer for socket ${producerSocketId}`);
+    return null;
+  }
 
-  // check if the consumer can receive this producer's codec
   if (!router.canConsume({
     producerId:      producerPeer.producer.id,
     rtpCapabilities,
@@ -169,12 +162,15 @@ export const createConsumer = async (
   }
 
   const consumerPeer = peers.get(consumerSocketId);
-  if (!consumerPeer?.recvTransport) return null;
+  if (!consumerPeer?.recvTransport) {
+    console.warn(`[mediasoup] No recvTransport for socket ${consumerSocketId}`);
+    return null;
+  }
 
   const consumer = await consumerPeer.recvTransport.consume({
     producerId:      producerPeer.producer.id,
     rtpCapabilities,
-    paused:          false,
+    paused:          true, // ── FIX 3: always start paused, resume explicitly after
   });
 
   consumerPeer.consumers.set(producerPeer.producer.id, consumer);
@@ -182,21 +178,35 @@ export const createConsumer = async (
   return consumer;
 };
 
-// ── Get producer ID for a socket ─────────────────────────
+export const resumeConsumer = async (
+  consumerSocketId: string,
+  producerId:       string
+): Promise<void> => {
+  const peer = peers.get(consumerSocketId);
+  if (!peer) throw new Error(`No peer state for socket ${consumerSocketId}`);
+
+  const consumer = peer.consumers.get(producerId);
+  if (!consumer) throw new Error(`No consumer for producerId ${producerId}`);
+
+  await consumer.resume();
+  console.log(`[mediasoup] Consumer resumed: ${consumerSocketId} producerId=${producerId}`);
+};
+
 export const getProducerId = (socketId: string): string | null => {
   return peers.get(socketId)?.producer?.id ?? null;
 };
 
-// ── Get all producer socket IDs in a channel ─────────────
+// ── FIX 4: filter by channelId — was returning all producers globally ────────
 export const getProducersInChannel = (channelId: string): string[] => {
   const result: string[] = [];
   peers.forEach((peer, socketId) => {
-    if (peer.producer) result.push(socketId);
+    if (peer.producer && peer.channelId === channelId) {
+      result.push(socketId);
+    }
   });
   return result;
 };
 
-// ── Cleanup when a peer disconnects ──────────────────────
 export const cleanupPeer = (socketId: string): void => {
   const peer = peers.get(socketId);
   if (!peer) return;
@@ -210,7 +220,6 @@ export const cleanupPeer = (socketId: string): void => {
   console.log(`[mediasoup] Cleaned up peer ${socketId}`);
 };
 
-// ── Cleanup router when channel is empty ─────────────────
 export const cleanupRouter = (channelId: string): void => {
   const router = routers.get(channelId);
   if (router) {

@@ -7,6 +7,7 @@ import http       from "http";
 import { Server } from "socket.io";
 import mongoose   from "mongoose";
 import cors       from "cors";
+import { registerMediasoupHandlers }  from "./sockets/mediasoupSignaling"; 
 
 import Channel from "./models/Channel";
 import Session from "./models/Session";
@@ -16,9 +17,6 @@ import { createWorker } from "./sockets/mediasoupManager";
 
 const app    = express();
 const server = http.createServer(app);
-
-
-
 const io = new Server(server, {
   cors: {
     origin:      ["http://localhost:5173", "http://localhost:4001"],
@@ -51,10 +49,10 @@ mongoose
 io.on("connection", (socket) => {
   console.log(`[socket] connected: ${socket.id}`);
   registerSignalingHandlers(io, socket);
+  registerMediasoupHandlers(io, socket); 
 });
 
 const PORT = process.env.PORT || 4001;
-
 
 server.listen(PORT, async () => {
   console.log(`[voice_service] Running on port ${PORT}`);
@@ -64,4 +62,3 @@ server.listen(PORT, async () => {
     console.error("[mediasoup] Worker creation FAILED:", err);
   }
 });
-
