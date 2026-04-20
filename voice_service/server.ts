@@ -12,6 +12,7 @@ import Channel from "./models/Channel";
 import Session from "./models/Session";
 import channelRoutes from "./routes/Channels";
 import { registerSignalingHandlers } from "./sockets/signaling";
+import { createWorker } from "./sockets/mediasoupManager";
 
 const app    = express();
 const server = http.createServer(app);
@@ -53,6 +54,14 @@ io.on("connection", (socket) => {
 });
 
 const PORT = process.env.PORT || 4001;
-server.listen(PORT, () => {
+
+
+server.listen(PORT, async () => {
   console.log(`[voice_service] Running on port ${PORT}`);
+  try {
+    await createWorker();
+  } catch (err) {
+    console.error("[mediasoup] Worker creation FAILED:", err);
+  }
 });
+
