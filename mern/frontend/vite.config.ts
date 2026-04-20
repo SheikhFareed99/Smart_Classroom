@@ -18,8 +18,15 @@ export default defineConfig({
         target:       'http://localhost:4001',
         changeOrigin: true,
         rewrite:      (path) => path.replace(/^\/voice/, ''),
-        ws:           true,   // ← required for Socket.io WebSocket upgrade
-      },
+       // ws:           true,
+        secure:       false,
+        configure: (proxy) => {
+          proxy.on('error', (err) => console.log('[proxy error]', err));
+          proxy.on('proxyReqWs', (_proxyReq: any, req: any) =>
+            console.log('[proxy ws]', req.url)
+          );
+        },
+      }, // <-- ADDED: Missing brace to close the '/voice' object
       '/api': {
         target: 'http://localhost:5000',
         changeOrigin: true,

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useWebRTC } from "../hooks/useWebRTC";
+import { useMediasoup as useWebRTC } from "../hooks/useMediaSoup";
 import VoiceControls from "./VoiceControls";
 import type { Channel } from "../types/voice.types";
 
