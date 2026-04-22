@@ -519,6 +519,16 @@ function JamboardEditor({ whiteboardID: whiteboardIDProp }: JamboardEditorProps)
   function clearBoard() {
     const canvas = fabricCanvasRef.current;
     if (!canvas) return;
+
+    const activeObjects = canvas.getActiveObjects();
+    if (activeObjects.length > 0) {
+      activeObjects.forEach((object) => canvas.remove(object));
+      canvas.discardActiveObject();
+      canvas.requestRenderAll();
+      scheduleSave();
+      return;
+    }
+
     if (!window.confirm("Clear the entire board?")) return;
 
     canvas.clear();
