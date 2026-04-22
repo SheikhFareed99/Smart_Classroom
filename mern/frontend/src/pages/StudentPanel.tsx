@@ -354,7 +354,10 @@ function WeeklyTimetable() {
 /** Jamboard / sticky notes */
 function Jamboard({ studentID }: { studentID?: string }) {
   const [title, setTitle] = useState("My Whiteboard");
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [boardPendingDelete, setBoardPendingDelete] = useState<WhiteboardItem | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isLoadingBoards, setIsLoadingBoards] = useState(false);
   const [boards, setBoards] = useState<WhiteboardItem[]>([]);
   const [error, setError] = useState("");
@@ -443,11 +446,36 @@ function Jamboard({ studentID }: { studentID?: string }) {
       }
 
       await loadBoards(studentID);
+      setIsCreateModalOpen(false);
       openJamboard(data.whiteboardID);
     } catch (err: any) {
       setError(err?.message || "Could not create Jamboard");
     } finally {
       setIsCreating(false);
+    }
+  }
+
+  async function deleteJamboard() {
+    if (!boardPendingDelete || isDeleting) return;
+    setIsDeleting(true);
+    setError("");
+
+    try {
+      const res = await apiFetch(`/api/whiteboard/${boardPendingDelete.whiteboardID}`, {
+        method: "DELETE",
+      });
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        throw new Error(data?.message || data?.error || "Failed to delete Jamboard");
+      }
+
+      setBoards((prev) => prev.filter((board) => board.whiteboardID !== boardPendingDelete.whiteboardID));
+      setBoardPendingDelete(null);
+    } catch (err: any) {
+      setError(err?.message || "Could not delete Jamboard");
+    } finally {
+      setIsDeleting(false);
     }
   }
 
@@ -463,68 +491,141 @@ function Jamboard({ studentID }: { studentID?: string }) {
           Jamboard
         </h3>
         <div className="jamboard-actions">
-          <button className="btn btn-primary btn-sm" onClick={createJamboard} disabled={!studentID || isCreating}>
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={() => {
+              setTitle("My Whiteboard");
+              setIsCreateModalOpen(true);
+            }}
+            disabled={!studentID}
+          >
             <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="7" y1="1" x2="7" y2="13" />
               <line x1="1" y1="7" x2="13" y2="7" />
             </svg>
-            {isCreating ? "Creating..." : "Create Jamboard"}
+            Create Jamboard
           </button>
         </div>
       </div>
       <div className="card-body">
-        <div className="jamboard-create-grid">
-          <label className="jamboard-title-field">
-            <span>Board title</span>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              maxLength={120}
-              placeholder="My Whiteboard"
-            />
-          </label>
-          <div className="jamboard-title-field">
-            <span>Previously created boards</span>
-            <div className="jamboard-boards-grid">
-              {boards.map((board) => (
-                <button
-                  key={board.whiteboardID}
-                  className="jamboard-board-card"
-                  style={{
-                    backgroundColor: boardCardColors[board.whiteboardID],
-                    borderColor: "rgba(15, 23, 42, 0.08)",
-                  }}
-                  onClick={() => openJamboard(board.whiteboardID)}
-                  type="button"
-                  title="Open board"
-                >
-                  <p className="jamboard-board-title">{board.title?.trim() || "Untitled Whiteboard"}</p>
-                  <p className="jamboard-board-meta">Last updated: {getBoardDisplayDate(board)}</p>
-                </button>
-              ))}
+        <div className="jamboard-boards-grid">
+          {boards.map((board) => (
+            <article
+              key={board.whiteboardID}
+              className="jamboard-board-card"
+              style={{
+                backgroundColor: boardCardColors[board.whiteboardID],
+                borderColor: "rgba(15, 23, 42, 0.08)",
+              }}
+              onClick={() => openJamboard(board.whiteboardID)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  openJamboard(board.whiteboardID);
+                }
+              }}
+              tabIndex={0}
+              role="button"
+              title="Open board"
+            >
+              <div className="jamboard-board-content">
+                <p className="jamboard-board-title">{board.title?.trim() || "Untitled Whiteboard"}</p>
+                <p className="jamboard-board-meta">Last updated: {getBoardDisplayDate(board)}</p>
+              </div>
+              <button
+                type="button"
+                className="jamboard-board-delete"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setBoardPendingDelete(board);
+                }}
+                title="Delete board"
+                aria-label={`Delete ${board.title?.trim() || "untitled board"}`}
+              >
+                <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
+                  <path d="M19 6l-1 14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 6" />
+                  <line x1="10" y1="11" x2="10" y2="17" />
+                  <line x1="14" y1="11" x2="14" y2="17" />
+                </svg>
+              </button>
+            </article>
+          ))}
+        </div>
+        {isLoadingBoards && <p className="jamboard-note">Refreshing your Jamboards...</p>}
+        {!isLoadingBoards && boards.length === 0 && studentID && (
+          <p className="jamboard-note">No saved Jamboards yet. Create one to get started.</p>
+        )}
+        {error && <p className="jamboard-error">{error}</p>}
+        {!studentID && <p className="jamboard-error">Sign in again to create a Jamboard.</p>}
+      </div>
+
+      {isCreateModalOpen && (
+        <div className="jamboard-modal-overlay" role="presentation" onClick={() => !isCreating && setIsCreateModalOpen(false)}>
+          <div
+            className="jamboard-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="jamboard-create-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h4 id="jamboard-create-title">Create Jamboard</h4>
+            <label className="jamboard-modal-field">
+              <span>Board name</span>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                maxLength={120}
+                placeholder="My Whiteboard"
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") createJamboard();
+                }}
+                autoFocus
+              />
+            </label>
+            <div className="jamboard-modal-actions">
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setIsCreateModalOpen(false)} disabled={isCreating}>
+                Cancel
+              </button>
+              <button type="button" className="btn btn-primary btn-sm" onClick={createJamboard} disabled={isCreating}>
+                {isCreating ? "Creating..." : "Create"}
+              </button>
             </div>
           </div>
-          <p className="jamboard-note">
-            A new tab opens with a full canvas where you can draw with pen, marker, and pencil tools, write text,
-            place sticky notes, and move any object.
-          </p>
-          {isLoadingBoards && <p className="jamboard-note">Refreshing your Jamboards...</p>}
-          {!isLoadingBoards && boards.length === 0 && studentID && (
-            <p className="jamboard-note">No saved Jamboards yet. Create one to get started.</p>
-          )}
-          {error && <p className="jamboard-error">{error}</p>}
-          {!studentID && <p className="jamboard-error">Sign in again to create a Jamboard.</p>}
-          <div className="jamboard-helper-list">
-            <span>Tool support:</span>
-            <span>Pen</span>
-            <span>Marker</span>
-            <span>Pencil</span>
-            <span>Text</span>
-            <span>Sticky Notes</span>
+        </div>
+      )}
+
+      {boardPendingDelete && (
+        <div className="jamboard-modal-overlay" role="presentation" onClick={() => !isDeleting && setBoardPendingDelete(null)}>
+          <div
+            className="jamboard-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="jamboard-delete-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h4 id="jamboard-delete-title">Delete Jamboard?</h4>
+            <p className="jamboard-modal-message">
+              This will permanently remove "{boardPendingDelete.title?.trim() || "Untitled Whiteboard"}".
+            </p>
+            <div className="jamboard-modal-actions">
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setBoardPendingDelete(null)} disabled={isDeleting}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-sm jamboard-modal-confirm-delete"
+                onClick={deleteJamboard}
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

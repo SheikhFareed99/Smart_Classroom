@@ -248,31 +248,6 @@
   flex-wrap: wrap;
 }
 
-.jamboard-create-grid {
-  display: grid;
-  gap: 12px;
-}
-
-.jamboard-title-field {
-  display: grid;
-  gap: 8px;
-}
-
-.jamboard-title-field span {
-  font-size: 0.82rem;
-  color: var(--text-muted);
-  font-weight: 600;
-}
-
-.jamboard-title-field input {
-  border: 1px solid var(--border-light);
-  border-radius: 10px;
-  padding: 10px 12px;
-  font-size: 0.92rem;
-  color: var(--text-primary);
-  background: var(--card);
-}
-
 .jamboard-boards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -286,6 +261,10 @@
   padding: 12px;
   background: var(--card);
   cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  min-height: 128px;
+  gap: 12px;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease, filter 0.15s ease;
 }
 
@@ -299,6 +278,10 @@
 .jamboard-board-card:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
+}
+
+.jamboard-board-content {
+  flex: 1;
 }
 
 .jamboard-board-title {
@@ -316,33 +299,110 @@
   font-weight: 650;
 }
 
+.jamboard-board-delete {
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.55);
+  color: #334155;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  align-self: flex-start;
+  margin-top: auto;
+  transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+
+.jamboard-board-delete:hover {
+  border-color: #dc2626;
+  color: #dc2626;
+  background: rgba(255, 255, 255, 0.85);
+}
+
 .jamboard-note {
-  margin: 0;
+  margin: 10px 0 0;
   color: var(--text-secondary);
   line-height: 1.5;
 }
 
 .jamboard-error {
-  margin: 0;
+  margin: 10px 0 0;
   color: #dc2626;
   font-size: 0.84rem;
   font-weight: 600;
 }
 
-.jamboard-helper-list {
+.jamboard-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.48);
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 1200;
+}
+
+.jamboard-modal {
+  width: min(420px, 100%);
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  box-shadow: 0 20px 40px rgba(2, 6, 23, 0.24);
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.jamboard-modal h4 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 1.03rem;
+}
+
+.jamboard-modal-field {
+  display: grid;
   gap: 8px;
 }
 
-.jamboard-helper-list span {
-  border: 1px solid var(--border-light);
-  background: var(--card);
-  border-radius: 999px;
-  font-size: 0.76rem;
+.jamboard-modal-field span {
+  font-size: 0.84rem;
   color: var(--text-secondary);
   font-weight: 600;
-  padding: 4px 9px;
+}
+
+.jamboard-modal-field input {
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.93rem;
+  color: var(--text-primary);
+  background: var(--card);
+}
+
+.jamboard-modal-message {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.jamboard-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.jamboard-modal-confirm-delete {
+  background: #dc2626;
+  color: #ffffff;
+  border: 1px solid #dc2626;
+}
+
+.jamboard-modal-confirm-delete:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
 }
 
 /* Schedule */
