@@ -6,11 +6,31 @@ import "./Enrolled.css";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-interface StreamPost {
-  id: number; authorInitials: string; authorName: string; time: string; body: string;
+interface AnnouncementComment {
+  _id?: string;
+  author?: { _id: string; name?: string; email?: string } | string;
+  text: string;
+  createdAt: string;
+}
+interface Announcement {
+  _id: string;
+  author?: { _id: string; name?: string; email?: string } | string;
+  text: string;
+  comments: AnnouncementComment[];
+  createdAt: string;
 }
 interface ChatMessage {
-  id: number; role: "user" | "bot"; text: string; time: string;
+  id: number;
+  role: "user" | "bot";
+  text: string;
+  time: string;
+  loading?: boolean;
+}
+interface ChatMaterial {
+  _id: string;
+  title: string;
+  book_name: string;
+  type: string;
 }
 interface Deliverable {
   _id: string; title: string; description?: string;
@@ -49,15 +69,10 @@ function statusLabel(status: Submission["status"]) {
   return "Not started";
 }
 
-// ─── Static chat data ─────────────────────────────────────────────────────────
-
-const INITIAL_CHAT: ChatMessage[] = [
-  { id: 1, role: "bot", text: "👋 Hi! I'm your Course AI Assistant. Ask me anything about the course content!", time: "—" },
-];
-const SAMPLE_STREAM: StreamPost[] = [
-  { id: 1, authorInitials: "I", authorName: "Instructor", time: "Recently", body: "Welcome to this course! Check the Assignments and Materials tabs for course content." },
-];
-
+// ─── Chat helpers ─────────────────────────────────────────────────────────────
+function nowTime() {
+  return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
 // ─── SVG Icons ────────────────────────────────────────────────────────────────
 
 const FileIcon = () => (
@@ -101,14 +116,91 @@ function StudentCourse() {
   const [mLoading, setMLoading]           = useState(false);
 
   // Chat
-  const [chatMessages, setChatMessages]   = useState<ChatMessage[]>(INITIAL_CHAT);
+  const [chatMessages, setChatMessages]   = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput]         = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Chatbot material state
+  const [chatMaterials, setChatMaterials]       = useState<ChatMaterial[]>([]);
+  const [chatMaterialsLoading, setChatMaterialsLoading] = useState(false);
+  const [selectedMaterial, setSelectedMaterial] = useState<ChatMaterial | null>(null);
+  const [chatBotLoading, setChatBotLoading]     = useState(false);
+
+  // Stream announcements
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [streamLoading, setStreamLoading] = useState(false);
+  const [postingAnnouncementId, setPostingAnnouncementId] = useState<string | null>(null);
+  const [announcementCommentInputs, setAnnouncementCommentInputs] = useState<Record<string, string>>({});
+  const [expandedAnnouncementComments, setExpandedAnnouncementComments] = useState<Record<string, boolean>>({});
 
   // Leave modal
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [leaveMsg, setLeaveMsg]           = useState<string | null>(null);
   const [leaveMsgType, setLeaveMsgType]   = useState<"success" | "error" | null>(null);
+
+  const announcementApiBase = "/api/announcements";
+
+  function nameFromAuthor(author?: { _id: string; name?: string; email?: string } | string): string {
+    if (!author || typeof author === "string") return "Class member";
+    return author.name || author.email || "Class member";
+  }
+
+  function initialsFromAuthor(author?: { _id: string; name?: string; email?: string } | string): string {
+    const name = nameFromAuthor(author);
+    return name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "C";
+  }
+
+  function formatWhen(dateIso?: string): string {
+    if (!dateIso) return "Now";
+    const dt = new Date(dateIso);
+    if (Number.isNaN(dt.getTime())) return "Now";
+    return dt.toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  async function loadAnnouncements() {
+    if (!id) return;
+    setStreamLoading(true);
+    try {
+      const r = await apiFetch(`${announcementApiBase}/courses/${id}/announcements`);
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.message || "Failed to load announcements");
+      setAnnouncements(Array.isArray(d.announcements) ? d.announcements : []);
+    } catch {
+      setAnnouncements([]);
+    } finally {
+      setStreamLoading(false);
+    }
+  }
+
+  async function postAnnouncementComment(announcementId: string) {
+    const text = (announcementCommentInputs[announcementId] || "").trim();
+    if (!text) return;
+
+    setPostingAnnouncementId(announcementId);
+    try {
+      const r = await apiFetch(`${announcementApiBase}/announcements/${announcementId}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.message || "Failed to post comment");
+      if (d.announcement) {
+        setAnnouncements(prev => prev.map(a => (a._id === announcementId ? d.announcement : a)));
+      }
+      setAnnouncementCommentInputs(prev => ({ ...prev, [announcementId]: "" }));
+    } catch {
+      // keep UI simple here; stream refresh will sync state
+    } finally {
+      setPostingAnnouncementId(null);
+    }
+  }
 
   // ── Load course details ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -183,6 +275,42 @@ function StudentCourse() {
     return () => { mounted = false; };
   }, [activeTab, id]);
 
+  useEffect(() => {
+    if (activeTab !== "stream") return;
+    loadAnnouncements();
+  }, [activeTab, id]);
+
+  // ── Load chatbot materials when chatbot tab opens ────────────────────────────
+  useEffect(() => {
+    if (activeTab !== "chatbot" || !id) return;
+    let mounted = true;
+    setChatMaterialsLoading(true);
+    apiFetch(`/api/chatbot/courses/${id}/materials`)
+      .then(r => r.json())
+      .then(d => {
+        if (!mounted) return;
+        const mats: ChatMaterial[] = d.materials || [];
+        setChatMaterials(mats);
+        // Reset chat when switching tabs or course
+        setSelectedMaterial(null);
+        setChatMessages([{
+          id: Date.now(),
+          role: "bot",
+          text: mats.length === 0
+            ? "📚 No course materials have been indexed yet. Ask your teacher to upload study materials."
+            : `👋 Hi! I'm your Course AI Assistant.\n`,
+          time: nowTime(),
+        }]);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setChatMaterials([]);
+        setChatMessages([{ id: Date.now(), role: "bot", text: "⚠️ Could not load course materials. Please try again later.", time: nowTime() }]);
+      })
+      .finally(() => { if (mounted) setChatMaterialsLoading(false); });
+    return () => { mounted = false; };
+  }, [activeTab, id]);
+
   // ── Chat scroll ──────────────────────────────────────────────────────────────
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -210,20 +338,64 @@ function StudentCourse() {
     }
   }
 
+  // ── Select a material to chat about ──────────────────────────────────────────
+  function selectMaterial(mat: ChatMaterial) {
+    setSelectedMaterial(mat);
+    setChatMessages(prev => [
+      ...prev,
+      {
+        id: Date.now(),
+        role: "bot",
+        text: `✅ You selected '${mat.title}'. I'm ready to answer your questions! Go ahead and ask anything about this material.`,
+        time: nowTime(),
+      },
+    ]);
+  }
+
   // ── Send chat message ────────────────────────────────────────────────────────
-  function sendMessage() {
+  async function sendMessage() {
     const msg = chatInput.trim();
-    if (!msg) return;
-    const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    setChatMessages(prev => [...prev, { id: Date.now(), role: "user", text: msg, time: now }]);
+    if (!msg || chatBotLoading) return;
+    if (!selectedMaterial) {
+      setChatMessages(prev => [
+        ...prev,
+        { id: Date.now(), role: "bot", text: "⚠️ Please select a material first by clicking one of the buttons above.", time: nowTime() },
+      ]);
+      return;
+    }
+
+    const userMsg: ChatMessage = { id: Date.now(), role: "user", text: msg, time: nowTime() };
+    const loadingMsg: ChatMessage = { id: Date.now() + 1, role: "bot", text: "...", time: nowTime(), loading: true };
+    setChatMessages(prev => [...prev, userMsg, loadingMsg]);
     setChatInput("");
-    setTimeout(() => {
-      setChatMessages(prev => [...prev, {
-        id: Date.now() + 1, role: "bot",
-        text: "That's a great question! Based on the course content, I can help you understand this concept better. Check the Materials tab for related resources.",
-        time: now,
-      }]);
-    }, 800);
+    setChatBotLoading(true);
+
+    try {
+      const res = await apiFetch("/api/chatbot/query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ book_name: selectedMaterial.book_name, query: msg }),
+      });
+      const data = await res.json();
+      const answer = data.answer || "Sorry, I couldn't generate an answer.";
+      setChatMessages(prev =>
+        prev.map(m =>
+          m.id === loadingMsg.id
+            ? { ...m, text: answer, loading: false }
+            : m
+        )
+      );
+    } catch {
+      setChatMessages(prev =>
+        prev.map(m =>
+          m.id === loadingMsg.id
+            ? { ...m, text: "⚠️ Error connecting to AI. Please try again.", loading: false }
+            : m
+        )
+      );
+    } finally {
+      setChatBotLoading(false);
+    }
   }
 
   // ── Render ───────────────────────────────────────────────────────────────────
@@ -278,22 +450,74 @@ function StudentCourse() {
         {/* ══ STREAM ══ */}
         {activeTab === "stream" && (
           <div className="tab-content active" id="stream">
-            <div className="stream-compose">
-              <div className="avatar">{(user?.name || "S")[0].toUpperCase()}</div>
-              <span>Add a class comment…</span>
-            </div>
-            {SAMPLE_STREAM.map(post => (
-              <div className="stream-post" key={post.id}>
+           
+
+            {streamLoading && <p className="ec-loading">Loading announcements...</p>}
+
+            {!streamLoading && announcements.length === 0 && (
+              <div className="ec-empty">
+                <p>No announcements yet.</p>
+              </div>
+            )}
+
+            {!streamLoading && announcements.map(post => (
+              <div className="stream-post" key={post._id}>
                 <div className="stream-post-header">
                   <div className="avatar" style={{ background: "#FEF3C7", color: "#B45309" }}>
-                    {post.authorInitials}
+                    {initialsFromAuthor(post.author)}
                   </div>
                   <div>
-                    <p className="stream-post-author">{post.authorName}</p>
-                    <p className="stream-post-time">{post.time}</p>
+                    <p className="stream-post-author">{nameFromAuthor(post.author)}</p>
+                    <p className="stream-post-time">{formatWhen(post.createdAt)}</p>
                   </div>
                 </div>
-                <div className="stream-post-body">{post.body}</div>
+                <div className="stream-post-body">{post.text}</div>
+
+                <button
+                  className="ec-ann-comment-toggle"
+                  onClick={() =>
+                    setExpandedAnnouncementComments((prev) => ({
+                      ...prev,
+                      [post._id]: !prev[post._id],
+                    }))
+                  }
+                >
+                  <span>
+                    {(post.comments || []).length} class {(post.comments || []).length === 1 ? "comment" : "comments"}
+                  </span>
+                  <span>{expandedAnnouncementComments[post._id] ? "Hide" : "Show"}</span>
+                </button>
+
+                {expandedAnnouncementComments[post._id] && (
+                  <div className="ec-ann-comment-panel">
+                    {(post.comments || []).map((c, idx) => (
+                      <div key={c._id || `${idx}-${c.createdAt}`} className="ec-ann-comment-item">
+                        <p className="stream-post-time">
+                          <strong className="ec-ann-comment-author">{nameFromAuthor(c.author)}</strong>
+                          {" · "}
+                          {formatWhen(c.createdAt)}
+                        </p>
+                        <p className="ec-ann-comment-text">{c.text}</p>
+                      </div>
+                    ))}
+
+                    <div className="ec-ann-comment-compose">
+                      <input
+                        className="form-input"
+                        placeholder="Write a public class comment..."
+                        value={announcementCommentInputs[post._id] || ""}
+                        onChange={(e) => setAnnouncementCommentInputs(prev => ({ ...prev, [post._id]: e.target.value }))}
+                      />
+                      <button
+                        className="btn btn-outline btn-sm"
+                        onClick={() => postAnnouncementComment(post._id)}
+                        disabled={postingAnnouncementId === post._id || !(announcementCommentInputs[post._id] || "").trim()}
+                      >
+                        {postingAnnouncementId === post._id ? "Posting..." : "Comment"}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -430,6 +654,8 @@ function StudentCourse() {
           <div className="tab-content active" id="chatbot">
             <div className="chatbot-container">
               <div className="chatbot-card">
+
+                {/* Header */}
                 <div className="chatbot-header">
                   <div className="chatbot-header-icon">
                     <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -438,29 +664,86 @@ function StudentCourse() {
                       <line x1="9" y1="9" x2="9.01" y2="9" /><line x1="15" y1="9" x2="15.01" y2="9" />
                     </svg>
                   </div>
-                  <div><h3>Course AI Assistant</h3><p>{courseName}</p></div>
+                  <div>
+                    <h3>Course AI Assistant</h3>
+                    <p>{selectedMaterial ? `📖 ${selectedMaterial.title}` : courseName}</p>
+                  </div>
+                  {selectedMaterial && (
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      style={{ marginLeft: "auto", fontSize: 12 }}
+                      onClick={() => {
+                        setSelectedMaterial(null);
+                        setChatMessages(prev => [
+                          ...prev,
+                          { id: Date.now(), role: "bot", text: "Material deselected. Choose another material to continue.", time: nowTime() },
+                        ]);
+                      }}
+                    >
+                      Change material
+                    </button>
+                  )}
                 </div>
+
+                {/* Material selector pills */}
+                {!selectedMaterial && (
+                  <div className="chatbot-materials-bar">
+                    {chatMaterialsLoading && <p className="ec-loading" style={{ margin: "10px 16px" }}>Loading materials…</p>}
+                    {!chatMaterialsLoading && chatMaterials.length > 0 && (
+                      <>
+                        <p className="chatbot-materials-label">Select a material to chat about:</p>
+                        <div className="chatbot-materials-list">
+                          {chatMaterials.map(mat => (
+                            <button
+                              key={mat._id}
+                              className={`chatbot-mat-btn${selectedMaterial && (selectedMaterial as ChatMaterial)._id === mat._id ? " active" : ""}`}
+                              onClick={() => selectMaterial(mat)}
+                            >
+                              <FileIcon />
+                              <span>{mat.title}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* Messages */}
                 <div className="chatbot-messages" id="chatMessages">
                   {chatMessages.map(msg => (
-                    <div key={msg.id} className={`chat-message ${msg.role}`}>
-                      {msg.text.split("\n").map((line, i, arr) => (
-                        <span key={i}>{line}{i < arr.length - 1 && <br />}</span>
-                      ))}
-                      <div className="msg-time">{msg.time}</div>
+                    <div key={msg.id} className={`chat-message ${msg.role}${msg.loading ? " loading" : ""}`}>
+                      {msg.loading
+                        ? <span className="chat-typing"><span /><span /><span /></span>
+                        : msg.text.split("\n").map((line, i, arr) => (
+                            <span key={i}>{line}{i < arr.length - 1 && <br />}</span>
+                          ))
+                      }
+                      {!msg.loading && <div className="msg-time">{msg.time}</div>}
                     </div>
                   ))}
                   <div ref={messagesEndRef} />
                 </div>
+
+                {/* Input */}
                 <div className="chatbot-input">
                   <input
                     type="text"
-                    placeholder={`Ask about ${courseName} concepts…`}
+                    placeholder={
+                      selectedMaterial
+                        ? `Ask about "${selectedMaterial.title}"…`
+                        : "Select a material above, then ask a question…"
+                    }
                     value={chatInput}
+                    disabled={chatBotLoading}
                     onChange={e => setChatInput(e.target.value)}
                     onKeyDown={e => e.key === "Enter" && sendMessage()}
                   />
-                  <button onClick={sendMessage}><SendIcon /></button>
+                  <button onClick={sendMessage} disabled={chatBotLoading || !chatInput.trim()}>
+                    <SendIcon />
+                  </button>
                 </div>
+
               </div>
             </div>
           </div>

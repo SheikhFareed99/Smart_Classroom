@@ -11,6 +11,8 @@ import voiceAuthRouter from "./routes/voiceAuth";
 import deliverableRouter from "./routes/deliverable";
 import materialRouter from "./routes/material";
 import whiteboardRouter from "./routes/whiteboard";
+import announcementRouter from "./routes/announcement";
+import chatbotRouter from "./routes/chatbot";
 import { csrfProtection, initCsrfProtection } from "./security/csrf";
 
 import "./config/passport";
@@ -80,6 +82,8 @@ app.use("/api/courses", courseRouter);
 app.use("/api", deliverableRouter);
 app.use("/api", materialRouter);
 app.use("/api/whiteboard", whiteboardRouter);
+app.use("/api/announcements", announcementRouter);
+app.use("/api/chatbot", chatbotRouter);
 app.get("/", (req, res) => {
   res.send("Home");
 });

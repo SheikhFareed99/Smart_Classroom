@@ -149,12 +149,35 @@ export const uploadMaterial = async (req: Request, res: Response) => {
       sizeBytes: req.file.size,
     });
 
+    // ── Trigger AI backend ingestion (fire-and-forget) ────────────────────────
+    const AI_BACKEND = process.env.AI_BACKEND_URL || "http://localhost:8000";
+    const ingestibleTypes = ["pdf", "text"]; // the types ai_backend can process
+    if (ingestibleTypes.includes(matType)) {
+      import("axios")
+        .then(({ default: axios }) =>
+          axios.post(
+            `${AI_BACKEND}/ingest-async`,
+            { url, book_name: materialTitle },
+            { timeout: 10_000 }
+          )
+        )
+        .then(() => {
+          // Mark as indexed once the request is accepted by AI backend
+          return MaterialService.markAsIndexed(String(material._id), materialTitle);
+        })
+        .catch((err: any) => {
+          console.error("AI ingest trigger failed:", err?.message || err);
+        });
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     return res.status(201).json({ success: true, material });
   } catch (err: any) {
     console.error("uploadMaterial:", err);
     return res.status(err.status || 500).json({ success: false, message: err.message });
   }
 };
+
 
 // GET /api/courses/:courseId/modules/:moduleId/materials
 export const listMaterialsByModule = async (req: Request, res: Response) => {
