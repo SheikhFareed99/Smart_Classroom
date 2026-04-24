@@ -4,6 +4,7 @@ import * as ModuleService from "../services/module.service";
 import * as MaterialService from "../services/material.service";
 import * as CourseService from "../services/course.service";
 import { uploadBuffer, blobPathFromUrl, deleteBlob } from "../services/azure.service";
+import { publishNotificationEvent } from "../notifications";
 
 // ─── Multer ───────────────────────────────────────────────────────────────────
 
@@ -125,7 +126,7 @@ export const uploadMaterial = async (req: Request, res: Response) => {
 
     const courseId = p(req.params.courseId);
     const moduleId = p(req.params.moduleId);
-    await verifyInstructorOwns(courseId, instructorId);
+    const course = await verifyInstructorOwns(courseId, instructorId);
 
     const mod = await ModuleService.findModuleById(moduleId);
     if (!mod || mod.course.toString() !== courseId)
@@ -147,6 +148,22 @@ export const uploadMaterial = async (req: Request, res: Response) => {
       url,
       moduleId,
       sizeBytes: req.file.size,
+    });
+
+    const actorName = String((req.user as any)?.name || "Instructor");
+    void publishNotificationEvent({
+      name: "course.material.created",
+      payload: {
+        courseId,
+        courseTitle: String(course.title || "Course"),
+        moduleId,
+        moduleTitle: String(mod.title || "Module"),
+        materialId: String(material._id),
+        materialTitle,
+        actorName,
+      },
+    }).catch((notifyError) => {
+      console.error("Failed to queue material notification:", notifyError);
     });
 
     // ── Trigger AI backend ingestion (fire-and-forget) ────────────────────────
