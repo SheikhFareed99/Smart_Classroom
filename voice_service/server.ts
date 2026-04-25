@@ -9,28 +9,27 @@ import cors       from "cors";
 
 import Channel from "./models/Channel";
 import Session from "./models/Session";
-import channelRoutes                        from "./routes/Channels";
-import iceRoutes                            from "./routes/ice";
-import { registerSignalingHandlers }        from "./sockets/signaling";
-import { registerMediasoupHandlers }        from "./sockets/mediasoupSignaling";
-import { createWorker, cleanupPeer }        from "./sockets/mediasoupManager";
+import channelRoutes                         from "./routes/Channels";
+import iceRoutes                             from "./routes/ice";
+import { registerSignalingHandlers }         from "./sockets/signaling";
+import { registerMediasoupHandlers }         from "./sockets/mediasoupSignaling";
+import { createWorker, cleanupPeer }         from "./sockets/mediasoupManager";
 import { getParticipant, removeParticipant } from "./sockets/participantstore";
 
 const app    = express();
 const server = http.createServer(app);
 
+// ── Socket.io — wildcard CORS for dev ─────────────────────
 const io = new Server(server, {
   cors: {
-    origin:      ["http://localhost:5173"],
+    origin:      "*",
     methods:     ["GET", "POST"],
-    credentials: true,
+    credentials: false,
   },
 });
 
-app.use(cors({
-  origin:      ["http://localhost:5173"],
-  credentials: true,
-}));
+// ── Express — wildcard CORS for dev ───────────────────────
+app.use(cors({ origin: "*", credentials: false }));
 app.use(express.json());
 
 app.get("/health", (req, res) => {

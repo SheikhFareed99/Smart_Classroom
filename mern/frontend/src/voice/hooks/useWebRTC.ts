@@ -95,8 +95,9 @@ export const useWebRTC = ({ userId, name }: UseWebRTCOptions): UseWebRTCReturn =
 
     await fetchIceConfig();
 
-   const socket = io("http://localhost:4001", {
-  transports: ["websocket"],
+const socket = io("http://localhost:5173", {
+  path:            "/voice/socket.io",
+  transports:      ["websocket"],
   withCredentials: true,
 });
     socketRef.current = socket;
