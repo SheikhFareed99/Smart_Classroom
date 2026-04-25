@@ -141,10 +141,7 @@ export const registerMediasoupHandlers = (io: Server, socket: Socket) => {
     handleMsLeave(io, socket, channelId);
   });
 
-  socket.on("disconnect", () => {
-    const user = getParticipant(socket.id);
-    if (user) handleMsLeave(io, socket, user.channelId);
-  });
+
 };
 
 const handleMsLeave = (io: Server, socket: Socket, channelId: string) => {

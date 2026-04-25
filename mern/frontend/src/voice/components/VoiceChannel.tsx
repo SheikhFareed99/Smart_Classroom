@@ -136,10 +136,11 @@ const VoiceChannel = ({ courseId, userId, userName }: VoiceChannelProps) => {
     }
   };
 
-  const getChannelCount = (channelId: string): number => {
-    if (activeChannelId !== channelId) return 0;
-    return peers.length + 1;
-  };
+const getChannelCount = (channelId: string): number => {
+  if (activeChannelId === channelId) return peers.length + 1;
+  const ch = channels.find((c) => c._id === channelId);
+  return ch?.participants?.length ?? 0;
+};
 
   if (!isPanelOpen) {
     return (

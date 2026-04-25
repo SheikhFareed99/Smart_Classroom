@@ -31,182 +31,95 @@ export const useMediasoup = ({
   name,
 }: UseMediasoupOptions): UseMediasoupReturn => {
 
-  const [peers, setPeers] = useState<VoicePeer[]>([]);
-  const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(
-    new Map()
-  );
-  const [isMuted,       setIsMuted]       = useState(false);
-  const [isConnected,   setIsConnected]   = useState(false);
+  const [peers,         setPeers]        = useState<VoicePeer[]>([]);
+  const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
+  const [isMuted,       setIsMuted]      = useState(false);
+  const [isConnected,   setIsConnected]  = useState(false);
 
-  const socketRef = useRef<Socket | null>(null);
-  const deviceRef = useRef<Device | null>(null);
-  const sendTransport = useRef<Transport | null>(null);
-  const recvTransport = useRef<Transport | null>(null);
-  const producerRef = useRef<Producer | null>(null);
-  const consumersRef = useRef<Map<string, Consumer>>(new Map());
-  const localStreamRef = useRef<MediaStream | null>(null);
-  const channelIdRef = useRef<string | null>(null);
+  const socketRef          = useRef<Socket | null>(null);
+  const deviceRef          = useRef<Device | null>(null);
+  const sendTransportRef   = useRef<Transport | null>(null);
+  const recvTransportRef   = useRef<Transport | null>(null);
+  const producerRef        = useRef<Producer | null>(null);
+  const consumersRef       = useRef<Map<string, Consumer>>(new Map());
+  const localStreamRef     = useRef<MediaStream | null>(null);
+  const channelIdRef       = useRef<string | null>(null);
   const rtpCapabilitiesRef = useRef<RtpCapabilities | null>(null);
+  // track which producers we're already consuming to prevent duplicates
+  const consumingRef       = useRef<Set<string>>(new Set());
 
-  // ── Create send transport ────────────────────────────
+  // ── Create send transport ──────────────────────────────
   const createSendTransport = useCallback((socket: Socket, channelId: string) => {
     return new Promise<void>((resolve, reject) => {
       socket.emit("ms-create-transport", { channelId, direction: "send" });
 
-      const onTransportCreated = async ({
-        direction,
-        transportOptions,
-      }: {
-        direction: "send" | "recv";
-        transportOptions: unknown;
+      const onCreated = async ({ direction, transportOptions }: {
+        direction: "send" | "recv"; transportOptions: unknown;
       }) => {
         if (direction !== "send") return;
-        socket.off("ms-transport-created", onTransportCreated);
+        socket.off("ms-transport-created", onCreated);
 
-        if (!deviceRef.current) {
-          reject(new Error("mediasoup device not initialised"));
-          return;
-        }
+        if (!deviceRef.current) return reject(new Error("Device not ready"));
 
-        const transport = deviceRef.current.createSendTransport(
-          transportOptions as any
-        );
-        sendTransport.current = transport;
+        const transport = deviceRef.current.createSendTransport(transportOptions as any);
+        sendTransportRef.current = transport;
 
-        transport.on(
-          "connect",
-          (
-            { dtlsParameters }: { dtlsParameters: DtlsParameters },
-            callback: () => void,
-            errback: (error: Error) => void
-          ) => {
-            try {
-              const onConnected = ({ direction: dir }: { direction: "send" | "recv" }) => {
-                if (dir !== "send") return;
-                socket.off("ms-transport-connected", onConnected);
-                socket.off("ms-error", onError);
-                callback();
-              };
+        transport.on("connect", ({ dtlsParameters }: { dtlsParameters: DtlsParameters }, callback: () => void, _errback: (e: Error) => void) => {
+          const onConnected = ({ direction: dir }: { direction: string }) => {
+            if (dir !== "send") return;
+            socket.off("ms-transport-connected", onConnected);
+            callback();
+          };
+          socket.on("ms-transport-connected", onConnected);
+          socket.emit("ms-connect-transport", { direction: "send", dtlsParameters });
+        });
 
-              const onError = ({ message }: { message: string }) => {
-                socket.off("ms-transport-connected", onConnected);
-                socket.off("ms-error", onError);
-                errback(new Error(message));
-              };
-
-              socket.on("ms-transport-connected", onConnected);
-              socket.on("ms-error", onError);
-              socket.emit("ms-connect-transport", {
-                direction: "send",
-                dtlsParameters,
-              });
-            } catch (error) {
-              errback(error as Error);
-            }
-          }
-        );
-
-        transport.on(
-          "produce",
-          async (
-            {
-              kind,
-              rtpParameters,
-            }: { kind: string; rtpParameters: RtpParameters },
-            callback: ({ id }: { id: string }) => void,
-            errback: (error: Error) => void
-          ) => {
-            try {
-              const onProduced = ({ producerId }: { producerId: string }) => {
-                socket.off("ms-produced", onProduced);
-                socket.off("ms-error", onError);
-                callback({ id: producerId });
-              };
-
-              const onError = ({ message }: { message: string }) => {
-                socket.off("ms-produced", onProduced);
-                socket.off("ms-error", onError);
-                errback(new Error(message));
-              };
-
-              socket.on("ms-produced", onProduced);
-              socket.on("ms-error", onError);
-              socket.emit("ms-produce", { channelId, kind, rtpParameters });
-            } catch (error) {
-              errback(error as Error);
-            }
-          }
-        );
+        transport.on("produce", ({ kind, rtpParameters }: { kind: string; rtpParameters: RtpParameters }, callback: (p: { id: string }) => void, _errback: (e: Error) => void) => {
+          const onProduced = ({ producerId }: { producerId: string }) => {
+            socket.off("ms-produced", onProduced);
+            callback({ id: producerId });
+          };
+          socket.on("ms-produced", onProduced);
+          socket.emit("ms-produce", { channelId, kind, rtpParameters });
+        });
 
         resolve();
       };
 
-      socket.on("ms-transport-created", onTransportCreated);
+      socket.on("ms-transport-created", onCreated);
     });
   }, []);
 
-  // ── Create recv transport ────────────────────────────
+  // ── Create recv transport ──────────────────────────────
   const createRecvTransport = useCallback((socket: Socket, channelId: string) => {
     return new Promise<void>((resolve, reject) => {
       socket.emit("ms-create-transport", { channelId, direction: "recv" });
 
-      const onTransportCreated = async ({
-        direction,
-        transportOptions,
-      }: {
-        direction: "send" | "recv";
-        transportOptions: unknown;
+      const onCreated = async ({ direction, transportOptions }: {
+        direction: "send" | "recv"; transportOptions: unknown;
       }) => {
         if (direction !== "recv") return;
-        socket.off("ms-transport-created", onTransportCreated);
+        socket.off("ms-transport-created", onCreated);
 
-        if (!deviceRef.current) {
-          reject(new Error("mediasoup device not initialised"));
-          return;
-        }
+        if (!deviceRef.current) return reject(new Error("Device not ready"));
 
-        const transport = deviceRef.current.createRecvTransport(
-          transportOptions as any
-        );
-        recvTransport.current = transport;
+        const transport = deviceRef.current.createRecvTransport(transportOptions as any);
+        recvTransportRef.current = transport;
 
-        transport.on(
-          "connect",
-          (
-            { dtlsParameters }: { dtlsParameters: DtlsParameters },
-            callback: () => void,
-            errback: (error: Error) => void
-          ) => {
-            try {
-              const onConnected = ({ direction: dir }: { direction: "send" | "recv" }) => {
-                if (dir !== "recv") return;
-                socket.off("ms-transport-connected", onConnected);
-                socket.off("ms-error", onError);
-                callback();
-              };
-
-              const onError = ({ message }: { message: string }) => {
-                socket.off("ms-transport-connected", onConnected);
-                socket.off("ms-error", onError);
-                errback(new Error(message));
-              };
-
-              socket.on("ms-transport-connected", onConnected);
-              socket.on("ms-error", onError);
-              socket.emit("ms-connect-transport", {
-                direction: "recv",
-                dtlsParameters,
-              });
-            } catch (error) {
-              errback(error as Error);
-            }
-          }
-        );
+        transport.on("connect", ({ dtlsParameters }: { dtlsParameters: DtlsParameters }, callback: () => void, _errback: (e: Error) => void) => {
+          const onConnected = ({ direction: dir }: { direction: string }) => {
+            if (dir !== "recv") return;
+            socket.off("ms-transport-connected", onConnected);
+            callback();
+          };
+          socket.on("ms-transport-connected", onConnected);
+          socket.emit("ms-connect-transport", { direction: "recv", dtlsParameters });
+        });
 
         resolve();
       };
 
-      socket.on("ms-transport-created", onTransportCreated);
+      socket.on("ms-transport-created", onCreated);
     });
   }, []);
 
@@ -216,7 +129,11 @@ export const useMediasoup = ({
     channelId: string,
     producerSocketId: string
   ) => {
-    if (!recvTransport.current || !rtpCapabilitiesRef.current) return;
+    // BUG 3 FIX — prevent duplicate consumers
+    if (consumingRef.current.has(producerSocketId)) return;
+    if (!recvTransportRef.current || !rtpCapabilitiesRef.current) return;
+
+    consumingRef.current.add(producerSocketId);
 
     socket.emit("ms-consume", {
       channelId,
@@ -225,47 +142,68 @@ export const useMediasoup = ({
     });
 
     const onConsumed = async ({
-      producerSocketId: sid,
-      consumerParams,
-    }: {
-      producerSocketId: string;
-      consumerParams: unknown;
-    }) => {
-      if (sid !== producerSocketId) return;
-      socket.off("ms-consumed", onConsumed);
+  producerSocketId: sid,
+  consumerParams,
+}: {
+  producerSocketId: string;
+  consumerParams: unknown;
+}) => {
+  if (sid !== producerSocketId) return;
+  socket.off("ms-consumed", onConsumed);
 
-      const consumer = await recvTransport.current!.consume(consumerParams as any);
-      consumersRef.current.set(sid, consumer);
+  try {
+    const consumer = await recvTransportRef.current!.consume(consumerParams as any);
+    consumersRef.current.set(sid, consumer);
 
-      const stream = new MediaStream([consumer.track]);
-      setRemoteStreams((prev) => {
-        const updated = new Map(prev);
-        updated.set(sid, stream);
-        return updated;
-      });
+    const stream = new MediaStream([consumer.track]);
 
-      setPeers((prev) => {
-        if (prev.find((p) => p.socketId === sid)) return prev;
-        return [...prev, { socketId: sid, userId: sid, name: "Peer", isMuted: false }];
-      });
-    };
+    // attach to audio element immediately
+    let audio = document.getElementById(`audio-${sid}`) as HTMLAudioElement;
+    if (!audio) {
+      audio = document.createElement("audio");
+      audio.id = `audio-${sid}`;
+      audio.autoplay = true;
+      document.body.appendChild(audio);
+    }
+    audio.srcObject = stream;
+
+    // try to play explicitly — browser autoplay policy sometimes blocks
+    audio.play().catch((err) => console.warn("[audio] play() failed:", err));
+
+    setRemoteStreams((prev) => {
+      const updated = new Map(prev);
+      updated.set(sid, stream);
+      return updated;
+    });
+
+    // add peer to UI if not already there
+    setPeers((prev) => {
+      if (prev.find((p) => p.socketId === sid)) return prev;
+      return [...prev, { socketId: sid, userId: sid, name: "Peer", isMuted: false }];
+    });
+
+  } catch (err) {
+    console.error("[mediasoup] consume error:", err);
+    consumingRef.current.delete(producerSocketId);
+  }
+};
 
     socket.on("ms-consumed", onConsumed);
   }, []);
 
-  // ── Join channel ──────────────────────────────────────
+
+  // ── Join channel ───────────────────────────────────────
   const joinChannel = useCallback(async (channelId: string) => {
     channelIdRef.current = channelId;
 
-    // get mic access
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     localStreamRef.current = stream;
 
-    // connect socket
-    const socket = io({
-        path:            "/voice/socket.io",
-        transports:      ["polling", "websocket"],  // polling first, then upgrade
-        withCredentials: true,
+    // BUG 1 FIX — correct Socket.io URL + path through Vite proxy
+    const socket = io("http://localhost:5173", {
+      path:            "/voice/socket.io",
+      transports:      ["websocket"],  // websocket only — no polling
+      withCredentials: true,
     });
     socketRef.current = socket;
 
@@ -276,51 +214,54 @@ export const useMediasoup = ({
 
     socket.on("disconnect", () => setIsConnected(false));
 
-    // server sends router capabilities
     socket.on("ms-router-rtp-capabilities", async ({ rtpCapabilities }) => {
-      // load device with router capabilities
       const device = new Device();
       await device.load({ routerRtpCapabilities: rtpCapabilities });
       deviceRef.current = device;
       rtpCapabilitiesRef.current = device.rtpCapabilities;
 
-      // create both transports
       await createSendTransport(socket, channelId);
       await createRecvTransport(socket, channelId);
 
-      // start producing audio
       const audioTrack = localStreamRef.current!.getAudioTracks()[0];
-      const producer = await sendTransport.current!.produce({ track: audioTrack });
+      const producer = await sendTransportRef.current!.produce({ track: audioTrack });
       producerRef.current = producer;
 
-      // ask for existing producers
       socket.emit("ms-get-producers", { channelId });
     });
 
-    // server tells us about existing producers
     socket.on("ms-existing-producers", async ({ producerSocketIds }: { producerSocketIds: string[] }) => {
       for (const sid of producerSocketIds) {
         await consumeProducer(socket, channelId, sid);
       }
     });
 
-    // a new peer started producing
+    // BUG 3 FIX — ms-new-producer only consumes, doesn't add to peers
+    // peer name is added when ms-user-joined fires OR when ms-consumed resolves
     socket.on("ms-new-producer", async ({ producerSocketId }: { producerSocketId: string }) => {
       await consumeProducer(socket, channelId, producerSocketId);
     });
 
-    // a peer joined (UI update)
-    socket.on("ms-user-joined", ({ socketId, userId: uid, name: n }: { socketId: string; userId: string; name: string }) => {
-      setPeers((prev) => {
-        if (prev.find((p) => p.socketId === socketId)) return prev;
-        return [...prev, { socketId, userId: uid, name: n, isMuted: false }];
-      });
-    });
+    // BUG 3 FIX — ms-user-joined only updates peer NAME, not duplicate entry
+   socket.on("ms-user-joined", ({ socketId, userId: uid, name: n }: {
+  socketId: string; userId: string; name: string;
+}) => {
+  setPeers((prev) => {
+    const existing = prev.find((p) => p.socketId === socketId);
+    if (existing) {
+      // update name if it was set as "Peer" placeholder
+      return prev.map((p) =>
+        p.socketId === socketId ? { ...p, name: n, userId: uid } : p
+      );
+    }
+    return [...prev, { socketId, userId: uid, name: n, isMuted: false }];
+  });
+});
 
-    // a peer left
     socket.on("ms-user-left", ({ socketId }: { socketId: string }) => {
       consumersRef.current.get(socketId)?.close();
       consumersRef.current.delete(socketId);
+      consumingRef.current.delete(socketId);
       setRemoteStreams((prev) => {
         const updated = new Map(prev);
         updated.delete(socketId);
@@ -335,7 +276,7 @@ export const useMediasoup = ({
 
   }, [userId, name, createSendTransport, createRecvTransport, consumeProducer]);
 
-  // ── Leave channel ─────────────────────────────────────
+  // ── Leave channel ──────────────────────────────────────
   const leaveChannel = useCallback(() => {
     const channelId = channelIdRef.current;
     if (socketRef.current) {
@@ -343,12 +284,22 @@ export const useMediasoup = ({
       socketRef.current.disconnect();
       socketRef.current = null;
     }
+
+      // clean up audio elements
+  consumersRef.current.forEach((_, sid) => {
+    const audio = document.getElementById(`audio-${sid}`) as HTMLAudioElement;
+    if (audio) {
+      audio.srcObject = null;
+      audio.remove();
+    }
+  });
     producerRef.current?.close();
     consumersRef.current.forEach((c) => c.close());
     consumersRef.current.clear();
-    sendTransport.current?.close();
-    recvTransport.current?.close();
-    localStreamRef.current?.getTracks().forEach((t: MediaStreamTrack) => t.stop());
+    consumingRef.current.clear();
+    sendTransportRef.current?.close();
+    recvTransportRef.current?.close();
+    localStreamRef.current?.getTracks().forEach((t) => t.stop());
     localStreamRef.current = null;
     deviceRef.current = null;
     setPeers([]);
@@ -358,28 +309,29 @@ export const useMediasoup = ({
     channelIdRef.current = null;
   }, []);
 
-  // ── Toggle mute ───────────────────────────────────────
+  // BUG 2 FIX — toggleMute properly pauses AND resumes producer
   const toggleMute = useCallback(() => {
     if (!localStreamRef.current) return;
     const track = localStreamRef.current.getAudioTracks()[0];
-    if (track) {
-      track.enabled = !track.enabled;
+    if (!track) return;
+
+    const newMutedState = track.enabled; // if currently enabled → we're muting
+    track.enabled = !track.enabled;
+
+    if (newMutedState) {
+      // muting — pause producer
       producerRef.current?.pause();
-      setIsMuted(!track.enabled);
+    } else {
+      // unmuting — resume producer
+      producerRef.current?.resume();
     }
+
+    setIsMuted(newMutedState);
   }, []);
 
   useEffect(() => {
     return () => { leaveChannel(); };
   }, [leaveChannel]);
 
-  return {
-    peers,
-    remoteStreams,
-    isMuted,
-    isConnected,
-    joinChannel,
-    leaveChannel,
-    toggleMute,
-  };
+  return { peers, remoteStreams, isMuted, isConnected, joinChannel, leaveChannel, toggleMute };
 };
