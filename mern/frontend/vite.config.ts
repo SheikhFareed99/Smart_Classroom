@@ -13,7 +13,6 @@ export default defineConfig({
         target:       'http://localhost:4001',
         changeOrigin: true,
         rewrite:      (path) => path.replace(/^\/voice/, ''),
-        ws:           true,  // ← UNCOMMENT THIS — required for Socket.io
         secure:       false,
       },
       '/api': {

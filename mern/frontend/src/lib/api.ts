@@ -13,7 +13,8 @@ async function getCsrfToken(): Promise<string> {
     credentials: "include",
   });
 
-  if (!response.ok) {
+  if (!response.ok) 
+  {
     throw new Error("Failed to retrieve CSRF token");
   }
 

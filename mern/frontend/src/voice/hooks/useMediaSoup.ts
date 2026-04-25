@@ -45,7 +45,6 @@ export const useMediasoup = ({
   const localStreamRef     = useRef<MediaStream | null>(null);
   const channelIdRef       = useRef<string | null>(null);
   const rtpCapabilitiesRef = useRef<RtpCapabilities | null>(null);
-  // track which producers we're already consuming to prevent duplicates
   const consumingRef       = useRef<Set<string>>(new Set());
 
   // ── Create send transport ──────────────────────────────
@@ -53,7 +52,7 @@ export const useMediasoup = ({
     return new Promise<void>((resolve, reject) => {
       socket.emit("ms-create-transport", { channelId, direction: "send" });
 
-      const onCreated = async ({ direction, transportOptions }: {
+      const onCreated = ({ direction, transportOptions }: {
         direction: "send" | "recv"; transportOptions: unknown;
       }) => {
         if (direction !== "send") return;
@@ -64,7 +63,11 @@ export const useMediasoup = ({
         const transport = deviceRef.current.createSendTransport(transportOptions as any);
         sendTransportRef.current = transport;
 
-        transport.on("connect", ({ dtlsParameters }: { dtlsParameters: DtlsParameters }, callback: () => void, _errback: (e: Error) => void) => {
+        transport.on("connect", (
+          { dtlsParameters }: { dtlsParameters: DtlsParameters },
+          callback: () => void,
+          _errback: (e: Error) => void
+        ) => {
           const onConnected = ({ direction: dir }: { direction: string }) => {
             if (dir !== "send") return;
             socket.off("ms-transport-connected", onConnected);
@@ -74,7 +77,11 @@ export const useMediasoup = ({
           socket.emit("ms-connect-transport", { direction: "send", dtlsParameters });
         });
 
-        transport.on("produce", ({ kind, rtpParameters }: { kind: string; rtpParameters: RtpParameters }, callback: (p: { id: string }) => void, _errback: (e: Error) => void) => {
+        transport.on("produce", (
+          { kind, rtpParameters }: { kind: string; rtpParameters: RtpParameters },
+          callback: (p: { id: string }) => void,
+          _errback: (e: Error) => void
+        ) => {
           const onProduced = ({ producerId }: { producerId: string }) => {
             socket.off("ms-produced", onProduced);
             callback({ id: producerId });
@@ -95,7 +102,7 @@ export const useMediasoup = ({
     return new Promise<void>((resolve, reject) => {
       socket.emit("ms-create-transport", { channelId, direction: "recv" });
 
-      const onCreated = async ({ direction, transportOptions }: {
+      const onCreated = ({ direction, transportOptions }: {
         direction: "send" | "recv"; transportOptions: unknown;
       }) => {
         if (direction !== "recv") return;
@@ -106,7 +113,11 @@ export const useMediasoup = ({
         const transport = deviceRef.current.createRecvTransport(transportOptions as any);
         recvTransportRef.current = transport;
 
-        transport.on("connect", ({ dtlsParameters }: { dtlsParameters: DtlsParameters }, callback: () => void, _errback: (e: Error) => void) => {
+        transport.on("connect", (
+          { dtlsParameters }: { dtlsParameters: DtlsParameters },
+          callback: () => void,
+          _errback: (e: Error) => void
+        ) => {
           const onConnected = ({ direction: dir }: { direction: string }) => {
             if (dir !== "recv") return;
             socket.off("ms-transport-connected", onConnected);
@@ -129,7 +140,6 @@ export const useMediasoup = ({
     channelId: string,
     producerSocketId: string
   ) => {
-    // BUG 3 FIX — prevent duplicate consumers
     if (consumingRef.current.has(producerSocketId)) return;
     if (!recvTransportRef.current || !rtpCapabilitiesRef.current) return;
 
@@ -155,20 +165,13 @@ export const useMediasoup = ({
     const consumer = await recvTransportRef.current!.consume(consumerParams as any);
     consumersRef.current.set(sid, consumer);
 
+    // ── KEY FIX — resume consumer on client side ──────
+    await consumer.resume();
+
+    // tell server to resume its side too
+    socket.emit("ms-resume-consumer", { producerSocketId: sid });
+
     const stream = new MediaStream([consumer.track]);
-
-    // attach to audio element immediately
-    let audio = document.getElementById(`audio-${sid}`) as HTMLAudioElement;
-    if (!audio) {
-      audio = document.createElement("audio");
-      audio.id = `audio-${sid}`;
-      audio.autoplay = true;
-      document.body.appendChild(audio);
-    }
-    audio.srcObject = stream;
-
-    // try to play explicitly — browser autoplay policy sometimes blocks
-    audio.play().catch((err) => console.warn("[audio] play() failed:", err));
 
     setRemoteStreams((prev) => {
       const updated = new Map(prev);
@@ -176,7 +179,6 @@ export const useMediasoup = ({
       return updated;
     });
 
-    // add peer to UI if not already there
     setPeers((prev) => {
       if (prev.find((p) => p.socketId === sid)) return prev;
       return [...prev, { socketId: sid, userId: sid, name: "Peer", isMuted: false }];
@@ -188,9 +190,10 @@ export const useMediasoup = ({
   }
 };
 
+
+
     socket.on("ms-consumed", onConsumed);
   }, []);
-
 
   // ── Join channel ───────────────────────────────────────
   const joinChannel = useCallback(async (channelId: string) => {
@@ -199,12 +202,9 @@ export const useMediasoup = ({
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     localStreamRef.current = stream;
 
-    // BUG 1 FIX — correct Socket.io URL + path through Vite proxy
-    const socket = io("http://localhost:5173", {
-      path:            "/voice/socket.io",
-      transports:      ["websocket"],  // websocket only — no polling
-      withCredentials: true,
-    });
+  const socket = io("http://localhost:4001", {
+  transports:      ["websocket"],
+});
     socketRef.current = socket;
 
     socket.on("connect", () => {
@@ -230,33 +230,33 @@ export const useMediasoup = ({
       socket.emit("ms-get-producers", { channelId });
     });
 
-    socket.on("ms-existing-producers", async ({ producerSocketIds }: { producerSocketIds: string[] }) => {
+    socket.on("ms-existing-producers", async ({ producerSocketIds }: {
+      producerSocketIds: string[];
+    }) => {
       for (const sid of producerSocketIds) {
         await consumeProducer(socket, channelId, sid);
       }
     });
 
-    // BUG 3 FIX — ms-new-producer only consumes, doesn't add to peers
-    // peer name is added when ms-user-joined fires OR when ms-consumed resolves
-    socket.on("ms-new-producer", async ({ producerSocketId }: { producerSocketId: string }) => {
+    socket.on("ms-new-producer", async ({ producerSocketId }: {
+      producerSocketId: string;
+    }) => {
       await consumeProducer(socket, channelId, producerSocketId);
     });
 
-    // BUG 3 FIX — ms-user-joined only updates peer NAME, not duplicate entry
-   socket.on("ms-user-joined", ({ socketId, userId: uid, name: n }: {
-  socketId: string; userId: string; name: string;
-}) => {
-  setPeers((prev) => {
-    const existing = prev.find((p) => p.socketId === socketId);
-    if (existing) {
-      // update name if it was set as "Peer" placeholder
-      return prev.map((p) =>
-        p.socketId === socketId ? { ...p, name: n, userId: uid } : p
-      );
-    }
-    return [...prev, { socketId, userId: uid, name: n, isMuted: false }];
-  });
-});
+    socket.on("ms-user-joined", ({ socketId, userId: uid, name: n }: {
+      socketId: string; userId: string; name: string;
+    }) => {
+      setPeers((prev) => {
+        const existing = prev.find((p) => p.socketId === socketId);
+        if (existing) {
+          return prev.map((p) =>
+            p.socketId === socketId ? { ...p, name: n, userId: uid } : p
+          );
+        }
+        return [...prev, { socketId, userId: uid, name: n, isMuted: false }];
+      });
+    });
 
     socket.on("ms-user-left", ({ socketId }: { socketId: string }) => {
       consumersRef.current.get(socketId)?.close();
@@ -284,15 +284,6 @@ export const useMediasoup = ({
       socketRef.current.disconnect();
       socketRef.current = null;
     }
-
-      // clean up audio elements
-  consumersRef.current.forEach((_, sid) => {
-    const audio = document.getElementById(`audio-${sid}`) as HTMLAudioElement;
-    if (audio) {
-      audio.srcObject = null;
-      audio.remove();
-    }
-  });
     producerRef.current?.close();
     consumersRef.current.forEach((c) => c.close());
     consumersRef.current.clear();
@@ -309,20 +300,18 @@ export const useMediasoup = ({
     channelIdRef.current = null;
   }, []);
 
-  // BUG 2 FIX — toggleMute properly pauses AND resumes producer
+  // ── Toggle mute ────────────────────────────────────────
   const toggleMute = useCallback(() => {
     if (!localStreamRef.current) return;
     const track = localStreamRef.current.getAudioTracks()[0];
     if (!track) return;
 
-    const newMutedState = track.enabled; // if currently enabled → we're muting
+    const newMutedState = track.enabled; // true = currently enabled = about to mute
     track.enabled = !track.enabled;
 
     if (newMutedState) {
-      // muting — pause producer
       producerRef.current?.pause();
     } else {
-      // unmuting — resume producer
       producerRef.current?.resume();
     }
 
