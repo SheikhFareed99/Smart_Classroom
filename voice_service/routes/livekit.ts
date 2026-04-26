@@ -20,15 +20,19 @@ router.post("/token", async (req: Request, res: Response) => {
   }
 
   try {
+    // Make identity unique per session to prevent LiveKit kicking duplicate identities
+    const identity = `${participantId}-${Date.now()}`;
+
     const token = new AccessToken(apiKey, apiSecret, {
-      identity: participantId,
-      name:     participantName,
-      ttl:      3600, // 1 hour in seconds — newer SDK uses number not string
+      identity,
+      name: participantName,
+      ttl:  3600,
     });
 
     token.addGrant({
       room:           roomName,
       roomJoin:       true,
+<<<<<<< HEAD
       canPublish:     true,
       canSubscribe:   true,
       canPublishData: true,
@@ -37,6 +41,16 @@ router.post("/token", async (req: Request, res: Response) => {
     // newer SDK: toJwt() may be sync or async depending on version
     const jwt = await Promise.resolve(token.toJwt());
     return res.json({ token: jwt });
+=======
+      canPublish:     true,      
+      canSubscribe:   true,      
+      canPublishData: true,
+    });
+
+    const jwt = await Promise.resolve(token.toJwt());
+    console.log(`[livekit] token issued for ${identity} in room ${roomName}`);
+    return res.json({ token: jwt, identity });
+>>>>>>> aabc215bee4ef264e3b4315c19be9d51eea594c1
 
   } catch (err: any) {
     console.error("[livekit] token generation error:", err);

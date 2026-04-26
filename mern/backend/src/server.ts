@@ -5,13 +5,17 @@ dns.setDefaultResultOrder('ipv4first');
 import dotenv from 'dotenv';
 import connectDB from './config/db';
 import app from './app';
+<<<<<<< HEAD
 import { startNotificationWorker, stopNotificationWorker } from './notifications';
+=======
+>>>>>>> aabc215bee4ef264e3b4315c19be9d51eea594c1
 
 dotenv.config();
 
 const PORT = process.env.PORT || 5000;
 
 connectDB().then(() => {
+<<<<<<< HEAD
     const server = app.listen(PORT, () => {
         console.log(`Server is running on port ${PORT}`);
     });
@@ -28,4 +32,9 @@ connectDB().then(() => {
 
     process.on('SIGINT', () => shutdown('SIGINT'));
     process.on('SIGTERM', () => shutdown('SIGTERM'));
+=======
+    app.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`);
+    });
+>>>>>>> aabc215bee4ef264e3b4315c19be9d51eea594c1
 });
