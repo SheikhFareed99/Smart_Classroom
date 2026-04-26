@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
-import { useMediasoup as useWebRTC } from "../hooks/useMediaSoup";
+import React, { useEffect, useState } from "react";
+import { useLiveKit as useWebRTC } from "../hooks/useLiveKit";
 import VoiceControls from "./VoiceControls";
 import type { Channel } from "../types/voice.types";
 
@@ -37,10 +37,8 @@ const VoiceChannel = ({ courseId, userId, userName }: VoiceChannelProps) => {
   const [error,             setError]             = useState<string | null>(null);
   const [isPanelOpen,       setIsPanelOpen]       = useState<boolean>(false);
 
-  const audioRefs = useRef<Map<string, HTMLAudioElement>>(new Map());
-
+  // LiveKit manages all audio elements internally — no audioRefs needed
   const {
-    remoteStreams,
     peers,
     isMuted,
     isConnected,
@@ -63,51 +61,10 @@ const VoiceChannel = ({ courseId, userId, userName }: VoiceChannelProps) => {
     fetchChannels();
   }, [courseId]);
 
-  // ── Attach remote streams to audio elements ────────────
-  useEffect(() => {
-  console.log("[audio] remoteStreams updated, size:", remoteStreams.size);
-  
-  remoteStreams.forEach((stream, socketId) => {
-    console.log("[audio] stream for", socketId, "tracks:", stream.getTracks().length);
-    stream.getTracks().forEach(track => {
-      console.log("[audio] track:", track.kind, "enabled:", track.enabled, "readyState:", track.readyState, "muted:", track.muted);
-    });
-
-    let audio = audioRefs.current.get(socketId);
-    if (!audio) {
-      audio = document.createElement("audio");
-      audio.autoplay = true;
-      document.body.appendChild(audio);
-      audioRefs.current.set(socketId, audio);
-      console.log("[audio] created new audio element for", socketId);
-    }
-    if (audio.srcObject !== stream) {
-      audio.srcObject = stream;
-      console.log("[audio] set srcObject for", socketId);
-      audio.play()
-        .then(() => console.log("[audio] playing successfully for", socketId))
-        .catch((err) => console.warn("[audio] play() failed for", socketId, err));
-    }
-  });
-
-  audioRefs.current.forEach((audio, socketId) => {
-    if (!remoteStreams.has(socketId)) {
-      audio.srcObject = null;
-      audio.remove();
-      audioRefs.current.delete(socketId);
-    }
-  });
-}, [remoteStreams]);
-
-  // ── Cleanup on unmount ────────────────────────────────
+  // ── Cleanup on unmount ─────────────────────────────────
   useEffect(() => {
     return () => {
-      audioRefs.current.forEach((audio) => {
-        audio.srcObject = null;
-        audio.remove();
-      });
-      audioRefs.current.clear();
-      // remove unblock button if present
+      document.querySelectorAll("[id^='lk-audio-']").forEach((el) => el.remove());
       document.getElementById("voice-unblock-btn")?.remove();
     };
   }, []);
@@ -205,12 +162,14 @@ const VoiceChannel = ({ courseId, userId, userName }: VoiceChannelProps) => {
         <div style={styles.activeBox}>
           <div style={styles.activeName}>#{activeChannelName}</div>
           <div style={styles.participantList}>
+            {/* local user */}
             <div style={styles.participant}>
               <span style={styles.dot} />
               <span style={styles.pName}>
                 {userName} (you){isMuted ? " (muted)" : ""}
               </span>
             </div>
+            {/* remote peers */}
             {peers.map((peer) => (
               <div key={peer.socketId} style={styles.participant}>
                 <span style={styles.dot} />

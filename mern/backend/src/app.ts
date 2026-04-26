@@ -19,6 +19,8 @@ import "./config/passport";
 
 dotenv.config();
 
+
+
 const isProduction = process.env.NODE_ENV === "production";
 const sessionMaxAgeMs = Number(process.env.SESSION_TIMEOUT_MS || 1000 * 60 * 60 * 2);
 const frontendOrigin = process.env.FRONTEND_ORIGIN || "http://localhost:5173";
