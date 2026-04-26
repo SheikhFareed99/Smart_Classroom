@@ -17,6 +17,18 @@ import {
 
 export const registerMediasoupHandlers = (io: Server, socket: Socket) => {
 
+  socket.on("ms-resume-consumer", async ({ producerSocketId }) => {
+  try {
+    const { getProducerId } = await import("./mediasoupManager");
+    const producerId = getProducerId(producerSocketId);
+    if (!producerId) return;
+    await resumeConsumer(socket.id, producerId);
+    console.log(`[mediasoup] Consumer resumed by client: ${socket.id} ← ${producerSocketId}`);
+  } catch (err) {
+    console.error("[mediasoup] ms-resume-consumer error:", err);
+  }
+});
+
   // ── ms-join ───────────────────────────────────────────
   socket.on("ms-join", async ({ channelId, userId, name }) => {
     try {
@@ -141,10 +153,7 @@ export const registerMediasoupHandlers = (io: Server, socket: Socket) => {
     handleMsLeave(io, socket, channelId);
   });
 
-  socket.on("disconnect", () => {
-    const user = getParticipant(socket.id);
-    if (user) handleMsLeave(io, socket, user.channelId);
-  });
+
 };
 
 const handleMsLeave = (io: Server, socket: Socket, channelId: string) => {
