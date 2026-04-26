@@ -1,3 +1,5 @@
+import dns from 'node:dns';
+dns.setDefaultResultOrder('ipv4first');
 import mongoose from "mongoose";
 
 const connectDB = async (): Promise<void> => {
@@ -7,7 +9,6 @@ const connectDB = async (): Promise<void> => {
       throw new Error("MONGO_URI is not defined in .env");
     }
     
-    // Add the options object as the second argument here!
     const conn = await mongoose.connect(mongoURI, {
       family: 4
     });

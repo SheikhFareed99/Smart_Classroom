@@ -11,15 +11,13 @@ import Channel from "./models/Channel";
 import Session from "./models/Session";
 import channelRoutes                         from "./routes/Channels";
 import iceRoutes                             from "./routes/ice";
+import livekitRoutes                         from "./routes/livekit";
 import { registerSignalingHandlers }         from "./sockets/signaling";
-import { registerMediasoupHandlers }         from "./sockets/mediasoupSignaling";
-import { createWorker, cleanupPeer }         from "./sockets/mediasoupManager";
 import { getParticipant, removeParticipant } from "./sockets/participantstore";
 
 const app    = express();
 const server = http.createServer(app);
 
-// ── Socket.io — wildcard CORS for dev ─────────────────────
 const io = new Server(server, {
   cors: {
     origin:      "*",
@@ -28,7 +26,6 @@ const io = new Server(server, {
   },
 });
 
-// ── Express — wildcard CORS for dev ───────────────────────
 app.use(cors({ origin: "*", credentials: false }));
 app.use(express.json());
 
@@ -38,6 +35,7 @@ app.get("/health", (req, res) => {
 
 app.use("/api/channels",   channelRoutes);
 app.use("/api/ice-config", iceRoutes);
+app.use("/api/livekit",    livekitRoutes);
 
 mongoose
   .connect(process.env.MONGO_URI as string)
@@ -47,44 +45,25 @@ mongoose
 io.on("connection", (socket) => {
   console.log(`[socket] connected: ${socket.id}`);
 
-  let mode: "mediasoup" | "p2p" | null = null;
-
+  let mode: "p2p" | null = null;
   socket.on("join-channel", () => { mode = "p2p"; });
-  socket.on("ms-join",      () => { mode = "mediasoup"; });
 
   registerSignalingHandlers(io, socket);
-  registerMediasoupHandlers(io, socket);
 
   socket.on("disconnect", () => {
-    console.log(`[socket] disconnected: ${socket.id} (mode: ${mode})`);
+    console.log(`[socket] disconnected: ${socket.id}`);
     const user = getParticipant(socket.id);
     if (!user) return;
-
-    if (mode === "mediasoup") {
-      removeParticipant(socket.id);
-      cleanupPeer(socket.id);
-      io.to(user.channelId).emit("ms-user-left", {
-        socketId: socket.id,
-        userId:   user.userId,
-        name:     user.name,
-      });
-    } else if (mode === "p2p") {
-      removeParticipant(socket.id);
-      io.to(user.channelId).emit("user-left", {
-        socketId: socket.id,
-        userId:   user.userId,
-        name:     user.name,
-      });
-    }
+    removeParticipant(socket.id);
+    io.to(user.channelId).emit("user-left", {
+      socketId: socket.id,
+      userId:   user.userId,
+      name:     user.name,
+    });
   });
 });
 
 const PORT = process.env.PORT || 4001;
-server.listen(PORT, async () => {
+server.listen(PORT, () => {
   console.log(`[voice_service] Running on port ${PORT}`);
-  try {
-    await createWorker();
-  } catch (err) {
-    console.error("[mediasoup] Worker creation FAILED:", err);
-  }
 });
