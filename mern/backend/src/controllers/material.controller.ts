@@ -4,10 +4,7 @@ import * as ModuleService from "../services/module.service";
 import * as MaterialService from "../services/material.service";
 import * as CourseService from "../services/course.service";
 import { uploadBuffer, blobPathFromUrl, deleteBlob } from "../services/azure.service";
-<<<<<<< HEAD
 import { publishNotificationEvent } from "../notifications";
-=======
->>>>>>> aabc215bee4ef264e3b4315c19be9d51eea594c1
 
 // ─── Multer ───────────────────────────────────────────────────────────────────
 
@@ -129,11 +126,7 @@ export const uploadMaterial = async (req: Request, res: Response) => {
 
     const courseId = p(req.params.courseId);
     const moduleId = p(req.params.moduleId);
-<<<<<<< HEAD
     const course = await verifyInstructorOwns(courseId, instructorId);
-=======
-    await verifyInstructorOwns(courseId, instructorId);
->>>>>>> aabc215bee4ef264e3b4315c19be9d51eea594c1
 
     const mod = await ModuleService.findModuleById(moduleId);
     if (!mod || mod.course.toString() !== courseId)
@@ -157,7 +150,6 @@ export const uploadMaterial = async (req: Request, res: Response) => {
       sizeBytes: req.file.size,
     });
 
-<<<<<<< HEAD
     const actorName = String((req.user as any)?.name || "Instructor");
     void publishNotificationEvent({
       name: "course.material.created",
@@ -174,8 +166,6 @@ export const uploadMaterial = async (req: Request, res: Response) => {
       console.error("Failed to queue material notification:", notifyError);
     });
 
-=======
->>>>>>> aabc215bee4ef264e3b4315c19be9d51eea594c1
     // ── Trigger AI backend ingestion (fire-and-forget) ────────────────────────
     const AI_BACKEND = process.env.AI_BACKEND_URL || "http://localhost:8000";
     const ingestibleTypes = ["pdf", "text"]; // the types ai_backend can process

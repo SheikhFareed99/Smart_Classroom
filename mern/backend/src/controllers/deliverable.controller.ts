@@ -6,10 +6,7 @@ import * as CourseService from "../services/course.service";
 import * as EnrollmentService from "../services/enrollment.service";
 import { uploadBuffer, blobPathFromUrl, deleteBlob } from "../services/azure.service";
 import { SubmissionCommentScope } from "../models/submission.model";
-<<<<<<< HEAD
 import { publishNotificationEvent } from "../notifications";
-=======
->>>>>>> aabc215bee4ef264e3b4315c19be9d51eea594c1
 
 // ─── Multer: memory storage ───────────────────────────────────────────────────
 
@@ -80,7 +77,6 @@ export const createDeliverable = async (req: Request, res: Response) => {
       status:      (status as any) || "draft",
     });
 
-<<<<<<< HEAD
     const actorName = String((req.user as any)?.name || "Instructor");
     const publishPayload = {
       courseId,
@@ -99,8 +95,6 @@ export const createDeliverable = async (req: Request, res: Response) => {
       console.error("Failed to queue deliverable notification:", notifyError);
     });
 
-=======
->>>>>>> aabc215bee4ef264e3b4315c19be9d51eea594c1
     if (req.file) {
       const blobPath = `courses/${courseId}/assignments/${String(created._id)}/${Date.now()}_${req.file.originalname}`;
       const url      = await uploadBuffer(req.file.buffer, blobPath, req.file.mimetype);
@@ -423,7 +417,6 @@ export const gradeSubmission = async (req: Request, res: Response) => {
     const updated = await SubmissionService.setSubmissionGrade({ submissionId, grade });
     if (!updated) return res.status(404).json({ success: false, message: "Submission not found" });
 
-<<<<<<< HEAD
     const student = submission.student as any;
     const course = await CourseService.findCourseById(submission.course.toString());
     const actorName = String((req.user as any)?.name || "Instructor");
@@ -447,8 +440,6 @@ export const gradeSubmission = async (req: Request, res: Response) => {
       console.error("Failed to queue grading notification:", notifyError);
     });
 
-=======
->>>>>>> aabc215bee4ef264e3b4315c19be9d51eea594c1
     return res.status(200).json({ success: true, submission: updated });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message || "Server error" });
