@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { AccessToken } from "livekit-server-sdk";
+import { AccessToken, TrackSource } from "livekit-server-sdk";
 import auth = require("../middleware/auth");
 
 const { requireAuth } = auth;
@@ -9,7 +9,7 @@ const router = Router();
 // ── POST /api/livekit/token ──────────────────────────────
 // Generate a LiveKit access token for joining a room.
 // Body: { roomName, participantName, participantId, role }
-// Role: "teacher" → roomAdmin; "student" → basic participant
+// Role: "teacher" → roomAdmin + canPublish; "student" → canPublish + canSubscribe
 router.post("/token", requireAuth, async (req: Request, res: Response) => {
   const { roomName, participantName, participantId, role } = req.body;
 
@@ -28,26 +28,43 @@ router.post("/token", requireAuth, async (req: Request, res: Response) => {
 
   try {
     // Make identity unique per session to prevent LiveKit kicking duplicate identities
-    const identity = `${participantId}-${Date.now()}`;
+    const identity  = `${participantId}-${Date.now()}`;
     const isTeacher = role === "teacher";
 
     const token = new AccessToken(apiKey, apiSecret, {
       identity,
       name: participantName,
-      ttl:  3600,
+      // TTL as a string — the SDK accepts "1h", "30m", etc.
+      // Using a number causes it to be converted to "3600s" internally,
+      // but we use a string to be explicit and safe.
+      ttl: "1h",
     });
 
+    // ── Video grants ──────────────────────────────────────────────────────────
+    // canPublish: true  → participant can send audio/video tracks
+    // canPublishSources explicitly whitelists the microphone source.
+    // This prevents LiveKit Cloud room-level policies from silently revoking
+    // publish permission for unlisted sources.
     token.addGrant({
-      room:           roomName,
-      roomJoin:       true,
-      roomAdmin:      isTeacher,   // teachers can admin the room
-      canPublish:     true,
-      canSubscribe:   true,
-      canPublishData: true,
+      room:               roomName,
+      roomJoin:           true,
+      roomAdmin:          isTeacher,
+      canPublish:         true,
+      canSubscribe:       true,
+      canPublishData:     true,
+      // Explicitly allow the microphone source so the track is
+      // never blocked by a room-level source restriction policy.
+      canPublishSources:  [TrackSource.MICROPHONE],
     });
 
-    const jwt = await Promise.resolve(token.toJwt());
-    console.log(`[livekit] token issued for ${identity} (role=${role || "student"}) in room ${roomName}`);
+    const jwt = await token.toJwt();
+
+    // Debug log — redact in production if needed
+    console.log(
+      `[livekit] token issued | identity=${identity} role=${role || "student"} ` +
+      `room=${roomName} canPublish=true canPublishSources=[MICROPHONE]`
+    );
+
     return res.json({ token: jwt, identity });
 
   } catch (err: any) {

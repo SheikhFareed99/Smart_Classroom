@@ -20,7 +20,6 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
     });
   }
 
-  // Only teachers can create voice channels
   if (role !== "teacher") {
     return res.status(403).json({
       message: "Only teachers can create voice channels",
@@ -32,7 +31,6 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
       name,
       courseId,
       createdBy,
-      // first participant is the host who created it
       participants: [
         {
           userId: createdBy,
@@ -48,9 +46,24 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
   }
 });
 
+// ── GET /api/channels/:id/participants ────────────────────
+// MUST be declared BEFORE /:courseId to prevent the wildcard
+// from swallowing this more-specific path segment.
+// Returns live participant list from memory store.
+router.get("/:id/participants", requireAuth, (req: Request, res: Response) => {
+  const { id } = req.params;
+  const channelId = Array.isArray(id) ? id[0] : id;
+
+  if (!channelId) {
+    return res.status(400).json({ message: "channel id is required" });
+  }
+
+  const participants = getParticipantsInChannel(channelId);
+  return res.status(200).json({ participants, count: participants.length });
+});
+
 // ── GET /api/channels/:courseId ───────────────────────────
 // List all active channels for a given course.
-// Returns empty array if no channels exist yet.
 router.get("/:courseId", requireAuth, async (req: Request, res: Response) => {
   const { courseId } = req.params;
 
@@ -58,7 +71,7 @@ router.get("/:courseId", requireAuth, async (req: Request, res: Response) => {
     const channels = await Channel.find({
       courseId,
       isActive: true,
-    }).sort({ createdAt: -1 }); // newest first
+    }).sort({ createdAt: -1 });
 
     return res.status(200).json({ channels });
   } catch (err: any) {
@@ -76,36 +89,17 @@ router.delete("/:id", requireAuth, async (req: Request, res: Response) => {
     const channel = await Channel.findByIdAndUpdate(
       id,
       { isActive: false },
-      { new: true }  // return the updated document
+      { new: true }
     );
 
     if (!channel) {
       return res.status(404).json({ message: "Channel not found" });
     }
 
-    return res.status(200).json({
-      message: "Channel closed",
-      channel,
-    });
+    return res.status(200).json({ message: "Channel closed", channel });
   } catch (err: any) {
     return res.status(500).json({ message: err.message });
   }
 });
-
-// ── GET /api/channels/:id/participants ────────────────────
-// Returns live participant list from memory store.
-// Faster than querying MongoDB — reflects real-time state.
-router.get("/:id/participants", requireAuth, (req: Request, res: Response) => {
-  const { id } = req.params;
-  const channelId = Array.isArray(id) ? id[0] : id;
-
-  if (!channelId) {
-    return res.status(400).json({ message: "channel id is required" });
-  }
-
-  const participants = getParticipantsInChannel(channelId);
-  return res.status(200).json({ participants, count: participants.length });
-});
-
 
 export default router;
