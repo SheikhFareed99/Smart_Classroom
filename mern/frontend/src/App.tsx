@@ -15,6 +15,7 @@ import StudentPanel from "./pages/StudentPanel";
 import StudentAssignment from "./pages/StudentAssignment";
 import StudentMaterials from "./pages/StudentMaterials";
 import JamboardEditor from "./pages/JamboardEditor";
+import ToDo from "./pages/ToDo";
 import TeacherPlagiarismReport from "./pages/TeacherPlagiarismReport";
 
 
@@ -62,6 +63,7 @@ function App() {
               <Route path="/teacher-course/:courseId/assignment/:deliverableId/plagiarism" element={<TeacherPlagiarismReport />} />
               <Route path="/student-assignment/:assignmentId" element={<StudentAssignment />} />
               <Route path="/enrolled/:courseId/materials" element={<StudentMaterials />} />
+              <Route path="/todo" element={<ToDo />} />
             </Route>
 
             <Route

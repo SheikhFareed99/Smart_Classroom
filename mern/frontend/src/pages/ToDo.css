@@ -1,0 +1,497 @@
+/* ============================================
+   ToDo Page Styles
+   Matches the Smart Classroom design system
+   ============================================ */
+
+/* ---------- Header ---------- */
+.todo-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.todo-header-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+}
+
+.todo-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  margin: 0 0 2px;
+}
+
+.todo-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* ---------- Filter Tabs ---------- */
+.todo-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 28px;
+  background: var(--card);
+  padding: 6px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-xs);
+  overflow-x: auto;
+}
+
+.todo-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.todo-tab:hover {
+  background: var(--border-light);
+  color: var(--text-primary);
+}
+
+.todo-tab--active {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+}
+
+.todo-tab--active:hover {
+  background: var(--primary-dark);
+  color: #fff;
+}
+
+.todo-tab-count {
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: rgba(0, 0, 0, 0.08);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  min-width: 22px;
+  text-align: center;
+}
+
+.todo-tab--active .todo-tab-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+.todo-tab-count--danger {
+  background: var(--danger-bg) !important;
+  color: var(--danger) !important;
+}
+
+.todo-tab--active .todo-tab-count--danger {
+  background: rgba(239, 68, 68, 0.3) !important;
+  color: #fff !important;
+}
+
+/* ---------- Loading ---------- */
+.todo-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  color: var(--text-muted);
+  gap: 16px;
+}
+
+.todo-loading-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: todo-spin 0.8s linear infinite;
+}
+
+@keyframes todo-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ---------- Error ---------- */
+.todo-error {
+  background: var(--danger-bg);
+  color: var(--danger);
+  padding: 20px;
+  border-radius: var(--radius-md);
+  font-size: 0.9375rem;
+}
+
+/* ---------- Empty State ---------- */
+.todo-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+}
+
+.todo-empty svg {
+  margin-bottom: 20px;
+  opacity: 0.3;
+}
+
+.todo-empty h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.todo-empty p {
+  font-size: 0.875rem;
+  max-width: 340px;
+}
+
+/* ---------- Course Group ---------- */
+.todo-course-group {
+  margin-bottom: 28px;
+  animation: todo-fade-in 0.3s ease;
+}
+
+@keyframes todo-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.todo-course-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 0 4px;
+}
+
+.todo-course-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--primary);
+  flex-shrink: 0;
+}
+
+.todo-course-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.todo-course-code {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--primary-bg);
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+}
+
+.todo-course-count {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* ---------- Assignment Cards ---------- */
+.todo-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.todo-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  background: var(--card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-xs);
+}
+
+.todo-card:hover {
+  border-color: var(--primary);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.todo-card--urgent {
+  border-left: 3px solid var(--danger);
+}
+
+.todo-card--urgent:hover {
+  border-color: var(--danger);
+  border-left-width: 3px;
+}
+
+.todo-card-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+}
+
+.todo-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: var(--primary-bg);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.todo-card-icon--done {
+  background: var(--accent-bg);
+  color: var(--accent-dark);
+}
+
+.todo-card-icon--urgent {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.todo-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.todo-card-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.todo-card-desc {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin: 0 0 8px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.todo-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.todo-card-due {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.todo-card-due svg {
+  flex-shrink: 0;
+}
+
+.todo-card-due--overdue {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.todo-card-countdown {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--warning);
+  background: var(--warning-bg);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.todo-card-points {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* ---------- Card Right ---------- */
+.todo-card-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.todo-card-grade {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.todo-card-chevron {
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+.todo-card:hover .todo-card-chevron {
+  transform: translateX(3px);
+  color: var(--primary);
+}
+
+/* ---------- Badges ---------- */
+.todo-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.todo-badge--assigned {
+  background: var(--primary-bg);
+  color: var(--primary);
+}
+
+.todo-badge--submitted {
+  background: var(--accent-bg);
+  color: var(--accent-dark);
+}
+
+.todo-badge--graded {
+  background: var(--accent-bg);
+  color: var(--accent-dark);
+}
+
+.todo-badge--missing {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.todo-badge--late {
+  background: var(--warning-bg);
+  color: #b45309;
+}
+
+/* ---------- Dark mode refinements ---------- */
+.dark .todo-card {
+  background: var(--card);
+  border-color: var(--border);
+}
+
+.dark .todo-card:hover {
+  border-color: var(--primary);
+  background: #1a2744;
+}
+
+.dark .todo-tabs {
+  background: var(--card);
+  border-color: var(--border);
+}
+
+.dark .todo-tab:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.dark .todo-tab-count {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dark .todo-header-icon {
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.25);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 768px) {
+  .todo-tabs {
+    gap: 4px;
+    padding: 4px;
+  }
+
+  .todo-tab {
+    padding: 8px 12px;
+    font-size: 0.8125rem;
+  }
+
+  .todo-card {
+    padding: 14px 16px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .todo-card-right {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .todo-card-title {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 480px) {
+  .todo-header-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+
+  .todo-header-icon svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .todo-title {
+    font-size: 1.25rem;
+  }
+}
