@@ -14,6 +14,8 @@ import {
   addDeliverableClassComment,
   addDeliverablePrivateComment,
   gradeSubmission,
+  runDeliverablePlagiarismCheck,
+  getDeliverablePlagiarismReport,
 } from "../controllers/deliverable.controller";
 
 const router = express.Router();
@@ -55,5 +57,7 @@ router
 
 router.post("/deliverables/:deliverableId/private-comments", addDeliverablePrivateComment);
 router.post("/submissions/:submissionId/grade", gradeSubmission);
+router.post("/deliverables/:deliverableId/plagiarism/check", runDeliverablePlagiarismCheck);
+router.get("/deliverables/:deliverableId/plagiarism/report", getDeliverablePlagiarismReport);
 
 export default router;

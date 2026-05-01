@@ -19,6 +19,21 @@ export interface IDeliverable extends Document {
   deadline?: Date;
   totalPoints: number;
   status: DeliverableStatus;
+  plagiarismLastCheckedAt?: Date;
+  plagiarismAutoCheckedAt?: Date;
+  plagiarismReport?: {
+    generatedAt: Date;
+    thresholdPercent: number;
+    totalSubmissions: number;
+    totalPairs: number;
+    flaggedPairs: number;
+    pairs: Array<{
+      student_a: { id: string; name: string };
+      student_b: { id: string; name: string };
+      similarity: number;
+      flagged: boolean;
+    }>;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -78,6 +93,36 @@ const DeliverableSchema = new Schema<IDeliverable>(
       type: String,
       enum: ["draft", "published"],
       default: "draft",
+    },
+    plagiarismLastCheckedAt: {
+      type: Date,
+    },
+    plagiarismAutoCheckedAt: {
+      type: Date,
+    },
+    plagiarismReport: {
+      generatedAt: { type: Date },
+      thresholdPercent: { type: Number },
+      totalSubmissions: { type: Number },
+      totalPairs: { type: Number },
+      flaggedPairs: { type: Number },
+      pairs: {
+        type: [
+          {
+            student_a: {
+              id: { type: String },
+              name: { type: String },
+            },
+            student_b: {
+              id: { type: String },
+              name: { type: String },
+            },
+            similarity: { type: Number },
+            flagged: { type: Boolean },
+          },
+        ],
+        default: [],
+      },
     },
   },
   { timestamps: true }

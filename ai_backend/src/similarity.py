@@ -2,13 +2,18 @@ import os
 import tempfile
 import shutil
 import numpy as np
+import requests as http_requests
+
+from pathlib import Path
+from urllib.parse import urlparse
 from typing import List, Dict, Any
-from azure.storage.blob import BlobServiceClient
+
+from pinecone import Pinecone
 from src.loader import DocumentLoader
 from src.embedder import Embedder
 from src.config import (
-    AZURE_CONNECTION_STRING,
-    AZURE_BLOB_CONTAINER,
+    PINECONE_API_KEY,
+    PINECONE_INDEX_NAME,
     SIMILARITY_THRESHOLD,
     SUPPORTED_EXTENSIONS,
 )
@@ -18,25 +23,24 @@ class SimilarityChecker:
 
     def __init__(self):
         print("Initializing SimilarityChecker...")
-        self.blob_service = BlobServiceClient.from_connection_string(AZURE_CONNECTION_STRING)
-        self.container = self.blob_service.get_container_client(AZURE_BLOB_CONTAINER)
         self.loader = DocumentLoader()
         self.embedder = Embedder()
+        self.pc = Pinecone(api_key=PINECONE_API_KEY)
+        self.index = self.pc.Index(PINECONE_INDEX_NAME)
         print("SimilarityChecker ready")
 
-    def _list_files_in_folder(self, folder_path: str) -> List[str]:
-        folder_path = folder_path.strip("/") + "/"
-        blobs = []
-        for blob in self.container.list_blobs(name_starts_with=folder_path):
-            ext = os.path.splitext(blob.name)[1].lower()
-            if ext in SUPPORTED_EXTENSIONS:
-                blobs.append(blob.name)
-        return blobs
+    # ── Internal helpers ───────────────────────────────────────────────────────
 
-    def _download_blob(self, blob_name: str, dest_path: str):
-        blob_client = self.container.get_blob_client(blob_name)
+    def _namespace_for(self, deliverable_id: str) -> str:
+        """Pinecone namespace that isolates each assignment's embeddings."""
+        return f"plag_{deliverable_id}"
+
+    def _download_url(self, url: str, dest_path: str):
+        """Download a remote file (Azure SAS URL) to a local path."""
+        r = http_requests.get(url, timeout=120)
+        r.raise_for_status()
         with open(dest_path, "wb") as f:
-            f.write(blob_client.download_blob().readall())
+            f.write(r.content)
 
     def _extract_text(self, file_path: str) -> str:
         elements = self.loader.load_single(file_path)
@@ -53,98 +57,194 @@ class SimilarityChecker:
             return 0.0
         return float(dot / (norm_a * norm_b))
 
-    def run_report(
-        self, folder_path: str, threshold: float = SIMILARITY_THRESHOLD
+    # ── Step 1: Called at submission time ─────────────────────────────────────
+
+    def embed_and_store(
+        self,
+        file_url: str,
+        deliverable_id: str,
+        student_id: str,
+        student_name: str,
     ) -> Dict[str, Any]:
-        print(f"Running similarity report for folder: {folder_path}")
+        """
+        Download student submission, extract text, embed it, and store the
+        single vector in Pinecone under namespace plag_{deliverable_id}.
 
-        blob_names = self._list_files_in_folder(folder_path)
-        if len(blob_names) < 2:
-            return {
-                "status": "error",
-                "message": f"Need at least 2 files, found {len(blob_names)} in '{folder_path}'",
-            }
+        Uses student_id as the vector ID so re-submissions overwrite the old vector.
+        """
+        print(f"[embed_and_store] student={student_id} deliverable={deliverable_id}")
+        namespace = self._namespace_for(deliverable_id)
 
-        print(f"Found {len(blob_names)} files")
+        # Determine file extension
+        parsed = urlparse(file_url)
+        url_path = parsed.path.split("?")[0]
+        ext = Path(url_path).suffix.lower()
+        if not ext or ext not in SUPPORTED_EXTENSIONS:
+            ext = ".pdf"
 
         tmp_dir = tempfile.mkdtemp()
-        submissions = []
+        tmp_file = os.path.join(tmp_dir, f"submission{ext}")
 
         try:
-            for blob_name in blob_names:
-                file_name = os.path.basename(blob_name)
-                local_path = os.path.join(tmp_dir, file_name)
+            print(f"  Downloading: {file_url[:80]}...")
+            self._download_url(file_url, tmp_file)
 
-                print(f"  Downloading: {file_name}")
-                self._download_blob(blob_name, local_path)
+            print(f"  Extracting text...")
+            text = self._extract_text(tmp_file)
 
-                print(f"  Extracting text: {file_name}")
-                text = self._extract_text(local_path)
-
-                if not text.strip():
-                    print(f"  Skipped (no text): {file_name}")
-                    continue
-
-                print(f"  Embedding: {file_name}")
-                embedding = self.embedder.embed_query(text)
-
-                submissions.append({
-                    "file_name": file_name,
-                    "embedding": embedding,
-                    "text_length": len(text),
-                })
-
-            if len(submissions) < 2:
+            if not text.strip():
                 return {
                     "status": "error",
-                    "message": f"Only {len(submissions)} files had extractable text, need at least 2",
+                    "message": "No extractable text found in submission file",
                 }
 
-            n = len(submissions)
-            file_names = [s["file_name"] for s in submissions]
+            print(f"  Embedding ({len(text)} chars)...")
+            embedding = self.embedder.embed_query(text)
 
-            print(f"Computing {n * (n - 1) // 2} pairwise comparisons...")
+            # Upsert into Pinecone — vector ID is student_id so re-submits overwrite
+            vector_id = f"student_{student_id}"
+            self.index.upsert(
+                vectors=[
+                    {
+                        "id": vector_id,
+                        "values": embedding,
+                        "metadata": {
+                            "student_id": student_id,
+                            "student_name": student_name,
+                            "file_url": file_url,
+                            "text_length": len(text),
+                            "deliverable_id": deliverable_id,
+                        },
+                    }
+                ],
+                namespace=namespace,
+            )
 
-            matrix = [[0.0] * n for _ in range(n)]
-            pairs = []
-
-            for i in range(n):
-                matrix[i][i] = 100.0
-                for j in range(i + 1, n):
-                    sim = self._cosine_similarity(
-                        submissions[i]["embedding"],
-                        submissions[j]["embedding"],
-                    )
-                    sim_percent = round(sim * 100, 2)
-                    matrix[i][j] = sim_percent
-                    matrix[j][i] = sim_percent
-
-                    pairs.append({
-                        "file_a": file_names[i],
-                        "file_b": file_names[j],
-                        "similarity": sim_percent,
-                        "flagged": sim >= threshold,
-                    })
-
-            pairs.sort(key=lambda p: p["similarity"], reverse=True)
-            flagged_count = sum(1 for p in pairs if p["flagged"])
-
-            report = {
+            print(f"  Stored in namespace '{namespace}' as '{vector_id}'")
+            return {
                 "status": "success",
-                "folder_path": folder_path,
-                "total_files": n,
-                "total_pairs": len(pairs),
-                "flagged_pairs": flagged_count,
-                "threshold_percent": round(threshold * 100, 2),
-                "pairs": pairs,
-                "matrix": {
-                    "files": file_names,
-                    "scores": matrix,
-                },
+                "student_id": student_id,
+                "deliverable_id": deliverable_id,
+                "namespace": namespace,
+                "text_length": len(text),
             }
-
-            print(f"Report complete: {n} files, {len(pairs)} pairs, {flagged_count} flagged")
-            return report
 
         finally:
             shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    # ── Step 2: Called when teacher requests plagiarism report ────────────────
+
+    def run_report_from_vectors(
+        self,
+        deliverable_id: str,
+        threshold: float = SIMILARITY_THRESHOLD,
+    ) -> Dict[str, Any]:
+        """
+        Fetch pre-stored embeddings from Pinecone for this deliverable and
+        compute pairwise cosine similarity. No file downloading or re-embedding.
+        """
+        namespace = self._namespace_for(deliverable_id)
+        print(f"[run_report] namespace={namespace}, threshold={threshold}")
+
+        # ── Collect all vector IDs in this namespace ──────────────────────────
+        all_ids: List[str] = []
+        try:
+            for id_batch in self.index.list(namespace=namespace):
+                if id_batch:
+                    all_ids.extend(id_batch)
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": f"Failed to list vectors in Pinecone: {str(e)}",
+            }
+
+        if len(all_ids) < 2:
+            return {
+                "status": "error",
+                "message": (
+                    f"Only {len(all_ids)} embedded submission(s) found. "
+                    "Need at least 2 to compare. Students may not have submitted yet, "
+                    "or submissions are still being embedded."
+                ),
+            }
+
+        # ── Fetch vectors WITH values ─────────────────────────────────────────
+        fetched = self.index.fetch(ids=all_ids, namespace=namespace)
+
+        submissions = []
+        for vid, vec in fetched.vectors.items():
+            meta = vec.metadata or {}
+            submissions.append(
+                {
+                    "vector_id": vid,
+                    "student_id": meta.get("student_id", vid),
+                    "student_name": meta.get("student_name", "Unknown"),
+                    "file_url": meta.get("file_url", ""),
+                    "embedding": list(vec.values),
+                }
+            )
+
+        if len(submissions) < 2:
+            return {
+                "status": "error",
+                "message": "Not enough embedded submissions to compare.",
+            }
+
+        n = len(submissions)
+        names = [s["student_name"] for s in submissions]
+        ids = [s["student_id"] for s in submissions]
+        print(f"Computing {n * (n - 1) // 2} pairwise comparisons for {n} submissions...")
+
+        # ── Pairwise cosine similarity ────────────────────────────────────────
+        matrix = [[0.0] * n for _ in range(n)]
+        pairs = []
+
+        for i in range(n):
+            matrix[i][i] = 100.0
+            for j in range(i + 1, n):
+                sim = self._cosine_similarity(
+                    submissions[i]["embedding"],
+                    submissions[j]["embedding"],
+                )
+                sim_percent = round(sim * 100, 2)
+                matrix[i][j] = sim_percent
+                matrix[j][i] = sim_percent
+
+                pairs.append(
+                    {
+                        "student_a": {
+                            "id": ids[i],
+                            "name": names[i],
+                        },
+                        "student_b": {
+                            "id": ids[j],
+                            "name": names[j],
+                        },
+                        "similarity": sim_percent,
+                        "flagged": sim_percent >= (threshold * 100),
+                    }
+                )
+
+        pairs.sort(key=lambda p: p["similarity"], reverse=True)
+        flagged_count = sum(1 for p in pairs if p["flagged"])
+
+        report = {
+            "status": "success",
+            "deliverable_id": deliverable_id,
+            "total_submissions": n,
+            "total_pairs": len(pairs),
+            "flagged_pairs": flagged_count,
+            "threshold_percent": round(threshold * 100, 2),
+            "pairs": pairs,
+            "matrix": {
+                "students": [
+                    {"id": ids[i], "name": names[i]} for i in range(n)
+                ],
+                "scores": matrix,
+            },
+        }
+
+        print(
+            f"Report done: {n} submissions, {len(pairs)} pairs, {flagged_count} flagged"
+        )
+        return report
