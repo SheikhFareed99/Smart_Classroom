@@ -28,3 +28,10 @@ RRF_K = 60
 RETRIEVER_INITIAL_TOP_K = 15
 RERANKER_TOP_K = 5
 BM25_MAX_CHUNKS = 500
+
+# ── Azure Blob Storage (used by SimilarityChecker) ────────────────────────────
+AZURE_CONNECTION_STRING = os.getenv("connectionstring", "")
+AZURE_BLOB_CONTAINER = os.getenv("blob_container", "test20")
+
+# ── Plagiarism similarity threshold (0-1 float) ───────────────────────────────
+SIMILARITY_THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.70"))

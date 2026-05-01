@@ -4,6 +4,7 @@ import * as DeliverableService from "../services/deliverable.service";
 import * as SubmissionService from "../services/submission.service";
 import * as CourseService from "../services/course.service";
 import * as EnrollmentService from "../services/enrollment.service";
+import * as PlagiarismService from "../services/plagiarism.service";
 import { uploadBuffer, blobPathFromUrl, deleteBlob } from "../services/azure.service";
 import { SubmissionCommentScope } from "../models/submission.model";
 
@@ -462,6 +463,65 @@ export const addDeliverableClassComment = async (req: Request, res: Response) =>
     if (!updated) return res.status(404).json({ success: false, message: "Assignment not found" });
 
     return res.status(200).json({ success: true, comments: updated.classComments });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
+
+// ─── POST /api/deliverables/:deliverableId/plagiarism/check ─────────────────
+
+export const runDeliverablePlagiarismCheck = async (req: Request, res: Response) => {
+  try {
+    const deliverableId = p(req.params.deliverableId);
+    const userId = getUID(req);
+    if (!userId) return res.status(401).json({ success: false, message: "Not authenticated" });
+
+    const deliverable = await DeliverableService.getDeliverableById(deliverableId);
+    if (!deliverable) return res.status(404).json({ success: false, message: "Assignment not found" });
+
+    const instructor = await isInstructor(deliverable.course.toString(), userId);
+    if (!instructor) return res.status(403).json({ success: false, message: "Forbidden" });
+
+    const thresholdPercent = Number(req.body.thresholdPercent);
+    const report = await PlagiarismService.runPlagiarismCheckForDeliverable(
+      deliverableId,
+      Number.isFinite(thresholdPercent) ? thresholdPercent : undefined
+    );
+
+    if (report.status !== "success") {
+      return res.status(400).json({
+        success: false,
+        message: report.message || "Plagiarism check failed",
+        report,
+      });
+    }
+
+    return res.status(200).json({ success: true, report });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
+};
+
+// ─── GET /api/deliverables/:deliverableId/plagiarism/report ─────────────────
+
+export const getDeliverablePlagiarismReport = async (req: Request, res: Response) => {
+  try {
+    const deliverableId = p(req.params.deliverableId);
+    const userId = getUID(req);
+    if (!userId) return res.status(401).json({ success: false, message: "Not authenticated" });
+
+    const deliverable = await DeliverableService.getDeliverableById(deliverableId);
+    if (!deliverable) return res.status(404).json({ success: false, message: "Assignment not found" });
+
+    const instructor = await isInstructor(deliverable.course.toString(), userId);
+    if (!instructor) return res.status(403).json({ success: false, message: "Forbidden" });
+
+    return res.status(200).json({
+      success: true,
+      report: deliverable.plagiarismReport || null,
+      plagiarismLastCheckedAt: deliverable.plagiarismLastCheckedAt || null,
+      plagiarismAutoCheckedAt: deliverable.plagiarismAutoCheckedAt || null,
+    });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message || "Server error" });
   }

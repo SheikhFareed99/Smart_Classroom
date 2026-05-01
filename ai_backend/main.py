@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from src.pipeline import IngestionPipeline
 from src.retriever import Retriever
 from src.vector_store import VectorStore
+from src.similarity import SimilarityChecker
 
 app = FastAPI(title="Smart Classroom RAG API", version="2.0.0")
 
@@ -20,6 +21,7 @@ app.add_middleware(
 _pipeline = None
 _retriever = None
 _vector_store = None
+_similarity_checker = None
 
 
 def get_pipeline() -> IngestionPipeline:
@@ -43,6 +45,13 @@ def get_vector_store() -> VectorStore:
     return _vector_store
 
 
+def get_similarity_checker() -> SimilarityChecker:
+    global _similarity_checker
+    if _similarity_checker is None:
+        _similarity_checker = SimilarityChecker()
+    return _similarity_checker
+
+
 class IngestRequest(BaseModel):
     url: str
     book_name: str
@@ -52,6 +61,18 @@ class QueryRequest(BaseModel):
     book_name: str
     query: str
     top_k: int = 5
+
+
+class PlagiarismSubmission(BaseModel):
+    student_id: str
+    student_name: str
+    file_url: str
+
+
+class PlagiarismCheckRequest(BaseModel):
+    deliverable_id: str
+    threshold_percent: float = 70
+    submissions: list[PlagiarismSubmission]
 
 
 @app.get("/")
@@ -109,5 +130,39 @@ def query(req: QueryRequest):
             req.query, top_k=req.top_k, namespace=req.book_name
         )
         return JSONResponse(content=result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/plagiarism/check")
+def plagiarism_check(req: PlagiarismCheckRequest):
+    try:
+        if len(req.submissions) < 2:
+            return JSONResponse(
+                content={
+                    "status": "error",
+                    "message": "Need at least 2 submissions to compare",
+                    "deliverable_id": req.deliverable_id,
+                    "total_submissions": len(req.submissions),
+                },
+                status_code=400,
+            )
+
+        checker = get_similarity_checker()
+        for sub in req.submissions:
+            checker.embed_and_store(
+                file_url=sub.file_url,
+                deliverable_id=req.deliverable_id,
+                student_id=sub.student_id,
+                student_name=sub.student_name,
+            )
+
+        report = checker.run_report_from_vectors(
+            deliverable_id=req.deliverable_id,
+            threshold=max(0.0, min(1.0, req.threshold_percent / 100.0)),
+        )
+
+        status_code = 200 if report.get("status") == "success" else 400
+        return JSONResponse(content=report, status_code=status_code)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

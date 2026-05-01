@@ -9,6 +9,7 @@ Pillow
 numpy
 sentence-transformers
 pinecone-client
+pinecone
 groq
 langchain
 langchain-core
