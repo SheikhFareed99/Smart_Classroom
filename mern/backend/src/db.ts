@@ -1,3 +1,5 @@
+import dns from 'node:dns';
+dns.setDefaultResultOrder('ipv4first');
 import mongoose from "mongoose";
 
 const connectDB = async (): Promise<void> => {
@@ -6,7 +8,11 @@ const connectDB = async (): Promise<void> => {
     if (!mongoURI) {
       throw new Error("MONGO_URI is not defined in .env");
     }
-    const conn = await mongoose.connect(mongoURI);
+    
+    const conn = await mongoose.connect(mongoURI, {
+      family: 4
+    });
+    
     console.log(`MongoDB connected: ${conn.connection.host}`);
   } catch (err: any) {
     console.error("MongoDB connection failed:", err.message);

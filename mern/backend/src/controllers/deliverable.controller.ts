@@ -7,6 +7,7 @@ import * as EnrollmentService from "../services/enrollment.service";
 import * as PlagiarismService from "../services/plagiarism.service";
 import { uploadBuffer, blobPathFromUrl, deleteBlob } from "../services/azure.service";
 import { SubmissionCommentScope } from "../models/submission.model";
+import { publishNotificationEvent } from "../notifications";
 
 // ─── Multer: memory storage ───────────────────────────────────────────────────
 
@@ -75,6 +76,24 @@ export const createDeliverable = async (req: Request, res: Response) => {
       deadline:    deadline     ? new Date(deadline)  : undefined,
       totalPoints: totalPoints  ? Number(totalPoints) : 100,
       status:      (status as any) || "draft",
+    });
+
+    const actorName = String((req.user as any)?.name || "Instructor");
+    const publishPayload = {
+      courseId,
+      courseTitle: String(course.title || "Course"),
+      deliverableId: String(created._id),
+      deliverableTitle: String(created.title),
+      deadline: created.deadline ? new Date(created.deadline).toISOString() : undefined,
+      totalPoints: Number(created.totalPoints || 0),
+      actorName,
+    };
+
+    void publishNotificationEvent({
+      name: "course.deliverable.created",
+      payload: publishPayload,
+    }).catch((notifyError) => {
+      console.error("Failed to queue deliverable notification:", notifyError);
     });
 
     if (req.file) {
@@ -398,6 +417,29 @@ export const gradeSubmission = async (req: Request, res: Response) => {
 
     const updated = await SubmissionService.setSubmissionGrade({ submissionId, grade });
     if (!updated) return res.status(404).json({ success: false, message: "Submission not found" });
+
+    const student = submission.student as any;
+    const course = await CourseService.findCourseById(submission.course.toString());
+    const actorName = String((req.user as any)?.name || "Instructor");
+
+    void publishNotificationEvent({
+      name: "submission.graded",
+      payload: {
+        courseId: submission.course.toString(),
+        courseTitle: String(course?.title || "Course"),
+        submissionId: submissionId,
+        deliverableId: deliverable._id.toString(),
+        deliverableTitle: String(deliverable.title),
+        grade,
+        totalPoints: Number(deliverable.totalPoints),
+        studentId: student?._id ? String(student._id) : "",
+        studentEmail: String(student?.email || ""),
+        studentName: student?.name ? String(student.name) : undefined,
+        actorName,
+      },
+    }).catch((notifyError) => {
+      console.error("Failed to queue grading notification:", notifyError);
+    });
 
     return res.status(200).json({ success: true, submission: updated });
   } catch (error: any) {

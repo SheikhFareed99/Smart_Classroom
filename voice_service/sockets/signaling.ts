@@ -90,12 +90,7 @@ export const registerSignalingHandlers = (io: Server, socket: Socket) => {
   });
 
   // ── disconnect ──────────────────────────────────────────
-  socket.on("disconnect", async () => {
-    const user = getParticipant(socket.id);
-    if (user) {
-      await handleLeave(io, socket, user.channelId);
-    }
-  });
+
 };
 
 // ── Shared leave/disconnect cleanup ──────────────────────

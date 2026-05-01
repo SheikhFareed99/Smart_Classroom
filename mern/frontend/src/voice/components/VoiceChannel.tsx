@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
-import { useMediasoup as useWebRTC } from "../hooks/useMediaSoup";
+import React, { useEffect, useState } from "react";
+import { useLiveKit as useWebRTC } from "../hooks/useLiveKit";
 import VoiceControls from "./VoiceControls";
 import type { Channel } from "../types/voice.types";
 
@@ -37,10 +37,8 @@ const VoiceChannel = ({ courseId, userId, userName }: VoiceChannelProps) => {
   const [error,             setError]             = useState<string | null>(null);
   const [isPanelOpen,       setIsPanelOpen]       = useState<boolean>(false);
 
-  const audioRefs = useRef<Map<string, HTMLAudioElement>>(new Map());
-
+  // LiveKit manages all audio elements internally — no audioRefs needed
   const {
-    remoteStreams,
     peers,
     isMuted,
     isConnected,
@@ -49,6 +47,7 @@ const VoiceChannel = ({ courseId, userId, userName }: VoiceChannelProps) => {
     toggleMute,
   } = useWebRTC({ userId, name: userName });
 
+  // ── Fetch channels ─────────────────────────────────────
   useEffect(() => {
     const fetchChannels = async () => {
       try {
@@ -62,34 +61,11 @@ const VoiceChannel = ({ courseId, userId, userName }: VoiceChannelProps) => {
     fetchChannels();
   }, [courseId]);
 
-  useEffect(() => {
-    remoteStreams.forEach((stream, socketId) => {
-      let audio = audioRefs.current.get(socketId);
-      if (!audio) {
-        audio = document.createElement("audio");
-        audio.autoplay = true;
-        document.body.appendChild(audio);
-        audioRefs.current.set(socketId, audio);
-      }
-      if (audio.srcObject !== stream) audio.srcObject = stream;
-    });
-
-    audioRefs.current.forEach((audio, socketId) => {
-      if (!remoteStreams.has(socketId)) {
-        audio.srcObject = null;
-        audio.remove();
-        audioRefs.current.delete(socketId);
-      }
-    });
-  }, [remoteStreams]);
-
+  // ── Cleanup on unmount ─────────────────────────────────
   useEffect(() => {
     return () => {
-      audioRefs.current.forEach((audio) => {
-        audio.srcObject = null;
-        audio.remove();
-      });
-      audioRefs.current.clear();
+      document.querySelectorAll("[id^='lk-audio-']").forEach((el) => el.remove());
+      document.getElementById("voice-unblock-btn")?.remove();
     };
   }, []);
 
@@ -113,6 +89,7 @@ const VoiceChannel = ({ courseId, userId, userName }: VoiceChannelProps) => {
     leaveChannel();
     setActiveChannelId(null);
     setActiveChannelName("");
+    document.getElementById("voice-unblock-btn")?.remove();
   };
 
   const handleCreate = async () => {
@@ -137,8 +114,9 @@ const VoiceChannel = ({ courseId, userId, userName }: VoiceChannelProps) => {
   };
 
   const getChannelCount = (channelId: string): number => {
-    if (activeChannelId !== channelId) return 0;
-    return peers.length + 1;
+    if (activeChannelId === channelId) return peers.length + 1;
+    const ch = channels.find((c) => c._id === channelId);
+    return ch?.participants?.length ?? 0;
   };
 
   if (!isPanelOpen) {
@@ -184,12 +162,14 @@ const VoiceChannel = ({ courseId, userId, userName }: VoiceChannelProps) => {
         <div style={styles.activeBox}>
           <div style={styles.activeName}>#{activeChannelName}</div>
           <div style={styles.participantList}>
+            {/* local user */}
             <div style={styles.participant}>
               <span style={styles.dot} />
               <span style={styles.pName}>
                 {userName} (you){isMuted ? " (muted)" : ""}
               </span>
             </div>
+            {/* remote peers */}
             {peers.map((peer) => (
               <div key={peer.socketId} style={styles.participant}>
                 <span style={styles.dot} />
@@ -248,50 +228,31 @@ const VoiceChannel = ({ courseId, userId, userName }: VoiceChannelProps) => {
 
 const styles: Record<string, React.CSSProperties> = {
   voiceIcon: {
-    width: "20px",
-    height: "20px",
-    color: "currentColor",
-    flexShrink: 0,
+    width: "20px", height: "20px",
+    color: "currentColor", flexShrink: 0,
   },
   titleRow: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "12px",
+    display: "inline-flex", alignItems: "center", gap: "12px",
   },
   openLabel: {
-    width: "100%",
-    padding: "10px 12px",
-    borderRadius: "8px",
-    border: "none",
-    backgroundColor: "transparent",
-    color: "var(--text-secondary)",
-    fontSize: "0.875rem",
-    fontWeight: 500,
-    textAlign: "left",
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-    cursor: "pointer",
-    textDecoration: "none",
+    width: "100%", padding: "10px 12px", borderRadius: "8px",
+    border: "none", backgroundColor: "transparent",
+    color: "var(--text-secondary)", fontSize: "0.875rem", fontWeight: 500,
+    textAlign: "left", display: "flex", alignItems: "center",
+    gap: "12px", cursor: "pointer", textDecoration: "none",
   },
   container: {
-    width: "100%",
-    maxHeight: "50vh",
-    overflowY: "auto",
-    backgroundColor: "var(--primary-bg)",
-    borderRadius: "10px",
-    border: "1px solid var(--border)",
-    padding: "10px",
-    color: "var(--text-primary)",
-    fontFamily: "sans-serif",
-    marginTop: "6px",
+    width: "100%", maxHeight: "50vh", overflowY: "auto",
+    backgroundColor: "var(--primary-bg)", borderRadius: "10px",
+    border: "1px solid var(--border)", padding: "10px",
+    color: "var(--text-primary)", fontFamily: "sans-serif", marginTop: "6px",
   },
   header: {
     display: "flex", justifyContent: "space-between",
     alignItems: "center", marginBottom: "12px",
   },
   headerActions: { display: "flex", alignItems: "center", gap: "6px" },
-  title:     { fontSize: "14px", fontWeight: "600", margin: 0 },
+  title: { fontSize: "14px", fontWeight: "600", margin: 0 },
   createBtn: {
     padding: "4px 10px", backgroundColor: "#2563eb", color: "#fff",
     border: "none", borderRadius: "6px", fontSize: "12px", cursor: "pointer",
@@ -319,25 +280,16 @@ const styles: Record<string, React.CSSProperties> = {
   pName:     { fontSize: "13px", color: "#d1d5db" },
   list:      { display: "flex", flexDirection: "column", gap: "4px" },
   channelRow: {
-    display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px",
-    padding: "8px 10px", borderRadius: "6px",
+    display: "flex", alignItems: "center", justifyContent: "space-between",
+    gap: "8px", padding: "8px 10px", borderRadius: "6px",
   },
   channelInfo: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "2px",
-    minWidth: 0,
-    flex: 1,
+    display: "flex", flexDirection: "column", gap: "2px", minWidth: 0, flex: 1,
   },
-  chName:  {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "6px",
-    fontSize: "13px",
-    color: "var(--text-primary)",
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
+  chName: {
+    display: "inline-flex", alignItems: "center", gap: "6px",
+    fontSize: "13px", color: "var(--text-primary)",
+    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
   },
   chCount: { fontSize: "11px", color: "#6b7280" },
   joinBtn: {

@@ -1,6 +1,8 @@
 import { Request,Response } from "express";
 
 import * as AnnouncementService from "../services/announcement.service";
+import * as CourseService from "../services/course.service";
+import { publishNotificationEvent } from "../notifications";
 
 // POST /api/courses/:courseId/announcements
 export const createAnnouncement=async(req:Request,res:Response)=>{
@@ -16,6 +18,22 @@ export const createAnnouncement=async(req:Request,res:Response)=>{
             courseId, 
             authorId, 
             text 
+        });
+
+        const actorName = String((req.user as any)?.name || "Instructor");
+        const course = await CourseService.findCourseById(String(courseId));
+
+        void publishNotificationEvent({
+            name: "course.announcement.created",
+            payload: {
+                courseId: String(courseId),
+                courseTitle: String(course?.title || "Course"),
+                announcementId: String(announcement._id),
+                announcementText: String(text || ""),
+                actorName,
+            },
+        }).catch((notifyError) => {
+            console.error("Failed to queue announcement notification:", notifyError);
         });
 
         res.status(201).json({ 
