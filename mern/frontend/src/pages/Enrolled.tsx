@@ -442,6 +442,7 @@ function StudentCourse() {
               courseId={id}
               userId={user._id}
               userName={user.name || "User"}
+              userRole="student"
             />
           </div>
         )}

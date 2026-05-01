@@ -603,6 +603,7 @@ export default function TeacherCourse() {
               courseId={courseId}
               userId={user._id}
               userName={user.name || "User"}
+              userRole="teacher"
             />
           </div>
         )}

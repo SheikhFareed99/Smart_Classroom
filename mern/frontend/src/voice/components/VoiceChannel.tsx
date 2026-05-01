@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useLiveKit as useWebRTC } from "../hooks/useLiveKit";
 import VoiceControls from "./VoiceControls";
-import type { Channel } from "../types/voice.types";
+import CreateChannelModal from "./CreateChannelModal";
+import type { Channel, VoiceRole } from "../types/voice.types";
 
 interface VoiceChannelProps {
-  courseId: string;
+  courseId:  string;
   userId:   string;
   userName: string;
+  userRole: VoiceRole;
 }
 
 const VoiceIcon = () => (
@@ -28,7 +30,7 @@ const VoiceIcon = () => (
   </svg>
 );
 
-const VoiceChannel = ({ courseId, userId, userName }: VoiceChannelProps) => {
+const VoiceChannel = ({ courseId, userId, userName, userRole }: VoiceChannelProps) => {
 
   const [channels,          setChannels]          = useState<Channel[]>([]);
   const [activeChannelId,   setActiveChannelId]   = useState<string | null>(null);
@@ -36,16 +38,25 @@ const VoiceChannel = ({ courseId, userId, userName }: VoiceChannelProps) => {
   const [loading,           setLoading]           = useState<boolean>(false);
   const [error,             setError]             = useState<string | null>(null);
   const [isPanelOpen,       setIsPanelOpen]       = useState<boolean>(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
+
+  const isTeacher = userRole === "teacher";
 
   // LiveKit manages all audio elements internally — no audioRefs needed
   const {
     peers,
     isMuted,
+    isDeafened,
     isConnected,
     joinChannel,
     leaveChannel,
     toggleMute,
-  } = useWebRTC({ userId, name: userName });
+    toggleDeafen,
+    muteParticipant,
+    unmuteParticipant,
+    muteAll,
+    kickParticipant,
+  } = useWebRTC({ userId, name: userName, role: userRole });
 
   // ── Fetch channels ─────────────────────────────────────
   useEffect(() => {
@@ -92,21 +103,24 @@ const VoiceChannel = ({ courseId, userId, userName }: VoiceChannelProps) => {
     document.getElementById("voice-unblock-btn")?.remove();
   };
 
-  const handleCreate = async () => {
-    const channelName = prompt("Channel name:");
-    if (!channelName?.trim()) return;
+  const handleCreate = async (channelName: string) => {
     try {
       const res = await fetch("/voice/api/channels", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name:        channelName.trim(),
+          name:        channelName,
           courseId,
           createdBy:   userId,
           creatorName: userName,
+          role:        userRole,
         }),
       });
       const data = await res.json();
+      if (!res.ok) {
+        setError(data.message || "Failed to create channel");
+        return;
+      }
       setChannels((prev) => [data.channel as Channel, ...prev]);
     } catch {
       setError("Failed to create channel");
@@ -144,7 +158,15 @@ const VoiceChannel = ({ courseId, userId, userName }: VoiceChannelProps) => {
           </span>
         </h3>
         <div style={styles.headerActions}>
-          <button onClick={handleCreate} style={styles.createBtn}>+ New</button>
+          {/* Only teachers see the create button */}
+          {isTeacher && (
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              style={styles.createBtn}
+            >
+              + New
+            </button>
+          )}
           <button
             type="button"
             style={styles.closeBtn}
@@ -167,6 +189,7 @@ const VoiceChannel = ({ courseId, userId, userName }: VoiceChannelProps) => {
               <span style={styles.dot} />
               <span style={styles.pName}>
                 {userName} (you){isMuted ? " (muted)" : ""}
+                {isDeafened ? " (deafened)" : ""}
               </span>
             </div>
             {/* remote peers */}
@@ -176,21 +199,52 @@ const VoiceChannel = ({ courseId, userId, userName }: VoiceChannelProps) => {
                 <span style={styles.pName}>
                   {peer.name}{peer.isMuted ? " (muted)" : ""}
                 </span>
+                {/* Teacher moderation buttons for each peer */}
+                {isTeacher && (
+                  <span style={styles.modActions}>
+                    <button
+                      onClick={() =>
+                        peer.isMuted
+                          ? unmuteParticipant(peer.socketId)
+                          : muteParticipant(peer.socketId)
+                      }
+                      style={styles.modBtn}
+                      title={peer.isMuted ? "Unmute" : "Mute"}
+                    >
+                      {peer.isMuted ? "🔊" : "🔇"}
+                    </button>
+                    <button
+                      onClick={() => kickParticipant(peer.socketId)}
+                      style={{ ...styles.modBtn, ...styles.kickBtn }}
+                      title="Kick"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                )}
               </div>
             ))}
           </div>
           <VoiceControls
             isMuted={isMuted}
+            isDeafened={isDeafened}
             isConnected={isConnected}
+            userRole={userRole}
             onToggleMute={toggleMute}
+            onToggleDeafen={toggleDeafen}
             onLeave={handleLeave}
+            onMuteAll={muteAll}
           />
         </div>
       )}
 
       <div style={styles.list}>
         {channels.length === 0 && (
-          <p style={styles.empty}>No channels yet — create one above</p>
+          <p style={styles.empty}>
+            {isTeacher
+              ? "No channels yet — create one above"
+              : "No channels yet — waiting for teacher"}
+          </p>
         )}
         {channels.map((ch) => (
           <div
@@ -222,6 +276,13 @@ const VoiceChannel = ({ courseId, userId, userName }: VoiceChannelProps) => {
           </div>
         ))}
       </div>
+
+      {/* Custom Create Channel Modal */}
+      <CreateChannelModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onCreate={handleCreate}
+      />
     </div>
   );
 };
@@ -272,12 +333,26 @@ const styles: Record<string, React.CSSProperties> = {
   participantList: {
     display: "flex", flexDirection: "column", gap: "6px", marginBottom: "8px",
   },
-  participant: { display: "flex", alignItems: "center", gap: "8px" },
+  participant: {
+    display: "flex", alignItems: "center", gap: "8px",
+  },
   dot: {
     width: "8px", height: "8px", borderRadius: "50%",
     backgroundColor: "#22c55e", display: "inline-block", flexShrink: 0,
   },
-  pName:     { fontSize: "13px", color: "#d1d5db" },
+  pName:     { fontSize: "13px", color: "#d1d5db", flex: 1 },
+  modActions: {
+    display: "flex", alignItems: "center", gap: "4px", marginLeft: "auto",
+  },
+  modBtn: {
+    width: "24px", height: "24px", border: "none", borderRadius: "4px",
+    backgroundColor: "#374151", color: "#fff", fontSize: "12px",
+    cursor: "pointer", display: "flex", alignItems: "center",
+    justifyContent: "center", padding: 0,
+  },
+  kickBtn: {
+    backgroundColor: "#dc2626", fontSize: "11px",
+  },
   list:      { display: "flex", flexDirection: "column", gap: "4px" },
   channelRow: {
     display: "flex", alignItems: "center", justifyContent: "space-between",

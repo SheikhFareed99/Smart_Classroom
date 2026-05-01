@@ -1,10 +1,17 @@
 import { Router, Request, Response } from "express";
 import { AccessToken } from "livekit-server-sdk";
+import auth = require("../middleware/auth");
+
+const { requireAuth } = auth;
 
 const router = Router();
 
-router.post("/token", async (req: Request, res: Response) => {
-  const { roomName, participantName, participantId } = req.body;
+// ── POST /api/livekit/token ──────────────────────────────
+// Generate a LiveKit access token for joining a room.
+// Body: { roomName, participantName, participantId, role }
+// Role: "teacher" → roomAdmin; "student" → basic participant
+router.post("/token", requireAuth, async (req: Request, res: Response) => {
+  const { roomName, participantName, participantId, role } = req.body;
 
   if (!roomName || !participantName || !participantId) {
     return res.status(400).json({
@@ -22,6 +29,7 @@ router.post("/token", async (req: Request, res: Response) => {
   try {
     // Make identity unique per session to prevent LiveKit kicking duplicate identities
     const identity = `${participantId}-${Date.now()}`;
+    const isTeacher = role === "teacher";
 
     const token = new AccessToken(apiKey, apiSecret, {
       identity,
@@ -32,13 +40,14 @@ router.post("/token", async (req: Request, res: Response) => {
     token.addGrant({
       room:           roomName,
       roomJoin:       true,
-      canPublish:     true,      
-      canSubscribe:   true,      
+      roomAdmin:      isTeacher,   // teachers can admin the room
+      canPublish:     true,
+      canSubscribe:   true,
       canPublishData: true,
     });
 
     const jwt = await Promise.resolve(token.toJwt());
-    console.log(`[livekit] token issued for ${identity} in room ${roomName}`);
+    console.log(`[livekit] token issued for ${identity} (role=${role || "student"}) in room ${roomName}`);
     return res.json({ token: jwt, identity });
 
   } catch (err: any) {

@@ -9,13 +9,21 @@ const router = Router();
 
 // ── POST /api/channels ────────────────────────────────────
 // Create a new voice channel for a course.
-// Body: { name: string, courseId: string, createdBy: string }
+// Body: { name: string, courseId: string, createdBy: string, role?: string }
+// Only teachers (role === "teacher") can create channels.
 router.post("/", requireAuth, async (req: Request, res: Response) => {
-  const { name, courseId, createdBy } = req.body;
+  const { name, courseId, createdBy, role } = req.body;
 
   if (!name || !courseId || !createdBy) {
     return res.status(400).json({
       message: "name, courseId, and createdBy are required",
+    });
+  }
+
+  // Only teachers can create voice channels
+  if (role !== "teacher") {
+    return res.status(403).json({
+      message: "Only teachers can create voice channels",
     });
   }
 

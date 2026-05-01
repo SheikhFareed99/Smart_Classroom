@@ -1,8 +1,11 @@
+export type VoiceRole = "teacher" | "student";
+
 export type VoicePeer = {
-  socketId: string;
-  userId:   string;
-  name:     string;
-  isMuted:  boolean;
+  socketId:    string;
+  userId:      string;
+  name:        string;
+  isMuted:     boolean;
+  isDeafened?: boolean;
 };
 
 export type IceConfig = {
