@@ -18,6 +18,17 @@
   to   { opacity: 1; }
 }
 
+/* Shared keyframes used by ConfirmModal and Toast animations */
+@keyframes vcFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes vcSlideUp {
+  from { transform: translateY(12px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
 .ccm-modal {
   width: 100%;
   max-width: 400px;

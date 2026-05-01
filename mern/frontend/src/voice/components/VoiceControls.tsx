@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import type { VoiceRole } from "../types/voice.types";
 
 interface VoiceControlsProps {
@@ -11,7 +11,7 @@ interface VoiceControlsProps {
   onLeave:        () => void;
 }
 
-// ── Inline SVG icons (Lucide-compatible design) ────────────────────────────
+// ── Inline SVG icons ─────────────────────────────────────────────────────────
 
 const MicIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -41,7 +41,7 @@ const HeadphonesIcon = () => (
     stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
     <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/>
-    <path d="M3  19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
+    <path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
   </svg>
 );
 
@@ -56,15 +56,6 @@ const HeadphonesOffIcon = () => (
   </svg>
 );
 
-const VolumeXIcon = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-    <line x1="23" y1="9" x2="17" y2="15"/>
-    <line x1="17" y1="9" x2="23" y2="15"/>
-  </svg>
-);
-
 const LogOutIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
     stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -73,6 +64,58 @@ const LogOutIcon = () => (
     <line x1="21" y1="12" x2="9" y2="12"/>
   </svg>
 );
+
+// ── Hover-aware button ────────────────────────────────────────────────────────
+
+interface VcBtnProps {
+  onClick:    () => void;
+  baseColor:  string;
+  hoverColor: string;
+  label:      string;
+  ariaLabel:  string;
+  children:   React.ReactNode;
+  danger?:    boolean;
+}
+
+const VcBtn = ({ onClick, baseColor, hoverColor, label, ariaLabel, children }: VcBtnProps) => {
+  const [hov, setHov] = useState(false);
+  const [act, setAct] = useState(false);
+
+  return (
+    <button
+      onClick={onClick}
+      aria-label={ariaLabel}
+      title={ariaLabel}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => { setHov(false); setAct(false); }}
+      onMouseDown={() => setAct(true)}
+      onMouseUp={() => setAct(false)}
+      style={{
+        display:         "inline-flex",
+        alignItems:      "center",
+        gap:             "5px",
+        padding:         "5px 10px",
+        border:          "none",
+        borderRadius:    "6px",
+        color:           "#ffffff",
+        fontSize:        "12px",
+        fontWeight:      "500",
+        cursor:          "pointer",
+        backgroundColor: hov ? hoverColor : baseColor,
+        transform:       act ? "scale(0.95)" : "scale(1)",
+        boxShadow:       hov
+          ? `0 0 8px ${baseColor}55`
+          : "none",
+        transition:      "background-color 0.18s ease, transform 0.1s ease, box-shadow 0.18s ease",
+      }}
+    >
+      {children}
+      <span>{label}</span>
+    </button>
+  );
+};
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 const VoiceControls = ({
   isMuted,
@@ -84,59 +127,56 @@ const VoiceControls = ({
 }: VoiceControlsProps) => {
   return (
     <div style={styles.container}>
-      {/* Connection status */}
+
+      {/* Connection status pill */}
       <div style={styles.statusRow}>
         <span style={{
           ...styles.statusDot,
           backgroundColor: isConnected ? "#22c55e" : "#ef4444",
+          boxShadow:       isConnected ? "0 0 6px #22c55e88" : "none",
         }} />
         <span style={styles.statusText}>
-          {isConnected ? "Connected" : "Disconnected"}
+          {isConnected ? "Live" : "Disconnected"}
         </span>
       </div>
 
       {/* Mute / Unmute */}
-      <button
+      <VcBtn
         onClick={onToggleMute}
-        style={{
-          ...styles.btn,
-          backgroundColor: isMuted ? "#ef4444" : "#3b82f6",
-        }}
-        title={isMuted ? "Unmute" : "Mute"}
-        aria-label={isMuted ? "Unmute microphone" : "Mute microphone"}
+        baseColor={isMuted ? "#dc2626" : "#2563eb"}
+        hoverColor={isMuted ? "#b91c1c" : "#1d4ed8"}
+        label={isMuted ? "Unmute" : "Mute"}
+        ariaLabel={isMuted ? "Unmute microphone" : "Mute microphone"}
       >
         {isMuted ? <MicOffIcon /> : <MicIcon />}
-        <span>{isMuted ? "Unmute" : "Mute"}</span>
-      </button>
+      </VcBtn>
 
       {/* Deafen / Undeafen */}
-      <button
+      <VcBtn
         onClick={onToggleDeafen}
-        style={{
-          ...styles.btn,
-          backgroundColor: isDeafened ? "#f59e0b" : "#6366f1",
-        }}
-        title={isDeafened ? "Undeafen" : "Deafen"}
-        aria-label={isDeafened ? "Undeafen audio" : "Deafen audio"}
+        baseColor={isDeafened ? "#d97706" : "#4f46e5"}
+        hoverColor={isDeafened ? "#b45309" : "#4338ca"}
+        label={isDeafened ? "Undeafen" : "Deafen"}
+        ariaLabel={isDeafened ? "Undeafen audio" : "Deafen audio"}
       >
         {isDeafened ? <HeadphonesOffIcon /> : <HeadphonesIcon />}
-        <span>{isDeafened ? "Undeafen" : "Deafen"}</span>
-      </button>
-
+      </VcBtn>
 
       {/* Leave */}
-      <button
+      <VcBtn
         onClick={onLeave}
-        style={{ ...styles.btn, backgroundColor: "#6b7280" }}
-        title="Leave channel"
-        aria-label="Leave voice channel"
+        baseColor="#4b5563"
+        hoverColor="#374151"
+        label="Leave"
+        ariaLabel="Leave voice channel"
       >
         <LogOutIcon />
-        <span>Leave</span>
-      </button>
+      </VcBtn>
     </div>
   );
 };
+
+// ── Styles ────────────────────────────────────────────────────────────────────
 
 const styles: Record<string, React.CSSProperties> = {
   container: {
@@ -148,29 +188,23 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius:    "8px",
     flexWrap:        "wrap",
     marginTop:       "10px",
+    border:          "1px solid #374151",
   },
   statusRow: {
-    display: "flex", alignItems: "center", gap: "6px",
+    display:     "flex",
+    alignItems:  "center",
+    gap:         "6px",
     marginRight: "4px",
   },
   statusDot: {
-    width: "8px", height: "8px", borderRadius: "50%",
-    display: "inline-block", flexShrink: 0,
+    width:        "8px",
+    height:       "8px",
+    borderRadius: "50%",
+    display:      "inline-block",
+    flexShrink:   0,
+    transition:   "background-color 0.3s ease, box-shadow 0.3s ease",
   },
   statusText: { color: "#9ca3af", fontSize: "12px" },
-  btn: {
-    display:    "inline-flex",
-    alignItems: "center",
-    gap:        "5px",
-    padding:    "5px 10px",
-    border:     "none",
-    borderRadius: "6px",
-    color:      "#ffffff",
-    fontSize:   "12px",
-    fontWeight: "500",
-    cursor:     "pointer",
-    transition: "opacity 0.15s ease",
-  },
 };
 
 export default VoiceControls;

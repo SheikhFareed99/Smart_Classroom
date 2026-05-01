@@ -17,6 +17,7 @@ export interface UseLiveKitOptions {
   role:                 VoiceRole;
   onForceDisconnected?: () => void;  // called when the room is deleted
   onKicked?:            () => void;  // called when this participant is kicked
+  onTeacherMuted?:      () => void;  // called when teacher mutes this student
 }
 
 export interface UseLiveKitReturn {
@@ -37,7 +38,7 @@ export interface UseLiveKitReturn {
 const LIVEKIT_URL =
   import.meta.env.VITE_LIVEKIT_URL || "wss://smart-classroom-x64i9653.livekit.cloud";
 
-export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked }: UseLiveKitOptions): UseLiveKitReturn => {
+export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked, onTeacherMuted }: UseLiveKitOptions): UseLiveKitReturn => {
   const [peers,       setPeers]       = useState<VoicePeer[]>([]);
   const [isMuted,     setIsMuted]     = useState(false);
   const [isDeafened,  setIsDeafened]  = useState(false);
@@ -45,10 +46,10 @@ export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked }
 
   const roomRef         = useRef<Room | null>(null);
   const channelIdRef    = useRef<string | null>(null);
-  // Tracks whether the local mic track was successfully published.
-  // toggleMute is gated on this — if mic never published, calling
-  // setMicrophoneEnabled would throw PublishTrackError repeatedly.
   const micPublishedRef = useRef<boolean>(false);
+  // Set to true while WE are initiating a mute so TrackMuted can tell the
+  // difference between a self-mute and a teacher-initiated server mute.
+  const selfMutingRef   = useRef<boolean>(false);
 
   // ── Token fetch ────────────────────────────────────────────────────────────
   const fetchToken = useCallback(async (channelId: string): Promise<string> => {
@@ -206,13 +207,15 @@ export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked }
         updatePeers(room);
       })
       .on(RoomEvent.TrackMuted, (pub, participant) => {
-        // Sync local mute state when the local mic is muted
-        // (either by self OR by teacher via server-side mutePublishedTrack)
         if (
           participant === room.localParticipant &&
           pub.source  === Track.Source.Microphone
         ) {
           setIsMuted(true);
+          // If WE didn't initiate this mute, it was done by the teacher
+          if (!selfMutingRef.current && onTeacherMuted) {
+            onTeacherMuted();
+          }
         }
         updatePeers(room);
       })
@@ -289,7 +292,6 @@ export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked }
     setIsConnected(false);
   }, []);
 
-  // ── Toggle mute ────────────────────────────────────────────────────────────
   const toggleMute = useCallback(async () => {
     const room = roomRef.current;
     if (!room) return;
@@ -299,11 +301,6 @@ export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked }
       return;
     }
 
-    // ✔️ Use direct track mute/unmute instead of setMicrophoneEnabled.
-    // In livekit-client v2.x, setMicrophoneEnabled(false) UNPUBLISHES the
-    // track and setMicrophoneEnabled(true) tries to REPUBLISH — hitting the
-    // permission check again. Calling mute()/unmute() on the LocalAudioTrack
-    // keeps the track published and just stops/resumes sending audio data.
     const pub      = room.localParticipant.getTrackPublication(Track.Source.Microphone);
     const micTrack = pub?.track as LocalAudioTrack | undefined;
 
@@ -312,16 +309,21 @@ export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked }
       return;
     }
 
+    // Mark as self-initiated so TrackMuted doesn't fire onTeacherMuted
+    selfMutingRef.current = true;
     try {
       if (isMuted) {
         await micTrack.unmute();
-        setIsMuted(false); // optimistic — TrackUnmuted event will also confirm
+        setIsMuted(false);
       } else {
         await micTrack.mute();
-        setIsMuted(true);  // optimistic — TrackMuted event will also confirm
+        setIsMuted(true);
       }
     } catch (err: any) {
       console.error(`[livekit] toggleMute failed: ${err?.message || err}`);
+    } finally {
+      // Small delay — the TrackMuted event fires after the await
+      setTimeout(() => { selfMutingRef.current = false; }, 200);
     }
   }, [isMuted]);
 

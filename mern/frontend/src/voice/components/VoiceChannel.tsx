@@ -1,7 +1,9 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useLiveKit as useWebRTC } from "../hooks/useLiveKit";
+import { useSoundEffects } from "../hooks/useSoundEffects";
 import VoiceControls from "./VoiceControls";
 import CreateChannelModal from "./CreateChannelModal";
+import ConfirmModal from "./ConfirmModal";
 import type { Channel, VoiceRole } from "../types/voice.types";
 
 interface VoiceChannelProps {
@@ -126,6 +128,33 @@ const VoiceChannel = ({ courseId, userId, userName, userRole }: VoiceChannelProp
   const [wasDeleted, setWasDeleted] = useState<boolean>(false);
   const [wasKicked, setWasKicked] = useState<boolean>(false);
 
+  // ── Toast notifications ───────────────────────────────────────────────────
+  const [toasts, setToasts] = useState<Array<{ id: number; msg: string; type: 'info'|'warn'|'error' }>>([]);
+  const addToast = useCallback((msg: string, type: 'info'|'warn'|'error' = 'info') => {
+    const id = Date.now();
+    setToasts((p) => [...p, { id, msg, type }]);
+    setTimeout(() => setToasts((p) => p.filter((t) => t.id !== id)), 4500);
+  }, []);
+
+  // ── Confirm modal ─────────────────────────────────────────────────────────
+  const [confirmState, setConfirmState] = useState<{
+    open:    boolean;
+    title:   string;
+    message: string;
+    danger:  boolean;
+    onConfirm: () => void;
+  }>({ open: false, title: '', message: '', danger: false, onConfirm: () => {} });
+
+  const openConfirm = useCallback((title: string, message: string, danger: boolean, onConfirm: () => void) => {
+    setConfirmState({ open: true, title, message, danger, onConfirm });
+  }, []);
+  const closeConfirm = useCallback(() => {
+    setConfirmState((s) => ({ ...s, open: false }));
+  }, []);
+
+  // ── Sound effects ─────────────────────────────────────────────────────────
+  const sfx = useSoundEffects();
+
   const isTeacher = userRole === "teacher";
 
   const {
@@ -142,9 +171,8 @@ const VoiceChannel = ({ courseId, userId, userName, userRole }: VoiceChannelProp
     kickParticipant,
   } = useWebRTC({
     userId,
-    name: userName,
-    role: userRole,
-    // Called when teacher deletes the room — remove channel from list
+    name:   userName,
+    role:   userRole,
     onForceDisconnected: () => {
       setActiveChannelId(null);
       setActiveChannelName("");
@@ -152,13 +180,15 @@ const VoiceChannel = ({ courseId, userId, userName, userRole }: VoiceChannelProp
       setWasDeleted(true);
       setChannels((prev) => prev.filter((c) => c._id !== channelIdSnapshot.current));
     },
-    // Called when kicked — clear active state but keep the channel visible
     onKicked: () => {
       setActiveChannelId(null);
       setActiveChannelName("");
       setLiveCount(0);
       setWasKicked(true);
       document.getElementById("voice-unblock-btn")?.remove();
+    },
+    onTeacherMuted: () => {
+      addToast("🔇 You have been muted by the teacher", "warn");
     },
   });
 
@@ -206,6 +236,7 @@ const VoiceChannel = ({ courseId, userId, userName, userRole }: VoiceChannelProp
       await joinChannel(channel._id);
       setActiveChannelId(channel._id);
       setActiveChannelName(channel.name);
+      sfx.playJoin();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to join");
     } finally {
@@ -214,11 +245,22 @@ const VoiceChannel = ({ courseId, userId, userName, userRole }: VoiceChannelProp
   };
 
   const handleLeave = () => {
+    sfx.playLeave();
     leaveChannel();
     setActiveChannelId(null);
     setActiveChannelName("");
     setLiveCount(0);
     document.getElementById("voice-unblock-btn")?.remove();
+  };
+
+  // Wrapped toggles that also play SFX
+  const handleToggleMute = () => {
+    isMuted ? sfx.playUnmute() : sfx.playMute();
+    toggleMute();
+  };
+  const handleToggleDeafen = () => {
+    isDeafened ? sfx.playUndeafen() : sfx.playDeafen();
+    toggleDeafen();
   };
 
   const handleCreate = async (channelName: string) => {
@@ -244,28 +286,32 @@ const VoiceChannel = ({ courseId, userId, userName, userRole }: VoiceChannelProp
   // Calls the backend which: destroys the LiveKit room (kicking everyone),
   // marks the channel inactive, and ends open sessions.
   const handleDeleteChannel = useCallback(async (channelId: string) => {
-    if (!confirm("Delete this channel? All participants will be removed.")) return;
-
-    try {
-      const res = await fetch("/voice/api/moderation/delete-channel", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ channelId }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        setError(data.message || "Failed to delete channel");
-        return;
+    openConfirm(
+      "Delete Channel",
+      "Are you sure? All participants will be removed permanently.",
+      true,
+      async () => {
+        closeConfirm();
+        try {
+          const res = await fetch("/voice/api/moderation/delete-channel", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ channelId }),
+          });
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            setError(data.message || "Failed to delete channel");
+            return;
+          }
+          if (activeChannelId === channelId) handleLeave();
+          setChannels((prev) => prev.filter((c) => c._id !== channelId));
+        } catch {
+          setError("Failed to delete channel");
+        }
       }
-      // If we were inside this channel, leave gracefully
-      if (activeChannelId === channelId) handleLeave();
-      // Remove from the local channel list immediately
-      setChannels((prev) => prev.filter((c) => c._id !== channelId));
-    } catch {
-      setError("Failed to delete channel");
-    }
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeChannelId]);
+  }, [activeChannelId, openConfirm, closeConfirm]);
 
   // ── Participant count for the channel list ─────────────────────────────────
   // FIX: When we're active in a channel, use liveCount (real-time) instead
@@ -372,18 +418,32 @@ const VoiceChannel = ({ courseId, userId, userName, userRole }: VoiceChannelProp
                 {isTeacher && (
                   <span style={styles.modActions}>
                     <button
-                      onClick={() =>
-                        peer.isMuted
-                          ? unmuteParticipant(peer.socketId)
-                          : muteParticipant(peer.socketId)
-                      }
+                      onClick={() => {
+                        if (peer.isMuted) {
+                          unmuteParticipant(peer.socketId);
+                        } else {
+                          openConfirm(
+                            "Mute Student",
+                            `Mute ${peer.name}? They can still unmute themselves.`,
+                            false,
+                            () => { closeConfirm(); muteParticipant(peer.socketId); }
+                          );
+                        }
+                      }}
                       style={styles.modBtn}
                       title={peer.isMuted ? "Unmute" : "Mute"}
                     >
                       {peer.isMuted ? <MicIcon /> : <MicOffIcon />}
                     </button>
                     <button
-                      onClick={() => kickParticipant(peer.socketId)}
+                      onClick={() =>
+                        openConfirm(
+                          "Kick Student",
+                          `Remove ${peer.name} from the channel?`,
+                          true,
+                          () => { closeConfirm(); kickParticipant(peer.socketId); }
+                        )
+                      }
                       style={{ ...styles.modBtn, ...styles.kickBtn }}
                       title="Kick from channel"
                     >
@@ -399,8 +459,8 @@ const VoiceChannel = ({ courseId, userId, userName, userRole }: VoiceChannelProp
             isDeafened={isDeafened}
             isConnected={isConnected}
             userRole={userRole}
-            onToggleMute={toggleMute}
-            onToggleDeafen={toggleDeafen}
+            onToggleMute={handleToggleMute}
+            onToggleDeafen={handleToggleDeafen}
             onLeave={handleLeave}
           />
         </div>
@@ -468,6 +528,45 @@ const VoiceChannel = ({ courseId, userId, userName, userRole }: VoiceChannelProp
         onClose={() => setIsCreateModalOpen(false)}
         onCreate={handleCreate}
       />
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmState.open}
+        title={confirmState.title}
+        message={confirmState.message}
+        danger={confirmState.danger}
+        confirmLabel={confirmState.danger ? "Yes, proceed" : "Confirm"}
+        onConfirm={confirmState.onConfirm}
+        onCancel={closeConfirm}
+      />
+
+      {/* Toast notifications */}
+      {toasts.length > 0 && (
+        <div style={styles.toastStack}>
+          {toasts.map((t) => (
+            <div
+              key={t.id}
+              style={{
+                ...styles.toast,
+                backgroundColor:
+                  t.type === 'error' ? 'rgba(127,29,29,0.95)'
+                  : t.type === 'warn' ? 'rgba(120,53,15,0.95)'
+                  : 'rgba(15,23,42,0.95)',
+                borderColor:
+                  t.type === 'error' ? '#dc2626'
+                  : t.type === 'warn' ? '#d97706'
+                  : '#3b82f6',
+                color:
+                  t.type === 'error' ? '#fca5a5'
+                  : t.type === 'warn' ? '#fcd34d'
+                  : '#bfdbfe',
+              }}
+            >
+              {t.msg}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
@@ -600,6 +699,26 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "8px 12px", backgroundColor: "rgba(127,29,29,0.4)", color: "#fca5a5",
     borderRadius: "6px", fontSize: "12px", marginBottom: "10px",
     border: "1px solid rgba(153,27,27,0.5)",
+  },
+  toastStack: {
+    position:      "fixed",
+    bottom:        "24px",
+    right:         "24px",
+    display:       "flex",
+    flexDirection: "column",
+    gap:           "8px",
+    zIndex:        10000,
+    pointerEvents: "none",
+  },
+  toast: {
+    padding:      "10px 16px",
+    borderRadius: "8px",
+    fontSize:     "13px",
+    fontWeight:   "500",
+    border:       "1px solid",
+    boxShadow:    "0 4px 20px rgba(0,0,0,0.4)",
+    animation:    "vcSlideUp 0.2s ease",
+    maxWidth:     "320px",
   },
 };
 
