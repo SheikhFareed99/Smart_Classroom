@@ -1,7 +1,10 @@
 from pathlib import Path
 from io import BytesIO
 from typing import List, Dict, Any
-import fitz
+try:
+    import pymupdf as fitz
+except Exception:
+    import fitz
 import easyocr
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
@@ -38,6 +41,11 @@ class DocumentLoader:
 
     def _load_pdf(self, file_path: str) -> List[Dict[str, Any]]:
         elements = []
+        if not hasattr(fitz, "open"):
+            raise RuntimeError(
+                "PDF engine is not available. Install PyMuPDF (`pip install pymupdf`) "
+                "and remove any conflicting `fitz` package."
+            )
         pdf = fitz.open(file_path)
 
         for page_num, page in enumerate(pdf, start=1):

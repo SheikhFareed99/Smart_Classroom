@@ -24,6 +24,8 @@ interface Deliverable {
   _id: string; title: string; description?: string;
   deadline?: string; totalPoints: number;
   status: "draft" | "published"; createdAt: string;
+  plagiarismLastCheckedAt?: string;
+  plagiarismAutoCheckedAt?: string;
   attachments: { fileName: string; url: string }[];
 }
 
@@ -720,6 +722,12 @@ export default function TeacherCourse() {
                   </div>
                   <button
                     className="btn btn-outline btn-sm"
+                    onClick={() => navigate(`/teacher-course/${courseId}/assignment/${selectedDeliverable._id}/plagiarism`)}
+                  >
+                    Plagiarism
+                  </button>
+                  <button
+                    className="btn btn-outline btn-sm"
                     onClick={() => {
                       const next = !showClassComments;
                       setShowClassComments(next);
@@ -981,6 +989,13 @@ export default function TeacherCourse() {
                       </div>
                       <AssignmentBadge status={a.status} />
                       {/* View Submissions button */}
+                      <button
+                        className="btn btn-outline btn-sm"
+                        onClick={() => navigate(`/teacher-course/${courseId}/assignment/${a._id}/plagiarism`)}
+                        title="Open plagiarism checker"
+                      >
+                        Plagiarism
+                      </button>
                       <button
                         className="btn btn-outline btn-sm tc-view-subs-btn"
                         onClick={() => openSubmissions(a)}
