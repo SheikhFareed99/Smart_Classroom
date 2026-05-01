@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
+import VoiceChannel from "../voice/components/VoiceChannel";
 import "./Enrolled.css";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -433,6 +434,17 @@ function StudentCourse() {
             </div>
           )}
         </div>
+
+        {/* ── Voice Channel ── */}
+        {id && user?._id && (
+          <div style={{ padding: "0 24px", marginBottom: 16 }}>
+            <VoiceChannel
+              courseId={id}
+              userId={user._id}
+              userName={user.name || "User"}
+            />
+          </div>
+        )}
 
         {/* ── Tabs ── */}
         <div className="tabs">

@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { apiFetch } from "../lib/api";
+import { useAuth } from "../auth/AuthContext";
+import VoiceChannel from "../voice/components/VoiceChannel";
 import "./TeacherCourse.css";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -107,6 +109,7 @@ function formatBytes(b?: number) {
 export default function TeacherCourse() {
   const { id: courseId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"stream" | "assignments" | "students" | "materials">("stream");
 
   // Course info
@@ -592,6 +595,17 @@ export default function TeacherCourse() {
           <p>{courseDetails}</p>
           <span className="course-code">Code: {courseCode}</span>
         </div>
+
+        {/* Voice Channel */}
+        {courseId && user?._id && (
+          <div style={{ padding: "0 24px", marginBottom: 16 }}>
+            <VoiceChannel
+              courseId={courseId}
+              userId={user._id}
+              userName={user.name || "User"}
+            />
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="tabs">

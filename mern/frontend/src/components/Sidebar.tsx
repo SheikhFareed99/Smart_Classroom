@@ -1,7 +1,6 @@
 import "./Sidebar.css";
 import { NavLink } from "react-router-dom";
 import "./Sidebar.css";
-import VoiceChannel from "../voice/components/VoiceChannel";
 
 type SidebarUser = {
   _id: string;
@@ -69,16 +68,6 @@ export default function Sidebar({ isOpen, user }: { isOpen: boolean; user: Sideb
             </svg>
             Settings
           </a>
-
-          {user?._id && (
-            <div className="sidebar-voice-wrap">
-              <VoiceChannel
-                courseId="course_001"
-                userId={user._id}
-                userName={user.name || "User"}
-              />
-            </div>
-          )}
         </nav>
       </aside>
     </>
