@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { apiFetch } from "../lib/api";
+import { AlertTriangle } from "lucide-react";
+import Icon from "../components/ui/Icon";
 import "./TeacherPlagiarismReport.css";
 
 type PairEntry = {
@@ -150,7 +152,7 @@ export default function TeacherPlagiarismReport() {
         </div>
       </div>
 
-      {error && <div className="pr-error">⚠ {error}</div>}
+      {error && <div className="pr-error"><Icon icon={AlertTriangle} size={16} /> {error}</div>}
 
       {loading ? (
         <div className="card"><div className="card-body">Loading plagiarism report...</div></div>

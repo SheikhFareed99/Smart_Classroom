@@ -98,6 +98,22 @@
   --accent:    var(--accent-600);
   --accent-bg: var(--accent-50);
 
+  /* Status semantics */
+  --danger:     var(--error-600);
+  --danger-bg:  var(--error-50);
+  --warning:    var(--warning-600);
+  --warning-bg: var(--warning-50);
+  --success:    var(--success-600);
+  --success-bg: var(--success-50);
+  --info:       var(--info-600);
+  --info-bg:    var(--info-50);
+
+  /* Convenience aliases used across pages */
+  --bg:           var(--bg-app);
+  --card:         var(--bg-surface);
+  --border:       var(--border-default);
+  --border-light: var(--neutral-100);
+
   /* Shadows */
   --shadow-xs: 0 1px 2px rgba(15,23,42,0.04);
   --shadow-sm: 0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04);
@@ -133,6 +149,22 @@
 
   --accent:    var(--accent-400);
   --accent-bg: var(--accent-950);
+
+  /* Status semantics */
+  --danger:     var(--error-500);
+  --danger-bg:  rgba(239,68,68,0.1);
+  --warning:    var(--warning-500);
+  --warning-bg: rgba(245,158,11,0.1);
+  --success:    var(--success-500);
+  --success-bg: rgba(16,185,129,0.1);
+  --info:       var(--info-500);
+  --info-bg:    rgba(14,165,233,0.1);
+
+  /* Convenience aliases */
+  --bg:           var(--bg-app);
+  --card:         var(--bg-surface);
+  --border:       var(--border-default);
+  --border-light: var(--neutral-800);
 
   /* Shadows */
   --shadow-xs: 0 1px 2px rgba(0,0,0,0.2);

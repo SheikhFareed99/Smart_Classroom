@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { apiFetch } from "../lib/api";
+import { X } from "lucide-react";
 
 import "./Dashboard.css";
 import "./TeacherPanel.css";
@@ -290,7 +291,7 @@ export default function TeacherPanel() {
         <div className="modal">
           <div className="modal-header">
             <h2>Create New Class</h2>
-            <button className="btn btn-ghost btn-icon" onClick={() => document.getElementById('createClassModal')?.classList.remove('active')}>✕</button>
+            <button className="btn btn-ghost btn-icon" onClick={() => document.getElementById('createClassModal')?.classList.remove('active')} aria-label="Close"><X size={18} aria-hidden="true" /></button>
           </div>
           <form onSubmit={handleCreateCourse}>
             <div className="modal-body">
@@ -316,7 +317,7 @@ export default function TeacherPanel() {
         <div className="modal">
           <div className="modal-header">
             <h2>Join Course</h2>
-            <button className="btn btn-ghost btn-icon" onClick={() => document.getElementById('joinCourseModal')?.classList.remove('active')}>✕</button>
+            <button className="btn btn-ghost btn-icon" onClick={() => document.getElementById('joinCourseModal')?.classList.remove('active')} aria-label="Close"><X size={18} aria-hidden="true" /></button>
           </div>
           <form onSubmit={handleJoinCourse}>
             <div className="modal-body">
@@ -338,7 +339,7 @@ export default function TeacherPanel() {
         <div className="modal">
           <div className="modal-header">
             <h2>Manage Students</h2>
-            <button className="btn btn-ghost btn-icon" onClick={() => document.getElementById('manageStudentsModal')?.classList.remove('active')}>✕</button>
+            <button className="btn btn-ghost btn-icon" onClick={() => document.getElementById('manageStudentsModal')?.classList.remove('active')} aria-label="Close"><X size={18} aria-hidden="true" /></button>
           </div>
           <div className="modal-body" id="manage-students-body">
             {/* populated dynamically */}
@@ -353,7 +354,7 @@ export default function TeacherPanel() {
         <div className="modal">
           <div className="modal-header">
             <h2>AI Question Generator</h2>
-            <button className="btn btn-ghost btn-icon" onClick={() => document.getElementById('generateQuestionsModal')?.classList.remove('active')}>✕</button>
+            <button className="btn btn-ghost btn-icon" onClick={() => document.getElementById('generateQuestionsModal')?.classList.remove('active')} aria-label="Close"><X size={18} aria-hidden="true" /></button>
           </div>
           <div className="modal-body">
             <div className="form-group mb-16">
@@ -372,7 +373,7 @@ export default function TeacherPanel() {
         <div className="modal">
           <div className="modal-header">
             <h2>AI Summary Generator</h2>
-            <button className="btn btn-ghost btn-icon" onClick={() => document.getElementById('generateSummaryModal')?.classList.remove('active')}>✕</button>
+            <button className="btn btn-ghost btn-icon" onClick={() => document.getElementById('generateSummaryModal')?.classList.remove('active')} aria-label="Close"><X size={18} aria-hidden="true" /></button>
           </div>
           <div className="modal-body">
             <div className="form-group mb-16">

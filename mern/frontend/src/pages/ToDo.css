@@ -19,9 +19,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--text-inverse);
   flex-shrink: 0;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
 }
 
 .todo-title {
@@ -75,13 +75,13 @@
 
 .todo-tab--active {
   background: var(--primary);
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+  color: var(--text-inverse);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
 }
 
 .todo-tab--active:hover {
-  background: var(--primary-dark);
-  color: #fff;
+  background: var(--primary-hover);
+  color: var(--text-inverse);
 }
 
 .todo-tab-count {
@@ -96,7 +96,7 @@
 
 .todo-tab--active .todo-tab-count {
   background: rgba(255, 255, 255, 0.25);
-  color: #fff;
+  color: var(--text-inverse);
 }
 
 .todo-tab-count--danger {
@@ -106,7 +106,7 @@
 
 .todo-tab--active .todo-tab-count--danger {
   background: rgba(239, 68, 68, 0.3) !important;
-  color: #fff !important;
+  color: var(--text-inverse) !important;
 }
 
 /* ---------- Loading ---------- */
@@ -430,7 +430,7 @@
 
 .dark .todo-card:hover {
   border-color: var(--primary);
-  background: #1a2744;
+  background: var(--primary-bg);
 }
 
 .dark .todo-tabs {
@@ -447,7 +447,7 @@
 }
 
 .dark .todo-header-icon {
-  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.25);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.25);
 }
 
 /* ---------- Responsive ---------- */

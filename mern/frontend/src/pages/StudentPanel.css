@@ -95,11 +95,11 @@
 
 .btn-primary {
   background: var(--primary);
-  color: #fff;
+  color: var(--text-inverse);
 }
 
 .btn-primary:hover {
-  background: var(--primary-dark);
+  background: var(--primary-hover);
 }
 
 .btn-ghost {
@@ -152,7 +152,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--text-inverse);
   cursor: pointer;
   flex-shrink: 0;
 }
@@ -188,7 +188,7 @@
 }
 
 .todo-delete:hover {
-  color: #ef4444;
+  color: var(--danger);
 }
 
 /* Timetable */
@@ -224,20 +224,23 @@
   border-radius: 999px;
   font-size: 0.8rem;
   font-weight: 600;
-  color: #1e293b;
-  background: #dbeafe;
+  color: var(--text-inverse);
+  background: var(--primary-bg);
 }
 
 .class-block.green {
-  background: #dcfce7;
+  background: var(--success-bg);
+  color: var(--success);
 }
 
 .class-block.purple {
-  background: #f3e8ff;
+  background: var(--accent-bg);
+  color: var(--accent);
 }
 
 .class-block.orange {
-  background: #ffedd5;
+  background: var(--warning-bg);
+  color: var(--warning-700);
 }
 
 /* Jamboard */
@@ -286,7 +289,7 @@
 
 .jamboard-board-title {
   margin: 0;
-  color: #0b1220;
+  color: var(--text-primary);
   font-size: 0.96rem;
   font-weight: 800;
   letter-spacing: 0.01em;
@@ -294,7 +297,7 @@
 
 .jamboard-board-meta {
   margin: 7px 0 0;
-  color: #1f2937;
+  color: var(--text-secondary);
   font-size: 0.82rem;
   font-weight: 650;
 }
@@ -316,9 +319,9 @@
 }
 
 .jamboard-board-delete:hover {
-  border-color: #dc2626;
-  color: #dc2626;
-  background: rgba(255, 255, 255, 0.85);
+  border-color: var(--danger);
+  color: var(--danger);
+  background: var(--danger-bg);
 }
 
 .jamboard-note {
@@ -329,7 +332,7 @@
 
 .jamboard-error {
   margin: 10px 0 0;
-  color: #dc2626;
+  color: var(--danger);
   font-size: 0.84rem;
   font-weight: 600;
 }
@@ -347,7 +350,7 @@
 
 .jamboard-modal {
   width: min(420px, 100%);
-  background: #ffffff;
+  background: var(--card);
   border-radius: 14px;
   border: 1px solid rgba(15, 23, 42, 0.1);
   box-shadow: 0 20px 40px rgba(2, 6, 23, 0.24);
@@ -395,14 +398,14 @@
 }
 
 .jamboard-modal-confirm-delete {
-  background: #dc2626;
-  color: #ffffff;
-  border: 1px solid #dc2626;
+  background: var(--danger);
+  color: var(--text-inverse);
+  border: 1px solid var(--danger);
 }
 
 .jamboard-modal-confirm-delete:hover {
-  background: #b91c1c;
-  border-color: #b91c1c;
+  background: var(--danger-hover, #B91C1C);
+  border-color: var(--danger-hover, #B91C1C);
 }
 
 /* Schedule */

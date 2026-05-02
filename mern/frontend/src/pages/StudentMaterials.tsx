@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { apiFetch } from "../lib/api";
+import { AlertTriangle } from "lucide-react";
+import Icon from "../components/ui/Icon";
 import "./StudentMaterials.css";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -168,7 +170,7 @@ export default function StudentMaterials() {
 
       {!loading && error && (
         <div className="sm-error-card">
-          <p>⚠ {error}</p>
+          <p><Icon icon={AlertTriangle} size={16} /> {error}</p>
         </div>
       )}
 

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
 import VoiceChannel from "../voice/components/VoiceChannel";
+import { X, CheckCircle2, AlertTriangle } from "lucide-react";
 import "./TeacherCourse.css";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -585,7 +586,7 @@ export default function TeacherCourse() {
         {/* Toast */}
         {toast && (
           <div className={`tc-toast ${toast.type === "err" ? "tc-toast-err" : "tc-toast-ok"}`}>
-            {toast.type === "ok" ? "✓" : "⚠"} {toast.msg}
+            {toast.type === "ok" ? <CheckCircle2 size={16} aria-hidden="true" style={{ display: "inline", verticalAlign: "middle" }} /> : <AlertTriangle size={16} aria-hidden="true" style={{ display: "inline", verticalAlign: "middle" }} />} {toast.msg}
           </div>
         )}
 
@@ -1186,7 +1187,7 @@ export default function TeacherCourse() {
           <div className="modal">
             <div className="modal-header">
               <h2>Create New Module</h2>
-              <button className="btn btn-ghost btn-icon" onClick={() => setShowCreateModule(false)}>✕</button>
+              <button className="btn btn-ghost btn-icon" onClick={() => setShowCreateModule(false)} aria-label="Close"><X size={18} aria-hidden="true" /></button>
             </div>
             <form onSubmit={handleCreateModule}>
               <div className="modal-body">
@@ -1231,7 +1232,7 @@ export default function TeacherCourse() {
           <div className="modal">
             <div className="modal-header">
               <h2>Upload Material</h2>
-              <button className="btn btn-ghost btn-icon" onClick={() => setUploadForModule(null)}>✕</button>
+              <button className="btn btn-ghost btn-icon" onClick={() => setUploadForModule(null)} aria-label="Close"><X size={18} aria-hidden="true" /></button>
             </div>
             <form onSubmit={handleUploadMaterial}>
               <div className="modal-body">
@@ -1257,7 +1258,7 @@ export default function TeacherCourse() {
                         <p className="file-name">{matFile.name}</p>
                         <p className="file-size">{formatBytes(matFile.size)}</p>
                       </div>
-                      <button type="button" className="btn btn-ghost btn-sm" style={{ color: "var(--danger)" }} onClick={() => setMatFile(null)}>✕</button>
+                      <button type="button" className="btn btn-ghost btn-sm" style={{ color: "var(--danger)" }} onClick={() => setMatFile(null)} aria-label="Remove file"><X size={16} aria-hidden="true" /></button>
                     </div>
                   ) : (
                     <div

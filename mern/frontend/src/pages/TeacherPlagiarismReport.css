@@ -87,7 +87,7 @@
 }
 
 .pr-node-label {
-  fill: #fff;
+  fill: var(--text-inverse);
   font-weight: 700;
   font-size: 0.9rem;
 }

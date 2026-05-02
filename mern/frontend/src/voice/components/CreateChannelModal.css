@@ -32,8 +32,8 @@
 .ccm-modal {
   width: 100%;
   max-width: 400px;
-  background: var(--card, #1e293b);
-  border: 1px solid var(--border, #334155);
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 12px;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   animation: ccm-slide-up 0.2s ease;
@@ -51,14 +51,14 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  border-bottom: 1px solid var(--border, #334155);
+  border-bottom: 1px solid var(--border);
 }
 
 .ccm-header h3 {
   margin: 0;
   font-size: 15px;
   font-weight: 600;
-  color: var(--text-primary, #f1f5f9);
+  color: var(--text-primary);
 }
 
 .ccm-close-btn {
@@ -70,15 +70,15 @@
   background: transparent;
   border: none;
   border-radius: 6px;
-  color: var(--text-muted, #94a3b8);
+  color: var(--text-muted);
   font-size: 18px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .ccm-close-btn:hover {
-  background: var(--border-light, #374151);
-  color: var(--text-primary, #f1f5f9);
+  background: var(--border-light);
+  color: var(--text-primary);
 }
 
 /* ── Body ── */
@@ -91,29 +91,29 @@
   margin-bottom: 8px;
   font-size: 13px;
   font-weight: 500;
-  color: var(--text-secondary, #cbd5e1);
+  color: var(--text-secondary);
 }
 
 .ccm-input {
   width: 100%;
   padding: 10px 14px;
-  background: var(--primary-bg, #0f172a);
-  border: 1px solid var(--border, #334155);
+  background: var(--primary-bg);
+  border: 1px solid var(--border);
   border-radius: 8px;
   font-size: 14px;
-  color: var(--text-primary, #f1f5f9);
+  color: var(--text-primary);
   outline: none;
   transition: border-color 0.15s ease;
   box-sizing: border-box;
 }
 
 .ccm-input::placeholder {
-  color: var(--text-muted, #64748b);
+  color: var(--text-muted);
 }
 
 .ccm-input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 
 /* ── Footer ── */
@@ -136,21 +136,21 @@
 }
 
 .ccm-btn-cancel {
-  background: var(--border-light, #374151);
-  color: var(--text-secondary, #cbd5e1);
+  background: var(--border-light);
+  color: var(--text-secondary);
 }
 
 .ccm-btn-cancel:hover {
-  background: var(--border, #475569);
+  background: var(--border);
 }
 
 .ccm-btn-create {
-  background: #2563eb;
-  color: #ffffff;
+  background: var(--primary);
+  color: var(--text-inverse);
 }
 
 .ccm-btn-create:hover:not(:disabled) {
-  background: #1d4ed8;
+  background: var(--primary-hover);
 }
 
 .ccm-btn-create:disabled {

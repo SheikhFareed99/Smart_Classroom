@@ -155,7 +155,7 @@ const ScreenShareOverlay = ({ track, sharerName, onClose }: ScreenShareOverlayPr
             style={overlayStyles.closeBtn}
             aria-label="Close screen share"
           >
-            ✕
+            <XIcon />
           </button>
         </div>
         {/* Video */}
@@ -312,7 +312,7 @@ const VoiceChannel = ({ courseId, userId, userName, userRole }: VoiceChannelProp
       document.getElementById("voice-unblock-btn")?.remove();
     },
     onTeacherMuted: () => {
-      addToast("🔇 You have been muted by the teacher", "warn");
+      addToast("You have been muted by the teacher", "warn");
     },
   });
 
@@ -556,7 +556,7 @@ const VoiceChannel = ({ courseId, userId, userName, userRole }: VoiceChannelProp
                 <span style={styles.youBadge}>you</span>
                 {isMuted && <span style={styles.mutedBadge}>muted</span>}
                 {isDeafened && <span style={styles.deafBadge}>deafened</span>}
-                {isScreenSharing && <span style={styles.sharingBadge}>🖥 sharing</span>}
+                {isScreenSharing && <span style={styles.sharingBadge}><MonitorIcon /> sharing</span>}
               </span>
             </div>
             {/* Remote peers */}

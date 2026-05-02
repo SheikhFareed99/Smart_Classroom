@@ -2,16 +2,16 @@ import { useState, useRef, useEffect } from "react";
 import { useTheme } from "./ThemeToggle";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { Search, Bell, Sun, Moon, ChevronDown, LogOut } from "lucide-react";
+import Icon from "./ui/Icon";
+import Avatar from "./ui/Avatar";
 import "./Navbar.css";
 
 type NavbarProps = {
   user: any;
 };
 
-
-
-
-export default function Navbar({  user }: NavbarProps) {
+export default function Navbar({ user }: NavbarProps) {
   const { darkMode, toggleTheme } = useTheme();
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -20,18 +20,9 @@ export default function Navbar({  user }: NavbarProps) {
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement | null>(null);
 
-const profileName = user?.name 
-  ? user.name.split(" ").slice(0, 2).join(" ") 
-  : (user?.email || "");
-
-  const profileInitials = profileName
-    ? profileName
-        .split(" ")
-        .map((s: string) => s[0])
-        .slice(0, 2)
-        .join("")
-        .toUpperCase()
-    : "";
+  const profileName = user?.name
+    ? user.name.split(" ").slice(0, 2).join(" ")
+    : user?.email || "";
 
   // close dropdown when clicking outside
   useEffect(() => {
@@ -49,8 +40,6 @@ const profileName = user?.name
     <nav className="navbar">
       {/* Left */}
       <div className="navbar-left">
-     
-
         <Link to="/dashboard" className="navbar-logo">
           <div className="logo-icon">AI</div>
           AI<span>Co</span>
@@ -60,11 +49,7 @@ const profileName = user?.name
       {/* Center */}
       <div className="navbar-center">
         <div className="search-box">
-          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="8" cy="8" r="7" />
-            <path d="m15 15 2 2" />
-          </svg>
-
+          <Icon icon={Search} size={18} className="search-box__icon" />
           <input
             type="text"
             placeholder="Search courses, assignments…"
@@ -77,27 +62,14 @@ const profileName = user?.name
       {/* Right */}
       <div className="navbar-right">
         {/* Notification */}
-        <button className="nav-icon-btn">
-          <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-          </svg>
-
-          <span className="notification-dot"></span>
+        <button className="nav-icon-btn" aria-label="Notifications">
+          <Icon icon={Bell} size={20} />
+          <span className="notification-dot" />
         </button>
 
         {/* Theme toggle */}
-        <button className="nav-icon-btn" onClick={toggleTheme}>
-          {darkMode ? (
-            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="10" cy="10" r="4" />
-              <path d="M10 1v2M10 17v2M3.3 3.3l1.4 1.4M15.3 15.3l1.4 1.4M1 10h2M17 10h2" />
-            </svg>
-          ) : (
-            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-            </svg>
-          )}
+        <button className="nav-icon-btn" onClick={toggleTheme} aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}>
+          <Icon icon={darkMode ? Sun : Moon} size={20} />
         </button>
 
         {/* Profile */}
@@ -106,25 +78,24 @@ const profileName = user?.name
             className="profile-btn"
             onClick={() => setProfileOpen((s) => !s)}
             aria-expanded={profileOpen}
+            aria-label="User menu"
           >
-            <div className="avatar">{profileInitials || "U"}</div>
-
+            <Avatar name={profileName} size="sm" />
             <span className="profile-name">{profileName}</span>
-
-            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="m4 6 4 4 4-4" />
-            </svg>
+            <Icon icon={ChevronDown} size={16} className="profile-chevron" />
           </button>
 
           {profileOpen && (
-            <div className="profile-menu">
+            <div className="profile-menu" role="menu">
               <button
                 className="profile-menu-item"
+                role="menuitem"
                 onClick={async () => {
                   await logout();
                   navigate("/");
                 }}
               >
+                <Icon icon={LogOut} size={16} />
                 Sign out
               </button>
             </div>

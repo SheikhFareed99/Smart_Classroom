@@ -1,4 +1,8 @@
-import React, { useState, useRef, type JSX } from "react";
+import React, { useState, useRef, useEffect, type JSX } from "react";
+import { Plus, X } from "lucide-react";
+import Icon from "./ui/Icon";
+import Button from "./ui/Button";
+import { CheckCircle2, XCircle } from "lucide-react";
 import "./JoinCourse.css";
 import { apiFetch } from "../lib/api";
 
@@ -14,6 +18,24 @@ export default function JoinCourse({ onJoined }: Props): JSX.Element {
   const [open, setOpen] = useState(false);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const modalRef = useRef<HTMLDivElement | null>(null);
+
+  // Focus input when modal opens
+  useEffect(() => {
+    if (open && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [open]);
+
+  // Close on Escape
+  useEffect(() => {
+    if (!open) return;
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [open]);
 
   async function join(code: string) {
     if (!code.trim()) return;
@@ -32,7 +54,7 @@ export default function JoinCourse({ onJoined }: Props): JSX.Element {
       setMessage("Joined course successfully.");
       setMessageType("success");
       setTimeout(() => { setMessage(null); setMessageType(null); }, 3500);
-      setOpen(false); // close modal after join
+      setOpen(false);
     } catch (err: any) {
       setMessage(err?.message || "Failed to join course");
       setMessageType("error");
@@ -50,32 +72,50 @@ export default function JoinCourse({ onJoined }: Props): JSX.Element {
 
   return (
     <>
-      <button className="join-course-btn" onClick={() => setOpen(true)} disabled={loading}>
-        <span className="plus-icon">+</span> Join Course
-      </button>
+      <Button
+        variant="primary"
+        iconLeft={Plus}
+        onClick={() => setOpen(true)}
+        disabled={loading}
+        className="join-course-btn"
+      >
+        Join Course
+      </Button>
 
       {open && (
-        <div className="join-course-overlay">
-          <div className="join-course-modal">
-            <h2>Enter Class Code</h2>
+        <div
+          className="join-course-overlay"
+          onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="join-course-title"
+        >
+          <div className="join-course-modal" ref={modalRef}>
+            <div className="join-course-header">
+              <h2 id="join-course-title">Enter Class Code</h2>
+              <button className="join-course-close" onClick={() => setOpen(false)} aria-label="Close">
+                <Icon icon={X} size={20} />
+              </button>
+            </div>
             <input
               type="text"
+              className="join-course-input"
               placeholder="Class code"
               value={classCode}
               onChange={(e) => setClassCode(e.target.value)}
               onKeyDown={handleKeyDown}
               ref={inputRef}
               disabled={loading}
-              autoFocus
             />
             <div className="join-course-actions">
-              <button onClick={() => setOpen(false)} className="cancel-btn">Cancel</button>
-              <button onClick={() => join(classCode)} className="submit-btn" disabled={loading}>
-                {loading ? "Joining..." : "Join"}
-              </button>
+              <Button variant="secondary" size="sm" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button variant="primary" size="sm" onClick={() => join(classCode)} loading={loading}>
+                Join
+              </Button>
             </div>
             {message && (
-              <div className={`join-course-notice ${messageType === "success" ? "success" : "error"}`}>
+              <div className={`join-course-notice ${messageType}`}>
+                <Icon icon={messageType === "success" ? CheckCircle2 : XCircle} size={16} />
                 {message}
               </div>
             )}
