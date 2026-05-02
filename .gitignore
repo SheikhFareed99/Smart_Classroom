@@ -270,3 +270,6 @@ Desktop.ini
 
 # VS Code
 .vscode/
+
+/design-system
+/.agent

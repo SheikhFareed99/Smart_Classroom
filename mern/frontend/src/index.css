@@ -1,32 +1,92 @@
-:root {
-  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  --text-secondary: #33363b;
+/* ============================================
+   AICo — Global Base Styles
+   Import design tokens, apply base typography,
+   and set up foundational CSS reset.
+   ============================================ */
 
-  color: #0F172A;
-  background-color: #F8FAFC;
+/* Design system tokens — single source of truth */
+@import './styles/tokens.css';
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-* {
+/* ---------- Base Reset ---------- */
+*,
+*::before,
+*::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
+/* ---------- Root Defaults ---------- */
+:root {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
+  font-weight: 400;
+  color: var(--text-primary);
+  background-color: var(--bg-app);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Legacy compat — old components still use these */
+  --primary: var(--primary-600);
+  --primary-light: var(--primary-500);
+  --primary-dark: var(--primary-700);
+  --primary-bg: var(--primary-50);
+  --accent: var(--success-500);
+  --accent-dark: var(--success-600);
+  --accent-bg: var(--success-50);
+  --bg: var(--bg-app);
+  --card: var(--bg-surface);
+  --text-primary: var(--neutral-900);
+  --text-secondary: var(--neutral-600);
+  --text-muted: var(--neutral-400);
+  --border: var(--border-default);
+  --border-light: var(--neutral-100);
+}
+
+/* ---------- Dark Mode Legacy Compat ---------- */
+.dark {
+  --primary: var(--primary-500);
+  --primary-light: var(--primary-400);
+  --primary-dark: var(--primary-600);
+  --primary-bg: var(--primary-950);
+  --accent: var(--success-400);
+  --accent-dark: var(--success-500);
+  --accent-bg: rgba(52, 211, 153, 0.1);
+  --bg: var(--bg-app);
+  --card: var(--bg-surface);
+  --text-primary: var(--neutral-50);
+  --text-secondary: var(--neutral-400);
+  --text-muted: var(--neutral-500);
+  --border: var(--border-default);
+  --border-light: var(--neutral-800);
+
+  color: var(--neutral-50);
+  background-color: var(--bg-app);
+}
+
+/* ---------- Body ---------- */
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
 }
 
-/* Make the dark wrapper fill the entire viewport so no white bleeds through */
+/* ---------- Dark wrapper fill ---------- */
 .dark {
   min-height: 100vh;
-  background-color: #0F172A;
+}
+
+/* ---------- Selection ---------- */
+::selection {
+  background-color: var(--primary-200);
+  color: var(--primary-900);
+}
+
+.dark ::selection {
+  background-color: var(--primary-800);
+  color: var(--primary-100);
 }
