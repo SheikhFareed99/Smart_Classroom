@@ -52,9 +52,15 @@ router.post("/token", requireAuth, async (req: Request, res: Response) => {
       canPublish:         true,
       canSubscribe:       true,
       canPublishData:     true,
-      // Explicitly allow the microphone source so the track is
-      // never blocked by a room-level source restriction policy.
-      canPublishSources:  [TrackSource.MICROPHONE],
+      // Whitelist all sources this app uses.
+      // MICROPHONE  — voice audio
+      // SCREEN_SHARE       — screen video track
+      // SCREEN_SHARE_AUDIO — system/tab audio during screen share
+      canPublishSources:  [
+        TrackSource.MICROPHONE,
+        TrackSource.SCREEN_SHARE,
+        TrackSource.SCREEN_SHARE_AUDIO,
+      ],
     });
 
     const jwt = await token.toJwt();
@@ -62,7 +68,7 @@ router.post("/token", requireAuth, async (req: Request, res: Response) => {
     // Debug log — redact in production if needed
     console.log(
       `[livekit] token issued | identity=${identity} role=${role || "student"} ` +
-      `room=${roomName} canPublish=true canPublishSources=[MICROPHONE]`
+      `room=${roomName} canPublish=true canPublishSources=[MICROPHONE,SCREEN_SHARE,SCREEN_SHARE_AUDIO]`
     );
 
     return res.json({ token: jwt, identity });

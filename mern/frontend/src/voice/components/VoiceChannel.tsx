@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
+import type { RemoteTrack } from "livekit-client";
 import { useLiveKit as useWebRTC } from "../hooks/useLiveKit";
 import { useSoundEffects } from "../hooks/useSoundEffects";
 import VoiceControls from "./VoiceControls";
@@ -112,6 +113,123 @@ const UsersIcon = () => (
   </svg>
 );
 
+const MonitorIcon = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+    style={{ flexShrink: 0 }}>
+    <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+    <line x1="8" y1="21" x2="16" y2="21" />
+    <line x1="12" y1="17" x2="12" y2="21" />
+  </svg>
+);
+
+// ── Screen Share Overlay ──────────────────────────────────────────────────────
+
+interface ScreenShareOverlayProps {
+  track:        RemoteTrack;
+  sharerName:   string;
+  onClose:      () => void;
+}
+
+const ScreenShareOverlay = ({ track, sharerName, onClose }: ScreenShareOverlayProps) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    track.attach(el);
+    return () => { track.detach(el); };
+  }, [track]);
+
+  return (
+    <div style={overlayStyles.backdrop} onClick={onClose}>
+      <div style={overlayStyles.modal} onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div style={overlayStyles.header}>
+          <span style={overlayStyles.headerLabel}>
+            <MonitorIcon />
+            <span>{sharerName} is sharing their screen</span>
+          </span>
+          <button
+            onClick={onClose}
+            style={overlayStyles.closeBtn}
+            aria-label="Close screen share"
+          >
+            ✕
+          </button>
+        </div>
+        {/* Video */}
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          style={overlayStyles.video}
+        />
+      </div>
+    </div>
+  );
+};
+
+const overlayStyles: Record<string, React.CSSProperties> = {
+  backdrop: {
+    position:        "fixed",
+    inset:           0,
+    backgroundColor: "rgba(0,0,0,0.85)",
+    backdropFilter:  "blur(6px)",
+    zIndex:          9990,
+    display:         "flex",
+    alignItems:      "center",
+    justifyContent:  "center",
+    animation:       "scOverlayIn 0.2s ease",
+  },
+  modal: {
+    display:         "flex",
+    flexDirection:   "column",
+    width:           "90vw",
+    maxWidth:        "1200px",
+    backgroundColor: "#0f172a",
+    borderRadius:    "12px",
+    border:          "1px solid rgba(99,102,241,0.35)",
+    boxShadow:       "0 0 60px rgba(99,102,241,0.2), 0 25px 50px rgba(0,0,0,0.6)",
+    overflow:        "hidden",
+  },
+  header: {
+    display:         "flex",
+    alignItems:      "center",
+    justifyContent:  "space-between",
+    padding:         "12px 16px",
+    backgroundColor: "#1e293b",
+    borderBottom:    "1px solid rgba(99,102,241,0.2)",
+  },
+  headerLabel: {
+    display:    "flex",
+    alignItems: "center",
+    gap:        "8px",
+    fontSize:   "13px",
+    fontWeight: "600",
+    color:      "#a5b4fc",
+  },
+  closeBtn: {
+    background:   "rgba(220,38,38,0.15)",
+    border:       "1px solid rgba(220,38,38,0.3)",
+    color:        "#f87171",
+    borderRadius: "6px",
+    cursor:       "pointer",
+    fontSize:     "14px",
+    fontWeight:   "600",
+    padding:      "4px 10px",
+    lineHeight:   1,
+    transition:   "background 0.15s",
+  },
+  video: {
+    width:           "100%",
+    maxHeight:       "80vh",
+    objectFit:       "contain",
+    backgroundColor: "#000",
+    display:         "block",
+  },
+};
+
 // ── Component ────────────────────────────────────────────────────────────────
 
 const VoiceChannel = ({ courseId, userId, userName, userRole }: VoiceChannelProps) => {
@@ -127,6 +245,8 @@ const VoiceChannel = ({ courseId, userId, userName, userRole }: VoiceChannelProp
   const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
   const [wasDeleted, setWasDeleted] = useState<boolean>(false);
   const [wasKicked, setWasKicked] = useState<boolean>(false);
+  // identity of the remote participant whose screen share overlay is open
+  const [viewingIdentity, setViewingIdentity] = useState<string | null>(null);
 
   // ── Toast notifications ───────────────────────────────────────────────────
   const [toasts, setToasts] = useState<Array<{ id: number; msg: string; type: 'info'|'warn'|'error' }>>([]);
@@ -162,10 +282,14 @@ const VoiceChannel = ({ courseId, userId, userName, userRole }: VoiceChannelProp
     isMuted,
     isDeafened,
     isConnected,
+    isScreenSharing,
+    remoteScreenShares,
     joinChannel,
     leaveChannel,
     toggleMute,
     toggleDeafen,
+    startScreenShare,
+    stopScreenShare,
     muteParticipant,
     unmuteParticipant,
     kickParticipant,
@@ -261,6 +385,22 @@ const VoiceChannel = ({ courseId, userId, userName, userRole }: VoiceChannelProp
   const handleToggleDeafen = () => {
     isDeafened ? sfx.playUndeafen() : sfx.playDeafen();
     toggleDeafen();
+  };
+  const handleStartScreenShare = async () => {
+    sfx.playStartShare();
+    await startScreenShare();
+  };
+  const handleStopScreenShare = async () => {
+    sfx.playStopShare();
+    await stopScreenShare();
+  };
+  const handleViewScreen = (identity: string) => {
+    sfx.playViewShare();
+    setViewingIdentity(identity);
+  };
+  const handleCloseOverlay = () => {
+    sfx.playStopShare();
+    setViewingIdentity(null);
   };
 
   const handleCreate = async (channelName: string) => {
@@ -389,6 +529,18 @@ const VoiceChannel = ({ courseId, userId, userName, userRole }: VoiceChannelProp
       )}
 
       {/* Active channel box */}
+      {/* Screen share overlay — shown when viewingIdentity is set */}
+      {viewingIdentity && remoteScreenShares.has(viewingIdentity) && (
+        <ScreenShareOverlay
+          track={remoteScreenShares.get(viewingIdentity)!}
+          sharerName={peers.find((p) => p.userId === viewingIdentity)?.name ?? viewingIdentity}
+          onClose={handleCloseOverlay}
+        />
+      )}
+
+      {/* keyframes injected once */}
+      <style>{`@keyframes scOverlayIn { from { opacity:0; transform:scale(0.97); } to { opacity:1; transform:scale(1); } }`}</style>
+
       {activeChannelId && (
         <div style={styles.activeBox}>
           <div style={styles.activeName}>
@@ -404,6 +556,7 @@ const VoiceChannel = ({ courseId, userId, userName, userRole }: VoiceChannelProp
                 <span style={styles.youBadge}>you</span>
                 {isMuted && <span style={styles.mutedBadge}>muted</span>}
                 {isDeafened && <span style={styles.deafBadge}>deafened</span>}
+                {isScreenSharing && <span style={styles.sharingBadge}>🖥 sharing</span>}
               </span>
             </div>
             {/* Remote peers */}
@@ -413,6 +566,15 @@ const VoiceChannel = ({ courseId, userId, userName, userRole }: VoiceChannelProp
                 <span style={styles.pName}>
                   {peer.name}
                   {peer.isMuted && <span style={styles.mutedBadge}>muted</span>}
+                  {remoteScreenShares.has(peer.userId) && (
+                    <button
+                      onClick={() => handleViewScreen(peer.userId)}
+                      style={styles.viewScreenBtn}
+                      title="View screen share"
+                    >
+                      <MonitorIcon /> View Screen
+                    </button>
+                  )}
                 </span>
                 {/* Teacher moderation */}
                 {isTeacher && (
@@ -458,10 +620,13 @@ const VoiceChannel = ({ courseId, userId, userName, userRole }: VoiceChannelProp
             isMuted={isMuted}
             isDeafened={isDeafened}
             isConnected={isConnected}
+            isScreenSharing={isScreenSharing}
             userRole={userRole}
             onToggleMute={handleToggleMute}
             onToggleDeafen={handleToggleDeafen}
             onLeave={handleLeave}
+            onStartScreenShare={handleStartScreenShare}
+            onStopScreenShare={handleStopScreenShare}
           />
         </div>
       )}
@@ -650,6 +815,25 @@ const styles: Record<string, React.CSSProperties> = {
   deafBadge: {
     fontSize: "10px", color: "#fb923c", padding: "1px 5px",
     backgroundColor: "rgba(249,115,22,0.1)", borderRadius: "4px",
+  },
+  sharingBadge: {
+    fontSize: "10px", color: "#34d399", padding: "1px 6px",
+    backgroundColor: "rgba(52,211,153,0.12)", borderRadius: "4px",
+    border: "1px solid rgba(52,211,153,0.2)",
+  },
+  viewScreenBtn: {
+    display:         "inline-flex",
+    alignItems:      "center",
+    gap:             "3px",
+    fontSize:        "10px",
+    color:           "#a5b4fc",
+    backgroundColor: "rgba(99,102,241,0.15)",
+    border:          "1px solid rgba(99,102,241,0.3)",
+    borderRadius:    "4px",
+    padding:         "1px 6px",
+    cursor:          "pointer",
+    fontWeight:      "500",
+    transition:      "background-color 0.15s",
   },
   modActions: { display: "flex", alignItems: "center", gap: "3px", marginLeft: "auto" },
   modBtn: {

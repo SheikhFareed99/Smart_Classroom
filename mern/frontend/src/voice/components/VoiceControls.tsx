@@ -2,13 +2,16 @@ import React, { useState } from "react";
 import type { VoiceRole } from "../types/voice.types";
 
 interface VoiceControlsProps {
-  isMuted:        boolean;
-  isDeafened:     boolean;
-  isConnected:    boolean;
-  userRole:       VoiceRole;
-  onToggleMute:   () => void;
-  onToggleDeafen: () => void;
-  onLeave:        () => void;
+  isMuted:            boolean;
+  isDeafened:         boolean;
+  isConnected:        boolean;
+  isScreenSharing:    boolean;
+  userRole:           VoiceRole;
+  onToggleMute:       () => void;
+  onToggleDeafen:     () => void;
+  onLeave:            () => void;
+  onStartScreenShare: () => void;
+  onStopScreenShare:  () => void;
 }
 
 // ── Inline SVG icons ─────────────────────────────────────────────────────────
@@ -65,6 +68,27 @@ const LogOutIcon = () => (
   </svg>
 );
 
+const ScreenShareIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+    <line x1="8" y1="21" x2="16" y2="21"/>
+    <line x1="12" y1="17" x2="12" y2="21"/>
+    <polyline points="10 10 12 8 14 10"/>
+    <line x1="12" y1="8" x2="12" y2="14"/>
+  </svg>
+);
+
+const ScreenShareOffIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+    <line x1="8" y1="21" x2="16" y2="21"/>
+    <line x1="12" y1="17" x2="12" y2="21"/>
+    <line x1="2" y1="2" x2="22" y2="22"/>
+  </svg>
+);
+
 // ── Hover-aware button ────────────────────────────────────────────────────────
 
 interface VcBtnProps {
@@ -75,9 +99,10 @@ interface VcBtnProps {
   ariaLabel:  string;
   children:   React.ReactNode;
   danger?:    boolean;
+  pulse?:     boolean;
 }
 
-const VcBtn = ({ onClick, baseColor, hoverColor, label, ariaLabel, children }: VcBtnProps) => {
+const VcBtn = ({ onClick, baseColor, hoverColor, label, ariaLabel, children, pulse }: VcBtnProps) => {
   const [hov, setHov] = useState(false);
   const [act, setAct] = useState(false);
 
@@ -95,7 +120,7 @@ const VcBtn = ({ onClick, baseColor, hoverColor, label, ariaLabel, children }: V
         alignItems:      "center",
         gap:             "5px",
         padding:         "5px 10px",
-        border:          "none",
+        border:          pulse ? `1px solid ${baseColor}` : "none",
         borderRadius:    "6px",
         color:           "#ffffff",
         fontSize:        "12px",
@@ -103,10 +128,13 @@ const VcBtn = ({ onClick, baseColor, hoverColor, label, ariaLabel, children }: V
         cursor:          "pointer",
         backgroundColor: hov ? hoverColor : baseColor,
         transform:       act ? "scale(0.95)" : "scale(1)",
-        boxShadow:       hov
-          ? `0 0 8px ${baseColor}55`
-          : "none",
+        boxShadow:       pulse
+          ? `0 0 10px ${baseColor}88, 0 0 3px ${baseColor}44`
+          : hov
+            ? `0 0 8px ${baseColor}55`
+            : "none",
         transition:      "background-color 0.18s ease, transform 0.1s ease, box-shadow 0.18s ease",
+        animation:       pulse ? "vcPulse 2s ease-in-out infinite" : "none",
       }}
     >
       {children}
@@ -121,12 +149,22 @@ const VoiceControls = ({
   isMuted,
   isDeafened,
   isConnected,
+  isScreenSharing,
   onToggleMute,
   onToggleDeafen,
   onLeave,
+  onStartScreenShare,
+  onStopScreenShare,
 }: VoiceControlsProps) => {
   return (
     <div style={styles.container}>
+      {/* Pulse animation keyframes injected once */}
+      <style>{`
+        @keyframes vcPulse {
+          0%, 100% { box-shadow: 0 0 6px #dc262688, 0 0 2px #dc262644; }
+          50%       { box-shadow: 0 0 14px #dc2626cc, 0 0 5px #dc262688; }
+        }
+      `}</style>
 
       {/* Connection status pill */}
       <div style={styles.statusRow}>
@@ -160,6 +198,18 @@ const VoiceControls = ({
         ariaLabel={isDeafened ? "Undeafen audio" : "Deafen audio"}
       >
         {isDeafened ? <HeadphonesOffIcon /> : <HeadphonesIcon />}
+      </VcBtn>
+
+      {/* Screen Share / Stop Sharing */}
+      <VcBtn
+        onClick={isScreenSharing ? onStopScreenShare : onStartScreenShare}
+        baseColor={isScreenSharing ? "#dc2626" : "#0f766e"}
+        hoverColor={isScreenSharing ? "#b91c1c" : "#0d6460"}
+        label={isScreenSharing ? "Stop Sharing" : "Share Screen"}
+        ariaLabel={isScreenSharing ? "Stop screen sharing" : "Share your screen"}
+        pulse={isScreenSharing}
+      >
+        {isScreenSharing ? <ScreenShareOffIcon /> : <ScreenShareIcon />}
       </VcBtn>
 
       {/* Leave */}

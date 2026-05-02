@@ -12,54 +12,65 @@ import {
 import type { VoicePeer, VoiceRole } from "../types/voice.types";
 
 export interface UseLiveKitOptions {
-  userId:               string;
-  name:                 string;
-  role:                 VoiceRole;
+  userId: string;
+  name: string;
+  role: VoiceRole;
   onForceDisconnected?: () => void;  // called when the room is deleted
-  onKicked?:            () => void;  // called when this participant is kicked
-  onTeacherMuted?:      () => void;  // called when teacher mutes this student
+  onKicked?: () => void;  // called when this participant is kicked
+  onTeacherMuted?: () => void;  // called when teacher mutes this student
 }
 
 export interface UseLiveKitReturn {
-  peers:            VoicePeer[];
-  isMuted:          boolean;
-  isDeafened:       boolean;
-  isConnected:      boolean;
-  joinChannel:      (channelId: string) => Promise<void>;
-  leaveChannel:     () => void;
-  toggleMute:       () => void;
-  toggleDeafen:     () => void;
-  muteParticipant:  (identity: string) => Promise<void>;
-  unmuteParticipant:(identity: string) => Promise<void>;
-  muteAll:          () => Promise<void>;
-  kickParticipant:  (identity: string) => Promise<void>;
+  peers: VoicePeer[];
+  isMuted: boolean;
+  isDeafened: boolean;
+  isConnected: boolean;
+  isScreenSharing: boolean;
+  remoteScreenShares: Map<string, RemoteTrack>;
+  joinChannel: (channelId: string) => Promise<void>;
+  leaveChannel: () => void;
+  toggleMute: () => void;
+  toggleDeafen: () => void;
+  startScreenShare: () => Promise<void>;
+  stopScreenShare: () => Promise<void>;
+  muteParticipant: (identity: string) => Promise<void>;
+  unmuteParticipant: (identity: string) => Promise<void>;
+  muteAll: () => Promise<void>;
+  kickParticipant: (identity: string) => Promise<void>;
 }
 
 const LIVEKIT_URL =
   import.meta.env.VITE_LIVEKIT_URL || "wss://smart-classroom-x64i9653.livekit.cloud";
 
 export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked, onTeacherMuted }: UseLiveKitOptions): UseLiveKitReturn => {
-  const [peers,       setPeers]       = useState<VoicePeer[]>([]);
-  const [isMuted,     setIsMuted]     = useState(false);
-  const [isDeafened,  setIsDeafened]  = useState(false);
+  const [peers, setPeers] = useState<VoicePeer[]>([]);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isDeafened, setIsDeafened] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [remoteScreenShares, setRemoteScreenShares] = useState<Map<string, RemoteTrack>>(new Map());
 
-  const roomRef         = useRef<Room | null>(null);
-  const channelIdRef    = useRef<string | null>(null);
+  // Keep the ref in sync with state so stable callbacks can read it
+  // without needing isScreenSharing in their dependency arrays.
+  const isScreenSharingRef = useRef(false);
+  useEffect(() => { isScreenSharingRef.current = isScreenSharing; }, [isScreenSharing]);
+
+  const roomRef = useRef<Room | null>(null);
+  const channelIdRef = useRef<string | null>(null);
   const micPublishedRef = useRef<boolean>(false);
   // Set to true while WE are initiating a mute so TrackMuted can tell the
   // difference between a self-mute and a teacher-initiated server mute.
-  const selfMutingRef   = useRef<boolean>(false);
+  const selfMutingRef = useRef<boolean>(false);
 
   // ── Token fetch ────────────────────────────────────────────────────────────
   const fetchToken = useCallback(async (channelId: string): Promise<string> => {
     const res = await fetch("/voice/api/livekit/token", {
-      method:  "POST",
+      method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        roomName:        channelId,
+        roomName: channelId,
         participantName: name,
-        participantId:   userId,
+        participantId: userId,
         role,
       }),
     });
@@ -81,9 +92,9 @@ export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked, 
       const micPub = p.getTrackPublication(Track.Source.Microphone);
       list.push({
         socketId: p.identity,
-        userId:   p.identity,
-        name:     p.name || p.identity,
-        isMuted:  micPub ? micPub.isMuted : false,
+        userId: p.identity,
+        name: p.name || p.identity,
+        isMuted: micPub ? micPub.isMuted : false,
       });
     });
     setPeers(list);
@@ -91,16 +102,27 @@ export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked, 
 
   // ── Audio track subscription ───────────────────────────────────────────────
   const handleTrackSubscribed = useCallback((
-    track:       RemoteTrack,
-    _pub:        RemoteTrackPublication,
+    track: RemoteTrack,
+    _pub: RemoteTrackPublication,
     participant: RemoteParticipant,
   ) => {
+    // ── Screen share track ─────────────────────────────────────────────────
+    if (track.source === Track.Source.ScreenShare) {
+      setRemoteScreenShares((prev) => {
+        const next = new Map(prev);
+        next.set(participant.identity, track);
+        return next;
+      });
+      console.log(`[livekit] screen share started by: ${participant.identity}`);
+      return;
+    }
+
     if (track.kind !== Track.Kind.Audio) return;
 
     document.getElementById(`lk-audio-${participant.identity}`)?.remove();
 
     const audio = document.createElement("audio");
-    audio.id       = `lk-audio-${participant.identity}`;
+    audio.id = `lk-audio-${participant.identity}`;
     audio.autoplay = true;
     audio.setAttribute("playsinline", "true");
     document.body.appendChild(audio);
@@ -109,7 +131,7 @@ export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked, 
     audio.play().catch(() => {
       if (document.getElementById("voice-unblock-btn")) return;
       const btn = document.createElement("button");
-      btn.id          = "voice-unblock-btn";
+      btn.id = "voice-unblock-btn";
       btn.textContent = "Click to enable audio";
       btn.style.cssText =
         "position:fixed;top:16px;left:50%;transform:translateX(-50%);" +
@@ -117,7 +139,7 @@ export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked, 
         "border-radius:8px;font-size:14px;cursor:pointer;z-index:9999;";
       btn.onclick = () => {
         document.querySelectorAll<HTMLAudioElement>("audio")
-          .forEach((a) => a.play().catch(() => {}));
+          .forEach((a) => a.play().catch(() => { }));
         btn.remove();
       };
       document.body.appendChild(btn);
@@ -125,10 +147,21 @@ export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked, 
   }, []);
 
   const handleTrackUnsubscribed = useCallback((
-    track:       RemoteTrack,
-    _pub:        RemoteTrackPublication,
+    track: RemoteTrack,
+    _pub: RemoteTrackPublication,
     participant: RemoteParticipant,
   ) => {
+    // ── Screen share ended ─────────────────────────────────────────────────
+    if (track.source === Track.Source.ScreenShare) {
+      setRemoteScreenShares((prev) => {
+        const next = new Map(prev);
+        next.delete(participant.identity);
+        return next;
+      });
+      console.log(`[livekit] screen share stopped by: ${participant.identity}`);
+      return;
+    }
+
     track.detach();
     document.getElementById(`lk-audio-${participant.identity}`)?.remove();
   }, []);
@@ -143,8 +176,10 @@ export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked, 
 
     channelIdRef.current = channelId;
 
-    // Reset local mute state so we always start unmuted
+    // Reset local state
     setIsMuted(false);
+    setIsScreenSharing(false);
+    setRemoteScreenShares(new Map());
 
     let token: string;
     try {
@@ -155,12 +190,17 @@ export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked, 
     }
 
     const room = new Room({
+      // adaptiveStream / dynacast are good for voice — keep them.
+      // NOTE: do NOT set videoCaptureDefaults here for screen share quality.
+      //       videoCaptureDefaults only affects camera (getUserMedia), not
+      //       screen capture (getDisplayMedia). Screen share options must be
+      //       passed directly to setScreenShareEnabled().
       adaptiveStream: true,
-      dynacast:       true,
+      dynacast: true,
       audioCaptureDefaults: {
         echoCancellation: true,
         noiseSuppression: true,
-        autoGainControl:  true,
+        autoGainControl: true,
       },
     });
 
@@ -177,6 +217,8 @@ export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked, 
         setPeers([]);
         setIsMuted(false);
         setIsDeafened(false);
+        setIsScreenSharing(false);
+        setRemoteScreenShares(new Map());
         console.log(`[livekit] disconnected, reason: ${reason}`);
 
         if (reason === DisconnectReason.PARTICIPANT_REMOVED) {
@@ -193,23 +235,41 @@ export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked, 
       .on(RoomEvent.ParticipantConnected, () => updatePeers(room))
       .on(RoomEvent.ParticipantDisconnected, (p) => {
         document.getElementById(`lk-audio-${p.identity}`)?.remove();
+        // Clean up any screen share from the disconnected participant
+        setRemoteScreenShares((prev) => {
+          if (!prev.has(p.identity)) return prev;
+          const next = new Map(prev);
+          next.delete(p.identity);
+          return next;
+        });
         updatePeers(room);
       })
-      .on(RoomEvent.TrackSubscribed,      handleTrackSubscribed)
-      .on(RoomEvent.TrackUnsubscribed,    handleTrackUnsubscribed)
-      .on(RoomEvent.LocalTrackPublished,  (pub) => {
+      .on(RoomEvent.TrackSubscribed, handleTrackSubscribed)
+      .on(RoomEvent.TrackUnsubscribed, handleTrackUnsubscribed)
+      .on(RoomEvent.LocalTrackPublished, (pub) => {
         if (pub.source === Track.Source.Microphone) {
           micPublishedRef.current = true;
           // Sync mute state from the publication's actual muted state
           setIsMuted(pub.isMuted);
           console.log(`[livekit] mic published, isMuted=${pub.isMuted}`);
         }
+        if (pub.source === Track.Source.ScreenShare) {
+          setIsScreenSharing(true);
+          console.log("[livekit] local screen share published");
+        }
+        updatePeers(room);
+      })
+      .on(RoomEvent.LocalTrackUnpublished, (pub) => {
+        if (pub.source === Track.Source.ScreenShare) {
+          setIsScreenSharing(false);
+          console.log("[livekit] local screen share unpublished");
+        }
         updatePeers(room);
       })
       .on(RoomEvent.TrackMuted, (pub, participant) => {
         if (
           participant === room.localParticipant &&
-          pub.source  === Track.Source.Microphone
+          pub.source === Track.Source.Microphone
         ) {
           setIsMuted(true);
           // If WE didn't initiate this mute, it was done by the teacher
@@ -223,7 +283,7 @@ export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked, 
         // Sync local mute state when the local mic is unmuted
         if (
           participant === room.localParticipant &&
-          pub.source  === Track.Source.Microphone
+          pub.source === Track.Source.Microphone
         ) {
           setIsMuted(false);
         }
@@ -244,8 +304,8 @@ export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked, 
     micPublishedRef.current = false;
 
     try {
-      const micPub           = room.localParticipant.getTrackPublication(Track.Source.Microphone);
-      const isAlreadyLive    = micPub?.track && !micPub.isMuted;
+      const micPub = room.localParticipant.getTrackPublication(Track.Source.Microphone);
+      const isAlreadyLive = micPub?.track && !micPub.isMuted;
 
       if (!isAlreadyLive) {
         console.log("[livekit] enabling microphone...");
@@ -277,11 +337,21 @@ export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked, 
   }, [fetchToken, handleTrackSubscribed, handleTrackUnsubscribed, updatePeers]);
 
   // ── Leave ──────────────────────────────────────────────────────────────────
+  // IMPORTANT: no state values in the dependency array — only stable refs.
+  // Adding state (e.g. isScreenSharing) would create a new leaveChannel
+  // reference on every state change, causing the cleanup useEffect below to
+  // call leaveChannel() (and disconnect the room) on every re-render.
   const leaveChannel = useCallback(() => {
+    // Stop screen share cleanly before disconnecting (read via ref, not state)
+    if (roomRef.current && isScreenSharingRef.current) {
+      roomRef.current.localParticipant.setScreenShareEnabled(false).catch(() => { });
+    }
+
     roomRef.current?.disconnect();
-    roomRef.current         = null;
-    channelIdRef.current    = null;
+    roomRef.current = null;
+    channelIdRef.current = null;
     micPublishedRef.current = false;  // reset for next join
+    isScreenSharingRef.current = false;
 
     document.querySelectorAll("[id^='lk-audio-']").forEach((el) => el.remove());
     document.getElementById("voice-unblock-btn")?.remove();
@@ -290,18 +360,29 @@ export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked, 
     setIsMuted(false);
     setIsDeafened(false);
     setIsConnected(false);
-  }, []);
+    setIsScreenSharing(false);
+    setRemoteScreenShares(new Map());
+  }, []); // stable — reads live values through refs only
 
   const toggleMute = useCallback(async () => {
     const room = roomRef.current;
     if (!room) return;
 
+    // Mic was never published (e.g. browser dismissed the permission dialog on
+    // join — losing the user-gesture context after the async room.connect()).
+    // The button click IS a user gesture, so retry publishing now.
     if (!micPublishedRef.current) {
-      console.warn("[livekit] toggleMute skipped — mic not published");
+      console.log("[livekit] mic not published — retrying via user gesture...");
+      try {
+        await room.localParticipant.setMicrophoneEnabled(true);
+        // micPublishedRef.current + isMuted will be updated by LocalTrackPublished
+      } catch (err: any) {
+        console.error(`[livekit] mic enable retry failed: ${err?.message || err}`);
+      }
       return;
     }
 
-    const pub      = room.localParticipant.getTrackPublication(Track.Source.Microphone);
+    const pub = room.localParticipant.getTrackPublication(Track.Source.Microphone);
     const micTrack = pub?.track as LocalAudioTrack | undefined;
 
     if (!micTrack) {
@@ -336,13 +417,84 @@ export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked, 
     });
   }, [isDeafened]);
 
+  // ── Screen share ───────────────────────────────────────────────────────────
+  const startScreenShare = useCallback(async () => {
+    const room = roomRef.current;
+    if (!room) {
+      console.warn("[livekit] startScreenShare: not connected");
+      return;
+    }
+    try {
+      // ── Why these specific settings? ─────────────────────────────────────────
+      // simulcast: false  → THE most important fix.
+      //   With simulcast on, LiveKit publishes 3 quality layers and the SFU
+      //   sends whichever layer matches the viewer's CSS pixel size. If the
+      //   overlay <video> is smaller than 720p on screen the SFU sends the
+      //   lowest layer (~150 kbps) → blurry. One layer = always full quality.
+      //
+      // 720p / 15 fps → stable, clear target.
+      //   Lower fps = more bits allocated per frame = sharper text/slides.
+      //   15 fps is imperceptible for slides; 30 fps at the same bitrate
+      //   halves the per-frame quality.
+      //
+      // maxBitrate 2 Mbps → dedicated, non-adaptive ceiling.
+      //   2 Mbps at 720p/15fps is generous — plenty for crisp text.
+      //
+      // degradationPreference "maintain-resolution" → when network is tight
+      //   the browser drops frames rather than blurring the image.
+      //
+      // contentHint "detail" → biases the codec toward sharpness (not motion).
+      // ───────────────────────────────────────────────────────────────────
+      await room.localParticipant.setScreenShareEnabled(true,
+        // Arg 2: capture constraints — passed to browser getDisplayMedia()
+        {
+          resolution: {
+            width: 1280,
+            height: 720,
+            frameRate: 15,
+          },
+          contentHint: "detail",
+        },
+        // Arg 3: publish options — control how LiveKit publishes the track
+        {
+          simulcast: false,          // single layer, no adaptive switching
+          videoEncoding: {
+            maxBitrate: 2_000_000,  // 2 Mbps ceiling
+            maxFramerate: 15,
+            priority: "high",
+          },
+        }
+      );
+      console.log("[livekit] screen share started — 720p/15fps, 2 Mbps, simulcast OFF");
+    } catch (err: any) {
+      const msg = err?.message || String(err);
+      if (!msg.includes("Permission denied") && !msg.includes("cancelled")) {
+        console.error(`[livekit] startScreenShare failed: ${msg}`);
+      } else {
+        console.log("[livekit] screen share cancelled by user");
+      }
+    }
+  }, []);
+
+  const stopScreenShare = useCallback(async () => {
+    const room = roomRef.current;
+    if (!room) return;
+    try {
+      await room.localParticipant.setScreenShareEnabled(false);
+      // isScreenSharing will be set to false via the LocalTrackUnpublished event
+      console.log("[livekit] screen share stopped");
+    } catch (err: any) {
+      console.error(`[livekit] stopScreenShare failed: ${err?.message || err}`);
+    }
+  }, []);
+
   // ── Moderation: Mute participant ───────────────────────────────────────────
   const muteParticipant = useCallback(async (identity: string) => {
     const channelId = channelIdRef.current;
     if (!channelId) return;
     try {
       await fetch("/voice/api/moderation/mute", {
-        method:  "POST",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ roomName: channelId, participantIdentity: identity }),
       });
@@ -357,7 +509,7 @@ export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked, 
     if (!channelId) return;
     try {
       await fetch("/voice/api/moderation/unmute", {
-        method:  "POST",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ roomName: channelId, participantIdentity: identity }),
       });
@@ -369,14 +521,14 @@ export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked, 
   // ── Moderation: Mute all ───────────────────────────────────────────────────
   const muteAll = useCallback(async () => {
     const channelId = channelIdRef.current;
-    const room      = roomRef.current;
+    const room = roomRef.current;
     if (!channelId || !room) return;
     try {
       await fetch("/voice/api/moderation/mute-all", {
-        method:  "POST",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          roomName:        channelId,
+          roomName: channelId,
           excludeIdentity: room.localParticipant.identity,
         }),
       });
@@ -391,7 +543,7 @@ export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked, 
     if (!channelId) return;
     try {
       await fetch("/voice/api/moderation/kick", {
-        method:  "POST",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ roomName: channelId, participantIdentity: identity }),
       });
@@ -409,10 +561,14 @@ export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked, 
     isMuted,
     isDeafened,
     isConnected,
+    isScreenSharing,
+    remoteScreenShares,
     joinChannel,
     leaveChannel,
     toggleMute,
     toggleDeafen,
+    startScreenShare,
+    stopScreenShare,
     muteParticipant,
     unmuteParticipant,
     muteAll,

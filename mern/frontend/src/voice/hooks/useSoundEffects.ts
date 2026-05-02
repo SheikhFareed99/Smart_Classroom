@@ -90,5 +90,28 @@ export const useSoundEffects = () => {
     tone(260, 480, 0.15, "triangle", 0.065);
   }, [tone]);
 
-  return { playJoin, playLeave, playMute, playUnmute, playDeafen, playUndeafen };
+  /** Ascending triad — screen share started (broadcasting) */
+  const playStartShare = useCallback(() => {
+    tone(440, 440, 0.10, "sine", 0.06);
+    tone(550, 550, 0.10, "sine", 0.05, 0.10);
+    tone(660, 660, 0.14, "sine", 0.05, 0.20);
+  }, [tone]);
+
+  /** Soft double-ding — viewer opened the screen share overlay */
+  const playViewShare = useCallback(() => {
+    tone(700, 700, 0.09, "sine", 0.055);
+    tone(880, 880, 0.12, "sine", 0.04, 0.10);
+  }, [tone]);
+
+  /** Descending sweep — screen share stopped / overlay closed */
+  const playStopShare = useCallback(() => {
+    tone(600, 300, 0.22, "sine", 0.06);
+  }, [tone]);
+
+  return {
+    playJoin, playLeave,
+    playMute, playUnmute,
+    playDeafen, playUndeafen,
+    playStartShare, playViewShare, playStopShare,
+  };
 };
