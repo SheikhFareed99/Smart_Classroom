@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { apiFetch } from "../lib/api";
 
@@ -14,9 +14,24 @@ type Course = {
   isArchived?: boolean;
 };
 
+const COURSE_BANNER_COLORS = ["blue", "green", "purple", "orange", "pink", "teal", "indigo"];
+
+function hashCourseSeed(value: string) {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+  return hash;
+}
+
+function getCourseBannerColor(courseId: string, fallbackIndex: number) {
+  const seed = courseId || String(fallbackIndex);
+  const colorIndex = hashCourseSeed(seed) % COURSE_BANNER_COLORS.length;
+  return COURSE_BANNER_COLORS[colorIndex];
+}
+
 export default function TeacherPanel() {
   const { user: currentUser } = useAuth();
-  const navigate = useNavigate();
   const [teaching, setTeaching] = useState<Course[]>([]);
   const [enrolled, setEnrolled] = useState<Course[]>([]);
 
@@ -75,8 +90,11 @@ export default function TeacherPanel() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to create course");
       document.getElementById('createClassModal')?.classList.remove('active');
-      // refresh
-      window.location.reload();
+      // Add new course to state
+      setTeaching([...teaching, data.course]);
+      // Clear form
+      (document.getElementById("create-title") as HTMLInputElement).value = '';
+      (document.getElementById("create-code") as HTMLInputElement).value = '';
     } catch (err: any) {
       alert(err.message || "Error");
     }
@@ -96,7 +114,13 @@ export default function TeacherPanel() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to join");
       document.getElementById('joinCourseModal')?.classList.remove('active');
-      window.location.reload();
+      // Re-fetch courses
+      const res2 = await apiFetch(`/api/courses/user/${currentUser._id}`);
+      if (res2.ok) {
+        const data2 = await res2.json();
+        setTeaching(Array.isArray(data2.teaching) ? data2.teaching : []);
+        setEnrolled(Array.isArray(data2.enrolled) ? data2.enrolled : []);
+      }
     } catch (err: any) {
       alert(err.message || "Error");
     }
@@ -109,7 +133,8 @@ export default function TeacherPanel() {
       const res = await apiFetch(`/api/courses/${courseId}`, { method: "DELETE" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to delete");
-      window.location.reload();
+      // Remove from state instead of reloading
+      setTeaching(teaching.filter(c => c._id !== courseId));
     } catch (err: any) {
       alert(err.message || "Error");
     }
@@ -221,21 +246,6 @@ export default function TeacherPanel() {
             <p>Set up a new course with sections and students</p>
           </div>
 
-          <div className="action-card" onClick={() => document.getElementById('generateQuestionsModal')?.classList.add('active')}>
-            <div className="action-card-icon purple">
-              <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
-            </div>
-            <h3>Generate Questions</h3>
-            <p>Use AI to auto-generate quiz and exam questions</p>
-          </div>
-
-          <div className="action-card" onClick={() => document.getElementById('generateSummaryModal')?.classList.add('active')}>
-            <div className="action-card-icon blue">
-              <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><line x1="17" y1="10" x2="3" y2="10" /><line x1="21" y1="6" x2="3" y2="6" /><line x1="21" y1="14" x2="3" y2="14" /><line x1="17" y1="18" x2="3" y2="18" /></svg>
-            </div>
-            <h3>Generate Summary</h3>
-            <p>AI-powered summaries from lecture notes and materials</p>
-          </div>
         </div>
 
         <div className="section-header">
@@ -259,27 +269,26 @@ export default function TeacherPanel() {
           <h3>Teaching</h3>
         </div>
         <div className="course-grid">
-          {teaching.map((c) => (
-            <div key={c._id} className="course-card">
-              <div
-                className={`course-card-banner blue`}
-                style={{ cursor: "pointer" }}
-                onClick={() => navigate(`/teacher-course/${c._id}`)}
-              >
-                <h3>{c.title}</h3>
-              </div>
-              <div className="course-card-body">
-                <p className="course-card-section">{c.courseCode || ""}</p>
-                <div className="course-card-meta">
-                  <div className="course-card-students">{c.inviteCode ? `Invite: ${c.inviteCode}` : ""}</div>
-                  <div>
-                    <button className="btn btn-outline" onClick={() => openManageStudents(c._id)}>Manage</button>
-                    <button className="btn" style={{ marginLeft: 8 }} onClick={() => handleDeleteCourse(c._id)}>Delete</button>
+          {teaching.map((c, index) => {
+            const bannerColor = getCourseBannerColor(c._id, index);
+            return (
+              <Link key={c._id} to={`/teacher-course/${c._id}`} state={{ color: bannerColor }} className="course-card">
+                <div className={`course-card-banner ${bannerColor}`}>
+                  <h3>{c.title}</h3>
+                </div>
+                <div className="course-card-body">
+                  <p className="course-card-section">{c.courseCode || ""}{c.inviteCode && ` · Invite: ${c.inviteCode}`}</p>
+                  <div className="course-card-meta">
+                    <div></div>
+                    <div>
+                      <button className="btn btn-outline" onClick={(e) => {e.preventDefault(); openManageStudents(c._id);}}>Manage</button>
+                      <button className="btn" style={{ marginLeft: 8 }} onClick={(e) => {e.preventDefault(); handleDeleteCourse(c._id);}}>Delete</button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          ))}
+              </Link>
+            );
+          })}
         </div>
 
 

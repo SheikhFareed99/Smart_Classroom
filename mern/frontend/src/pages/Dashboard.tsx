@@ -15,46 +15,24 @@ type Course = {
   badge?: string;
 };
 
-// A single course card — keeps things simple and readable
-function CourseCard({ _id, title, code, courseCode, students, color, badge }: {
-  _id?: string;
-  title: string;
-  code?: string;
-  courseCode?: string;
-  students?: number;
-  color?: string;
-  badge?: string;
-}) {
-  const displayCode = code || courseCode || '';
-  
-  return (
-    <Link to={`/teacher-course/${_id || ''}`} className="course-card">
-      <div className={`course-card-banner ${color || 'blue'}`}>
-        <h3>{title}</h3>
-      </div>
-      <div className="course-card-body">
-        
-        <p className="course-card-section">{displayCode}</p>
-        <div className="course-card-meta">
-          <div className="course-card-students">
-            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-            </svg>
-            
-            {students} students
+const COURSE_BANNER_COLORS = ["blue", "green", "purple", "orange", "pink", "teal", "indigo"];
 
-          </div>
-          <p id="active-text">
-          active
-          </p>
-          <span className={`badge badge-${badge === "Active" ? "primary" : "accent"}`}>
-            {badge}
-          </span>
-        </div>
-      </div>
-    </Link>
-  );
+function hashCourseSeed(value: string) {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+  return hash;
+}
+
+function getCourseBannerColor(course: Course, fallbackIndex: number) {
+  if (course.color) {
+    return course.color;
+  }
+
+  const seed = course._id || course.title || String(fallbackIndex);
+  const colorIndex = hashCourseSeed(seed) % COURSE_BANNER_COLORS.length;
+  return COURSE_BANNER_COLORS[colorIndex];
 }
 
 function Dashboard() {
@@ -113,8 +91,7 @@ function Dashboard() {
         {/* Page header */}
         <div className="page-header">
           <div>
-            <h1 className="page-title">Welcome back, {name} 👋</h1>
-            <p className="page-subtitle">Here's your classroom overview for today.</p>
+            <h1 className="page-title">Welcome back, {name}</h1>
           </div>
         </div>
 
@@ -139,9 +116,37 @@ function Dashboard() {
               Loading courses…
             </div>
           ) : (
-            teachingCourses.map((course) => (
-              <CourseCard key={course.title} {...course} />
-            ))
+            teachingCourses.map((course, index) => {
+              const bannerColor = getCourseBannerColor(course, index);
+              return (
+              <Link
+                to={`/teacher-course/${course._id || ''}`}
+                state={{ color: bannerColor }}
+                key={course._id || course.title}
+                className="course-card"
+              >
+                <div className={`course-card-banner ${bannerColor}`}>
+                  <h3>{course.title}</h3>
+                </div>
+                <div className="course-card-body">
+                  <p className="course-card-section">{course.courseCode || ''}</p>
+                  <div className="course-card-meta">
+                    <div className="course-card-students">
+                      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                      </svg>
+                      {course.students} students
+                    </div>
+                    <p id="active-text">active</p>
+                    <span className={`badge badge-${course.badge === "Active" ? "primary" : "accent"}`}>
+                      {course.badge}
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            );
+            })
           )}
         </div>
 
@@ -164,9 +169,11 @@ function Dashboard() {
               Loading courses…
             </div>
           ) : (
-            enrolledCourses.map((course) => (
-              <Link to={`/enrolled/${course._id || ''}`} key={course._id || course.title} className="course-card">
-                <div className={`course-card-banner ${course.color || ('purple')}`}>
+            enrolledCourses.map((course, index) => {
+              const bannerColor = getCourseBannerColor(course, index);
+              return (
+              <Link to={`/enrolled/${course._id || ''}`} state={{ color: bannerColor }} key={course._id || course.title} className="course-card">
+                <div className={`course-card-banner ${bannerColor}`}>
                   <h3>{course.title}</h3>
                 </div>
                 <div className="course-card-body">
@@ -191,7 +198,8 @@ function Dashboard() {
                   </div>
                 </div>
               </Link>
-            ))
+            );
+            })
           )}
         </div>
 

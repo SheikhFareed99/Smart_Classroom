@@ -17,6 +17,7 @@ import StudentMaterials from "./pages/StudentMaterials";
 import JamboardEditor from "./pages/JamboardEditor";
 import ToDo from "./pages/ToDo";
 import TeacherPlagiarismReport from "./pages/TeacherPlagiarismReport";
+import SearchResults from "./pages/SearchResults";
 
 
 
@@ -54,6 +55,7 @@ function App() {
               }
             >
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/search" element={<SearchResults />} />
               <Route path="/teacher-panel" element={<TeacherPanel />} />
               <Route path="/student-panel" element={<StudentPanel />} />
               <Route path="/enrolled" element={<Enrolled />} />

@@ -44,7 +44,22 @@ type JamboardColorOption = {
 
 // ─── Static data ──────────────────────────────────────────────────────────────
 
-const CARD_COLORS = ["orange", "blue", "purple", "green", "pink"] as const;
+const COURSE_BANNER_COLORS = ["blue", "green", "purple", "orange", "pink", "teal", "indigo"];
+
+function hashCourseSeed(value: string) {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
+  }
+  return hash;
+}
+
+function getCourseBannerColor(courseId: string, fallbackIndex: number) {
+  const seed = courseId || String(fallbackIndex);
+  const colorIndex = hashCourseSeed(seed) % COURSE_BANNER_COLORS.length;
+  return COURSE_BANNER_COLORS[colorIndex];
+}
+
 const JAMBOARD_SOFT_COLORS = [
   { shade: "#FFD6E5", family: "pink" },
   { shade: "#FBCFE8", family: "pink" },
@@ -91,14 +106,14 @@ const CIRCUMFERENCE = 2 * Math.PI * 90; // ~565.48
 
 /** A single enrolled course card */
 function EnrolledCourseCard({ course, index }: { course: CourseAPIItem; index: number }) {
-  const color = CARD_COLORS[index % CARD_COLORS.length];
+  const bannerColor = getCourseBannerColor(course._id, index);
   const instructorName =
     course.instructor && typeof course.instructor === "object" && course.instructor.name
       ? course.instructor.name
       : "Instructor";
   return (
-    <Link to={`/enrolled/${course._id}`} className="course-card">
-      <div className={`course-card-banner ${color}`}>
+    <Link to={`/enrolled/${course._id}`} state={{ color: bannerColor }} className="course-card">
+      <div className={`course-card-banner ${bannerColor}`}>
         <h3>{course.title}</h3>
       </div>
       <div className="course-card-body">

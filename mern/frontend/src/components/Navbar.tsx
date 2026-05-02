@@ -20,6 +20,13 @@ export default function Navbar({  user }: NavbarProps) {
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement | null>(null);
 
+  function handleSearchSubmit(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" && searchText.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchText)}`);
+      setSearchText("");
+    }
+  }
+
 const profileName = user?.name 
   ? user.name.split(" ").slice(0, 2).join(" ") 
   : (user?.email || "");
@@ -67,9 +74,10 @@ const profileName = user?.name
 
           <input
             type="text"
-            placeholder="Search courses, assignments…"
+            placeholder="Search courses"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
+            onKeyDown={handleSearchSubmit}
           />
         </div>
       </div>
@@ -77,14 +85,7 @@ const profileName = user?.name
       {/* Right */}
       <div className="navbar-right">
         {/* Notification */}
-        <button className="nav-icon-btn">
-          <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-          </svg>
-
-          <span className="notification-dot"></span>
-        </button>
+  
 
         {/* Theme toggle */}
         <button className="nav-icon-btn" onClick={toggleTheme}>

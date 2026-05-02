@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
 import VoiceChannel from "../voice/components/VoiceChannel";
@@ -79,6 +79,18 @@ const UsersIcon = () => (
   </svg>
 );
 
+// ─── Color mapping ───────────────────────────────────────────────────────────
+
+const COLOR_TO_GRADIENT: Record<string, string> = {
+  blue: "linear-gradient(135deg, #80a3ce, #6e9fd6)",
+  green: "linear-gradient(135deg, #66b180, #55b678)",
+  purple: "linear-gradient(135deg, #9070b3, #9167bd)",
+  orange: "linear-gradient(135deg, #bb996e, #bb9365)",
+  pink: "linear-gradient(135deg, #c0787d, #c47171)",
+  teal: "linear-gradient(135deg, #69a89a, #6ecab8)",
+  indigo: "linear-gradient(135deg, #7787bb, #717fb6)",
+};
+
 // ─── Badge helpers ───────────────────────────────────────────────────────────
 
 function AssignmentBadge({ status }: { status: Deliverable["status"] }) {
@@ -109,6 +121,8 @@ function formatBytes(b?: number) {
 export default function TeacherCourse() {
   const { id: courseId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const bannerColor = (location.state as any)?.color || "blue";
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"stream" | "assignments" | "students" | "materials">("stream");
 
@@ -116,6 +130,7 @@ export default function TeacherCourse() {
   const [courseName, setCourseName] = useState("Loading…");
   const [courseDetails, setCourseDetails] = useState("");
   const [courseCode, setCourseCode] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
 
   // Stream announcements
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -274,6 +289,7 @@ export default function TeacherCourse() {
         if (d.success && d.course) {
           setCourseName(d.course.title);
           setCourseCode(d.course.courseCode || "");
+          setInviteCode(d.course.inviteCode || "");
           const stuCount = d.course.enrollments?.length || 0;
           setCourseDetails(`${d.course.courseCode || ""} · ${stuCount} Students`);
         }
@@ -590,10 +606,10 @@ export default function TeacherCourse() {
         )}
 
         {/* Banner */}
-        <div className="course-banner">
+        <div className="course-banner" style={{ background: COLOR_TO_GRADIENT[bannerColor] }}>
           <h1>{courseName}</h1>
           <p>{courseDetails}</p>
-          <span className="course-code">Code: {courseCode}</span>
+          <span className="course-code">Code: {courseCode}{inviteCode && ` · Invite: ${inviteCode}`}</span>
         </div>
 
         {/* Voice Channel */}

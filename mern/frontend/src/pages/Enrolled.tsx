@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
 import VoiceChannel from "../voice/components/VoiceChannel";
@@ -52,6 +52,16 @@ interface Material {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+const COLOR_TO_GRADIENT: Record<string, string> = {
+  blue: "linear-gradient(135deg, #80a3ce, #6e9fd6)",
+  green: "linear-gradient(135deg, #66b180, #55b678)",
+  purple: "linear-gradient(135deg, #9070b3, #9167bd)",
+  orange: "linear-gradient(135deg, #bb996e, #bb9365)",
+  pink: "linear-gradient(135deg, #c0787d, #c47171)",
+  teal: "linear-gradient(135deg, #69a89a, #6ecab8)",
+  indigo: "linear-gradient(135deg, #7787bb, #717fb6)",
+};
+
 function formatBytes(bytes?: number) {
   if (!bytes) return "";
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
@@ -98,6 +108,8 @@ const SendIcon = () => (
 
 function StudentCourse() {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
+  const bannerColor = (location.state as any)?.color || "blue";
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -419,12 +431,12 @@ function StudentCourse() {
     <>
       <main className="main-content">
         {/* ── Course Banner ── */}
-        <div className="course-banner" style={{ background: "linear-gradient(135deg, #2563EB, #3B82F6)" }}>
+        <div className="course-banner" style={{ background: COLOR_TO_GRADIENT[bannerColor] }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
             <div>
               <h1>{courseName}</h1>
               <p>{courseData?.courseCode} · {instructorName}</p>
-              <span className="course-code">ID: {id}</span>
+             
             </div>
             <button className="btn btn-outline" onClick={() => setShowLeaveConfirm(true)}>Unenroll</button>
           </div>
