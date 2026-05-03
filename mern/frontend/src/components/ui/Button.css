@@ -1,0 +1,124 @@
+/* ============================================
+   Button — Core primitive
+   Uses design tokens from tokens.css
+   ============================================ */
+
+.ui-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  white-space: nowrap;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background var(--duration-normal) var(--ease-default),
+              color var(--duration-normal) var(--ease-default),
+              border-color var(--duration-normal) var(--ease-default),
+              box-shadow var(--duration-normal) var(--ease-default);
+  outline: none;
+  position: relative;
+  line-height: 1.4;
+}
+
+/* ---------- Focus ring ---------- */
+.ui-btn:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+/* ---------- Disabled ---------- */
+.ui-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ---------- Loading ---------- */
+.ui-btn--loading {
+  pointer-events: none;
+}
+
+/* ---------- Spinner ---------- */
+.ui-btn__spinner {
+  animation: ui-btn-spin 0.75s linear infinite;
+}
+
+@keyframes ui-btn-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ========== SIZES ========== */
+.ui-btn--sm {
+  padding: 6px 12px;
+  font-size: 13px;
+  height: 32px;
+  border-radius: var(--radius-md);
+}
+
+.ui-btn--md {
+  padding: 10px 20px;
+  font-size: 14px;
+  height: 40px;
+  border-radius: var(--radius-md);
+}
+
+.ui-btn--lg {
+  padding: 12px 24px;
+  font-size: 16px;
+  height: 48px;
+  border-radius: var(--radius-md);
+}
+
+/* ========== VARIANTS ========== */
+
+/* Primary */
+.ui-btn--primary {
+  background: var(--primary);
+  color: var(--text-inverse);
+}
+.ui-btn--primary:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+/* Secondary */
+.ui-btn--secondary {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1.5px solid var(--border-default);
+}
+.ui-btn--secondary:hover:not(:disabled) {
+  background: var(--bg-sunken);
+  border-color: var(--border-strong);
+}
+
+/* Ghost */
+.ui-btn--ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+.ui-btn--ghost:hover:not(:disabled) {
+  background: var(--bg-sunken);
+  color: var(--text-primary);
+}
+
+/* Destructive */
+.ui-btn--destructive {
+  background: var(--error-600);
+  color: #fff;
+}
+.ui-btn--destructive:hover:not(:disabled) {
+  background: var(--error-700);
+}
+
+/* Link */
+.ui-btn--link {
+  background: transparent;
+  color: var(--primary);
+  padding: 0;
+  height: auto;
+}
+.ui-btn--link:hover:not(:disabled) {
+  text-decoration: underline;
+}

@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { apiFetch } from "../lib/api";
+import { X } from "lucide-react";
+import { getCourseBannerColor } from "../lib/courseColors";
 
 import "./Dashboard.css";
 import "./TeacherPanel.css";
@@ -14,21 +16,7 @@ type Course = {
   isArchived?: boolean;
 };
 
-const COURSE_BANNER_COLORS = ["blue", "green", "purple", "orange", "pink", "teal", "indigo"];
 
-function hashCourseSeed(value: string) {
-  let hash = 0;
-  for (let index = 0; index < value.length; index += 1) {
-    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
-  }
-  return hash;
-}
-
-function getCourseBannerColor(courseId: string, fallbackIndex: number) {
-  const seed = courseId || String(fallbackIndex);
-  const colorIndex = hashCourseSeed(seed) % COURSE_BANNER_COLORS.length;
-  return COURSE_BANNER_COLORS[colorIndex];
-}
 
 export default function TeacherPanel() {
   const { user: currentUser } = useAuth();
@@ -269,8 +257,8 @@ export default function TeacherPanel() {
           <h3>Teaching</h3>
         </div>
         <div className="course-grid">
-          {teaching.map((c, index) => {
-            const bannerColor = getCourseBannerColor(c._id, index);
+          {teaching.map((c) => {
+            const bannerColor = getCourseBannerColor();
             return (
               <Link key={c._id} to={`/teacher-course/${c._id}`} state={{ color: bannerColor }} className="course-card">
                 <div className={`course-card-banner ${bannerColor}`}>
@@ -299,7 +287,7 @@ export default function TeacherPanel() {
         <div className="modal">
           <div className="modal-header">
             <h2>Create New Class</h2>
-            <button className="btn btn-ghost btn-icon" onClick={() => document.getElementById('createClassModal')?.classList.remove('active')}>✕</button>
+            <button className="btn btn-ghost btn-icon" onClick={() => document.getElementById('createClassModal')?.classList.remove('active')} aria-label="Close"><X size={18} aria-hidden="true" /></button>
           </div>
           <form onSubmit={handleCreateCourse}>
             <div className="modal-body">
@@ -325,7 +313,7 @@ export default function TeacherPanel() {
         <div className="modal">
           <div className="modal-header">
             <h2>Join Course</h2>
-            <button className="btn btn-ghost btn-icon" onClick={() => document.getElementById('joinCourseModal')?.classList.remove('active')}>✕</button>
+            <button className="btn btn-ghost btn-icon" onClick={() => document.getElementById('joinCourseModal')?.classList.remove('active')} aria-label="Close"><X size={18} aria-hidden="true" /></button>
           </div>
           <form onSubmit={handleJoinCourse}>
             <div className="modal-body">
@@ -347,7 +335,7 @@ export default function TeacherPanel() {
         <div className="modal">
           <div className="modal-header">
             <h2>Manage Students</h2>
-            <button className="btn btn-ghost btn-icon" onClick={() => document.getElementById('manageStudentsModal')?.classList.remove('active')}>✕</button>
+            <button className="btn btn-ghost btn-icon" onClick={() => document.getElementById('manageStudentsModal')?.classList.remove('active')} aria-label="Close"><X size={18} aria-hidden="true" /></button>
           </div>
           <div className="modal-body" id="manage-students-body">
             {/* populated dynamically */}
@@ -362,7 +350,7 @@ export default function TeacherPanel() {
         <div className="modal">
           <div className="modal-header">
             <h2>AI Question Generator</h2>
-            <button className="btn btn-ghost btn-icon" onClick={() => document.getElementById('generateQuestionsModal')?.classList.remove('active')}>✕</button>
+            <button className="btn btn-ghost btn-icon" onClick={() => document.getElementById('generateQuestionsModal')?.classList.remove('active')} aria-label="Close"><X size={18} aria-hidden="true" /></button>
           </div>
           <div className="modal-body">
             <div className="form-group mb-16">
@@ -381,7 +369,7 @@ export default function TeacherPanel() {
         <div className="modal">
           <div className="modal-header">
             <h2>AI Summary Generator</h2>
-            <button className="btn btn-ghost btn-icon" onClick={() => document.getElementById('generateSummaryModal')?.classList.remove('active')}>✕</button>
+            <button className="btn btn-ghost btn-icon" onClick={() => document.getElementById('generateSummaryModal')?.classList.remove('active')} aria-label="Close"><X size={18} aria-hidden="true" /></button>
           </div>
           <div className="modal-body">
             <div className="form-group mb-16">

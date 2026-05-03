@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { getCourseBannerColor } from "../lib/courseColors";
 import "./Dashboard.css";
 import "./StudentPanel.css";
 import { useAuth } from "../auth/AuthContext";
@@ -44,21 +45,7 @@ type JamboardColorOption = {
 
 // ─── Static data ──────────────────────────────────────────────────────────────
 
-const COURSE_BANNER_COLORS = ["blue", "green", "purple", "orange", "pink", "teal", "indigo"];
 
-function hashCourseSeed(value: string) {
-  let hash = 0;
-  for (let index = 0; index < value.length; index += 1) {
-    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
-  }
-  return hash;
-}
-
-function getCourseBannerColor(courseId: string, fallbackIndex: number) {
-  const seed = courseId || String(fallbackIndex);
-  const colorIndex = hashCourseSeed(seed) % COURSE_BANNER_COLORS.length;
-  return COURSE_BANNER_COLORS[colorIndex];
-}
 
 const JAMBOARD_SOFT_COLORS = [
   { shade: "#FFD6E5", family: "pink" },
@@ -105,8 +92,8 @@ const CIRCUMFERENCE = 2 * Math.PI * 90; // ~565.48
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 /** A single enrolled course card */
-function EnrolledCourseCard({ course, index }: { course: CourseAPIItem; index: number }) {
-  const bannerColor = getCourseBannerColor(course._id, index);
+function EnrolledCourseCard({ course }: { course: CourseAPIItem }) {
+  const bannerColor = getCourseBannerColor();
   const instructorName =
     course.instructor && typeof course.instructor === "object" && course.instructor.name
       ? course.instructor.name
@@ -744,8 +731,8 @@ function StudentDashboard() {
         </p>
       ) : (
         <div className="course-grid mb-32">
-          {enrolledCourses.map((course, i) => (
-            <EnrolledCourseCard key={course._id} course={course} index={i} />
+          {enrolledCourses.map((course) => (
+            <EnrolledCourseCard key={course._id} course={course} />
           ))}
         </div>
       )}

@@ -1,6 +1,7 @@
 import "./Sidebar.css";
 import { NavLink } from "react-router-dom";
-import "./Sidebar.css";
+import { LayoutDashboard, Users, BookOpen, CheckSquare, PenTool, Settings } from "lucide-react";
+import Icon from "./ui/Icon";
 
 type SidebarUser = {
   _id: string;
@@ -8,7 +9,7 @@ type SidebarUser = {
 } | null;
 
 // Sidebar component — navigation links on the left
-export default function Sidebar({ isOpen, user }: { isOpen: boolean; user: SidebarUser }) {
+export default function Sidebar({ isOpen }: { isOpen: boolean; user: SidebarUser }) {
   return (
     <>
       {/* Backdrop for mobile — closes sidebar when clicked */}
@@ -18,24 +19,14 @@ export default function Sidebar({ isOpen, user }: { isOpen: boolean; user: Sideb
         <nav className="sidebar-nav">
           {/* Dashboard link */}
           <NavLink to="/dashboard" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
-            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="3" width="7" height="7" rx="1" />
-              <rect x="14" y="3" width="7" height="7" rx="1" />
-              <rect x="3" y="14" width="7" height="7" rx="1" />
-              <rect x="14" y="14" width="7" height="7" rx="1" />
-            </svg>
+            <Icon icon={LayoutDashboard} size={20} />
             Dashboard
           </NavLink>
 
           {/* Teaching section */}
           <div className="sidebar-section">Teaching</div>
           <NavLink to="/teacher-panel" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
-            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-            </svg>
+            <Icon icon={Users} size={20} />
             Teacher Panel
             
           </NavLink>
@@ -43,30 +34,25 @@ export default function Sidebar({ isOpen, user }: { isOpen: boolean; user: Sideb
           {/* Enrolled section */}
           <div className="sidebar-section">Enrolled</div>
           <NavLink to="/student-panel" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
-            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-            </svg>
+            <Icon icon={BookOpen} size={20} />
             Student Panel
            
           </NavLink>
           <NavLink to="/todo" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
-            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-              <path d="M9 11l3 3L22 4" />
-              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-            </svg>
+            <Icon icon={CheckSquare} size={20} />
             To Do
           </NavLink>
           <a href="#" className="sidebar-link">
-            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="2" width="16" height="16" rx="2" />
-              <path d="M8 2v16" />
-              <path d="M2 8h6" />
-            </svg>
+            <Icon icon={PenTool} size={20} />
             Jamboard
           </a>
 
-         
+          {/* General section */}
+          <div className="sidebar-section">General</div>
+          <a href="#" className="sidebar-link">
+            <Icon icon={Settings} size={20} />
+            Settings
+          </a>
         </nav>
       </aside>
     </>

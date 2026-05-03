@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../lib/api";
+import { AlertTriangle } from "lucide-react";
+import Icon from "../components/ui/Icon";
 import "./ToDo.css";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -156,7 +158,7 @@ export default function ToDo() {
   if (error) {
     return (
       <main className="main-content">
-        <div className="todo-error">⚠ {error}</div>
+        <div className="todo-error"><Icon icon={AlertTriangle} size={16} /> {error}</div>
       </main>
     );
   }

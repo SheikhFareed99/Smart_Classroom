@@ -1,0 +1,140 @@
+/* ============================================
+   Input / Textarea — Core primitives
+   ============================================ */
+
+/* ---------- Field wrapper ---------- */
+.ui-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* ---------- Label ---------- */
+.ui-field__label {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+/* ---------- Input wrapper (for icons) ---------- */
+.ui-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* ---------- Input ---------- */
+.ui-input {
+  width: 100%;
+  height: 40px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  outline: none;
+  transition: border-color var(--duration-normal) var(--ease-default),
+              box-shadow var(--duration-normal) var(--ease-default);
+}
+
+.ui-input::placeholder {
+  color: var(--text-muted);
+}
+
+.ui-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+.ui-input:disabled {
+  opacity: 0.5;
+  background: var(--bg-sunken);
+  cursor: not-allowed;
+}
+
+/* Icon adjustments */
+.ui-input--has-left {
+  padding-left: 38px;
+}
+
+.ui-input--has-right {
+  padding-right: 38px;
+}
+
+/* ---------- Icon slots ---------- */
+.ui-input__icon {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.ui-input__icon--left {
+  left: 12px;
+}
+
+.ui-input__icon--right {
+  right: 12px;
+  pointer-events: auto;
+}
+
+/* ---------- Textarea ---------- */
+.ui-textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  outline: none;
+  resize: vertical;
+  transition: border-color var(--duration-normal) var(--ease-default),
+              box-shadow var(--duration-normal) var(--ease-default);
+}
+
+.ui-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.ui-textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+.ui-textarea:disabled {
+  opacity: 0.5;
+  background: var(--bg-sunken);
+  cursor: not-allowed;
+}
+
+/* ---------- Error state ---------- */
+.ui-field--error .ui-input,
+.ui-field--error .ui-textarea {
+  border-color: var(--error-500);
+}
+
+.ui-field--error .ui-input:focus,
+.ui-field--error .ui-textarea:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
+.ui-field__error {
+  font-size: var(--text-xs);
+  color: var(--error-600);
+  margin: 0;
+}
+
+/* ---------- Helper text ---------- */
+.ui-field__helper {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin: 0;
+}

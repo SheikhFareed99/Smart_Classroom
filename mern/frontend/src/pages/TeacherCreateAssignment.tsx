@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { apiFetch } from "../lib/api";
+import { CheckCircle2 } from "lucide-react";
 import "./TeacherCreateAssignment.css";
 
 export default function TeacherCreateAssignment() {
@@ -178,7 +179,7 @@ export default function TeacherCreateAssignment() {
 
                 {error && <p className="tca-error">{error}</p>}
                 {success && (
-                  <p className="sa-success-msg">✓ Assignment created successfully! Redirecting…</p>
+                  <p className="sa-success-msg"><CheckCircle2 size={16} aria-hidden="true" style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }} />Assignment created successfully! Redirecting…</p>
                 )}
 
                 <div className="tca-actions">

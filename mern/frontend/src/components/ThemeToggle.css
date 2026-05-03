@@ -1,41 +1,34 @@
-/*---------- theme toggle button ----------*/
+/* ============================================
+   Theme Toggle — Refactored with design tokens
+   ============================================ */
+
 .theme-toggle {
   position: fixed;
-  top: 20px;
-  right: 20px;
+  top: var(--space-5);
+  right: var(--space-5);
   z-index: 100;
   width: 40px;
   height: 40px;
-  border-radius: 8px;
-  border: 1.5px solid #E2E8F0;
-  background: #FFFFFF;
-  color: #64748B;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border-default);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-
-
-  transition-duration: all 2s ease;
-
-  transition: all 0.15s ease;
-
+  transition: border-color var(--duration-normal) var(--ease-default),
+              color var(--duration-normal) var(--ease-default),
+              background var(--duration-normal) var(--ease-default);
 }
 
 .theme-toggle:hover {
-  border-color: #2563EB;
-  color: #2563EB;
-  background: #EFF6FF;
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-bg);
 }
 
-.dark .theme-toggle {
-  border-color: #334155;
-  background: #1E293B;
-  color: #94A3B8;
-}
-
-.dark .theme-toggle:hover {
-  border-color: #3B82F6;
-  color: #3B82F6;
-  background: #1E293B;
+.theme-toggle:focus-visible {
+  box-shadow: var(--focus-ring);
+  outline: none;
 }

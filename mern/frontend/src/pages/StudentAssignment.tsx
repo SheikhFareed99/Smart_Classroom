@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import { Link, useParams, useLocation } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
+import Icon from "../components/ui/Icon";
 import "./StudentAssignment.css";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -234,7 +236,7 @@ function StudentAssignment() {
     return (
       <main className="main-content">
         <div style={{ background: "var(--danger-bg)", color: "var(--danger)", padding: 20, borderRadius: 12 }}>
-          ⚠ {fetchError || "Assignment not found"}
+          <Icon icon={AlertTriangle} size={16} /> {fetchError || "Assignment not found"}
         </div>
       </main>
     );
@@ -535,7 +537,7 @@ function StudentAssignment() {
 
               {submitError && (
                 <p style={{ color: "var(--danger)", fontSize: "0.875rem", marginTop: 12, background: "var(--danger-bg)", borderRadius: 8, padding: "10px 14px" }}>
-                  ⚠ {submitError}
+                  <Icon icon={AlertTriangle} size={16} /> {submitError}
                 </p>
               )}
 
@@ -555,7 +557,7 @@ function StudentAssignment() {
               </button>
 
               {submitSuccess && (
-                <p className="sa-success-msg">✓ Assignment submitted successfully!</p>
+                <p className="sa-success-msg"><Icon icon={CheckCircle2} size={16} /> Assignment submitted successfully!</p>
               )}
             </div>
           </div>

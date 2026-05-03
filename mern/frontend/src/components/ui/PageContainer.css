@@ -1,0 +1,33 @@
+/* ============================================
+   PageContainer & Section
+   ============================================ */
+
+.page-container {
+  margin-left: var(--sidebar-width);
+  margin-top: var(--navbar-height);
+  padding: var(--space-8);
+  min-height: calc(100vh - var(--navbar-height));
+  background: var(--bg-app);
+}
+
+.page-section {
+  margin-bottom: var(--space-10);
+}
+
+.page-section:last-child {
+  margin-bottom: 0;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 768px) {
+  .page-container {
+    margin-left: 0;
+    padding: var(--space-4);
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .page-container {
+    padding: var(--space-6);
+  }
+}

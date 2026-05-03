@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
 import VoiceChannel from "../voice/components/VoiceChannel";
+import { Book, X } from "lucide-react";
 import "./Enrolled.css";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -310,15 +311,15 @@ function StudentCourse() {
           id: Date.now(),
           role: "bot",
           text: mats.length === 0
-            ? "📚 No course materials have been indexed yet. Ask your teacher to upload study materials."
-            : `👋 Hi! I'm your Course AI Assistant.\n`,
+            ? "No course materials have been indexed yet. Ask your teacher to upload study materials."
+            : `Hi! I'm your Course AI Assistant.\n`,
           time: nowTime(),
         }]);
       })
       .catch(() => {
         if (!mounted) return;
         setChatMaterials([]);
-        setChatMessages([{ id: Date.now(), role: "bot", text: "⚠️ Could not load course materials. Please try again later.", time: nowTime() }]);
+        setChatMessages([{ id: Date.now(), role: "bot", text: "Could not load course materials. Please try again later.", time: nowTime() }]);
       })
       .finally(() => { if (mounted) setChatMaterialsLoading(false); });
     return () => { mounted = false; };
@@ -359,7 +360,7 @@ function StudentCourse() {
       {
         id: Date.now(),
         role: "bot",
-        text: `✅ You selected '${mat.title}'. I'm ready to answer your questions! Go ahead and ask anything about this material.`,
+        text: `You selected '${mat.title}'. I'm ready to answer your questions! Go ahead and ask anything about this material.`,
         time: nowTime(),
       },
     ]);
@@ -372,7 +373,7 @@ function StudentCourse() {
     if (!selectedMaterial) {
       setChatMessages(prev => [
         ...prev,
-        { id: Date.now(), role: "bot", text: "⚠️ Please select a material first by clicking one of the buttons above.", time: nowTime() },
+        { id: Date.now(), role: "bot", text: "Please select a material first by clicking one of the buttons above.", time: nowTime() },
       ]);
       return;
     }
@@ -402,7 +403,7 @@ function StudentCourse() {
       setChatMessages(prev =>
         prev.map(m =>
           m.id === loadingMsg.id
-            ? { ...m, text: "⚠️ Error connecting to AI. Please try again.", loading: false }
+            ? { ...m, text: "Error connecting to AI. Please try again.", loading: false }
             : m
         )
       );
@@ -691,7 +692,7 @@ function StudentCourse() {
                   </div>
                   <div>
                     <h3>Course AI Assistant</h3>
-                    <p>{selectedMaterial ? `📖 ${selectedMaterial.title}` : courseName}</p>
+                    <p>{selectedMaterial ? <><Book size={16} aria-hidden="true" style={{ display: "inline", verticalAlign: "middle", marginRight: 4 }} />{selectedMaterial.title}</> : courseName}</p>
                   </div>
                   {selectedMaterial && (
                     <button
@@ -781,7 +782,7 @@ function StudentCourse() {
           <div className="modal">
             <div className="modal-header">
               <h2>Unenroll</h2>
-              <button className="btn btn-ghost btn-icon" onClick={() => setShowLeaveConfirm(false)}>✕</button>
+              <button className="btn btn-ghost btn-icon" onClick={() => setShowLeaveConfirm(false)} aria-label="Close"><X size={18} aria-hidden="true" /></button>
             </div>
             <div className="modal-body">
               <p>Are you sure you want to unenroll from <strong>{courseName}</strong>?</p>

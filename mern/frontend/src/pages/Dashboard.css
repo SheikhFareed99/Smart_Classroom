@@ -1,54 +1,14 @@
 /* ============================================
-   Dashboard Page Styles
+   Dashboard Page — Refactored with design tokens
    ============================================ */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-
-/* ---------- CSS Variables (light mode) ---------- */
-:root {
-  --primary: #2563EB;
-  --primary-light: #3B82F6;
-  --primary-dark: #1D4ED8;
-  --primary-bg: #EFF6FF;
-  --accent: #10B981;
-  --accent-dark: #059669;
-  --accent-bg: #ECFDF5;
-  --bg: #F8FAFC;
-  --card: #FFFFFF;
-  --text-primary: #0F172A;
-  --text-secondary: #1d1d1f;
-  --text-muted: #94A3B8;
-  --border: #E2E8F0;
-  --border-light: #F1F5F9;
-}
-
-/* Dark mode variables */
-.dark {
-  --primary: #3B82F6;
-  --primary-light: #60A5FA;
-  --primary-dark: #2563EB;
-  --primary-bg: #1E293B;
-  --accent: #34D399;
-  --accent-dark: #10B981;
-  --accent-bg: #1a2e2a;
-  --bg: #0F172A;
-  --card: #1E293B;
-  --text-primary: #F1F5F9;
-  --text-secondary: #ffffff;
-  --text-muted: #64748B;
-  --border: #334155;
-  --border-light: #1E293B;
-  color: #F1F5F9;
-  background-color: #0F172A;
-}
 
 /* ---------- Main Content ---------- */
 .main-content {
-  margin-left: 260px;
-  margin-top: 64px;
-  padding: 32px;
-  min-height: calc(100vh - 64px);
-
-  background:var(--bg);
+  margin-left: var(--sidebar-width);
+  margin-top: var(--navbar-height);
+  padding: var(--space-8);
+  min-height: calc(100vh - var(--navbar-height));
+  background: var(--bg-app);
 }
 
 /* ---------- Page Header ---------- */
@@ -56,23 +16,31 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 32px;
+  margin-bottom: var(--space-8);
   flex-wrap: wrap;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .page-title {
-  font-size: 1.5rem;
+  font-size: var(--text-4xl);
   font-weight: 700;
   color: var(--text-primary);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.025em;
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  line-height: 1.2;
+}
+
+.wave-icon {
+  color: var(--warning-500);
 }
 
 .page-subtitle {
-  font-size: 0.9375rem;
+  font-size: var(--text-base);
   color: var(--text-secondary);
-  margin-top: 4px;
+  margin-top: var(--space-1);
 }
 
 /* ---------- Section Headers ---------- */
@@ -80,109 +48,86 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 
 .section-title {
-  font-size: 1.125rem;
+  font-size: var(--text-lg);
   font-weight: 700;
   color: var(--text-primary);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   margin: 0;
+  letter-spacing: -0.01em;
 }
 
-.section-title .icon {
-  width: 24px;
-  height: 24px;
+.section-icon {
   color: var(--primary);
 }
 
-/* ---------- Buttons ---------- */
-.btn {
+.btn-view-all {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 20px;
-  border-radius: 8px;
+  padding: 6px 14px;
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-md);
   font-weight: 500;
-  font-size: 0.875rem;
-  transition: all 0.15s ease;
-  white-space: nowrap;
-  line-height: 1.4;
-  cursor: pointer;
-  border: none;
-  font-family: inherit;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  background: var(--bg-surface);
   text-decoration: none;
+  cursor: pointer;
+  transition: border-color var(--duration-normal) var(--ease-default),
+              color var(--duration-normal) var(--ease-default),
+              background var(--duration-normal) var(--ease-default);
 }
 
-.btn-outline {
-  border: 1.5px solid var(--border);
-  color: var(--text-primary);
-  background: var(--card);
-}
-
-.btn-outline:hover {
+.btn-view-all:hover {
   border-color: var(--primary);
   color: var(--primary);
   background: var(--primary-bg);
-}
-
-.btn-sm {
-  padding: 6px 14px;
-  font-size: 0.8125rem;
 }
 
 /* ---------- Course Grid ---------- */
 .course-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 24px;
-  margin-bottom: 48px;
+  gap: var(--space-6);
+  margin-bottom: var(--space-12);
 }
 
 .course-card {
-  background: var(--card);
-  border-radius: 16px;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
-  border: 1px solid var(--border-light);
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-default);
   overflow: hidden;
-  transition: all 0.25s ease;
+  transition: box-shadow var(--duration-moderate) var(--ease-default),
+              transform var(--duration-moderate) var(--ease-default);
   cursor: pointer;
   text-decoration: none;
-  color: var(--text-primary) ;
+  color: var(--text-primary);
   display: block;
 }
 
 .course-card:hover {
-  box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.06), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+  box-shadow: var(--shadow-md);
   transform: translateY(-2px);
 }
 
-#active-text{
-  position: relative;
-  font-size: 0.8125rem;
-  color: var(--text-secondary);
-  right: -112px;
-  background-color: var(--bg);
-  padding: 2px 6px;
-  border-radius: 8px;
-  border: .5px solid rgb(172, 165, 165);
-
-  
-
+.course-card:focus-visible {
+  box-shadow: var(--focus-ring);
+  outline: none;
 }
 
 /* ---------- Course Card Banner ---------- */
 .course-card-banner {
-  
   height: 100px;
   position: relative;
   display: flex;
   align-items: flex-end;
-  padding: 16px;
+  padding: var(--space-4);
   overflow: hidden;
 }
 
@@ -190,7 +135,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(0,0,0,0.1), rgba(0,0,0,0.3));
+  background: linear-gradient(135deg, rgba(0,0,0,0.05), rgba(0,0,0,0.25));
   z-index: 1;
 }
 
@@ -198,156 +143,46 @@
   position: relative;
   z-index: 2;
   color: #fff;
-  font-size: 1.125rem;
+  font-size: var(--text-lg);
   font-weight: 700;
   text-shadow: 0 1px 3px rgba(0,0,0,0.3);
   margin: 0;
 }
 
 /* Banner color variants */
-.course-card-banner.blue   { background: linear-gradient(135deg, #80a3ce, #6e9fd6); }
-.course-card-banner.green  { background: linear-gradient(135deg, #66b180, #55b678); }
-.course-card-banner.purple { background: linear-gradient(135deg, #9070b3, #9167bd); }
-.course-card-banner.orange { background: linear-gradient(135deg, #bb996e, #bb9365); }
-.course-card-banner.pink   { background: linear-gradient(135deg, #c0787d, #c47171); }
-.course-card-banner.teal   { background: linear-gradient(135deg, #69a89a, #6ecab8); }
-.course-card-banner.indigo { background: linear-gradient(135deg, #7787bb, #717fb6); }
+.course-card-banner.blue   { background: linear-gradient(135deg, var(--primary-400), var(--primary-600)); }
+.course-card-banner.green  { background: linear-gradient(135deg, var(--success-500), #047857); }
+.course-card-banner.purple { background: linear-gradient(135deg, var(--accent-400), var(--accent-600)); }
+.course-card-banner.orange { background: linear-gradient(135deg, var(--warning-500), var(--warning-700)); }
+.course-card-banner.pink   { background: linear-gradient(135deg, #ec4899, #be185d); }
+.course-card-banner.teal   { background: linear-gradient(135deg, #14b8a6, #0f766e); }
+.course-card-banner.indigo { background: linear-gradient(135deg, var(--primary-300), var(--primary-500)); }
 
 /* ---------- Course Card Body ---------- */
 .course-card-body {
-
-  
-  padding: 16px;
-
+  padding: var(--space-4);
 }
 
 .course-card-section {
-  font-size: 0.8125rem;
+  font-size: var(--text-xs);
   color: var(--text-secondary);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-2);
 }
 
 .course-card-meta {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 12px;
+  margin-top: var(--space-3);
 }
 
 .course-card-students {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.8125rem;
+  gap: var(--space-1-5);
+  font-size: var(--text-xs);
   color: var(--text-secondary);
   font-weight: 500;
-}
-
-.course-card-students svg {
-  color: var(--text-muted);
-  flex-shrink: 0;
-}
-
-#enrolled-text{
-  position: relative;
-  font-size: 0.8125rem;
-  color: var(--text-secondary);
-  right: -245px;
-  background-color: var(--bg);
-  padding: 2px 6px;
-  border-radius: 8px;
-  border: .5px solid rgb(172, 165, 165);
-
-  top: -34px;
-
-}
-
- .classroom-logo {
-
-  color: var(--primary);
-
-
-} 
-/* .course-banner-content{
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-} */
-/* ---------- Loading State ---------- */
-.courses-loading {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 20px 0;
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: var(--text-muted);
-}
-
-.courses-loading-spinner {
-  display: inline-block;
-  width: 18px;
-  height: 18px;
-  border: 2.5px solid var(--border);
-  border-top-color: var(--primary);
-  border-radius: 50%;
-  animation: spin 0.75s linear infinite;
-  flex-shrink: 0;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* ---------- Badges ---------- */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  line-height: 1.4;
-}
-
-.badge-primary {
-  background: var(--primary-bg);
-  color: var(--primary);
-}
-
-.badge-accent {
-  background: var(--accent-bg);
-  color: var(--accent-dark);
-}
-
-/* ---------- Dark mode overrides ---------- */
-.dark .course-card {
-  background: var(--card);
-  border-color: var(--border);
-}
-
-.dark .course-card:hover {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
-}
-
-.dark .btn-outline {
-  background: var(--card);
-  border-color: var(--border);
-  color: var(--text-primary);
-}
-
-.dark .btn-outline:hover {
-  border-color: var(--primary);
-  color: var(--primary);
-}
-
-.dark .badge-primary {
-  background: rgba(59, 130, 246, 0.15);
-}
-
-.dark .badge-accent {
-  background: rgba(52, 211, 153, 0.15);
 }
 
 /* ---------- Responsive ---------- */
@@ -360,12 +195,16 @@
 @media (max-width: 768px) {
   .main-content {
     margin-left: 0;
-    padding: 20px;
+    padding: var(--space-4);
   }
 
   .page-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .page-title {
+    font-size: var(--text-2xl);
   }
 
   .course-grid {

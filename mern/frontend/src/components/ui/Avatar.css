@@ -1,0 +1,72 @@
+/* ============================================
+   Avatar — Core primitive
+   ============================================ */
+
+.ui-avatar {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* ---------- Sizes ---------- */
+.ui-avatar--sm {
+  width: 28px;
+  height: 28px;
+  font-size: 11px;
+}
+
+.ui-avatar--md {
+  width: 36px;
+  height: 36px;
+  font-size: 13px;
+}
+
+.ui-avatar--lg {
+  width: 48px;
+  height: 48px;
+  font-size: 18px;
+}
+
+/* ---------- Image ---------- */
+.ui-avatar__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+
+/* ---------- Initials ---------- */
+.ui-avatar__initials {
+  line-height: 1;
+  user-select: none;
+}
+
+/* ---------- Status dot ---------- */
+.ui-avatar__status {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--bg-surface);
+}
+
+.ui-avatar__status--online {
+  background: var(--success-500);
+}
+
+.ui-avatar__status--away {
+  background: var(--warning-500);
+}
+
+.ui-avatar__status--offline {
+  background: var(--neutral-400);
+}
