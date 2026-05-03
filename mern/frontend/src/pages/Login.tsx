@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import "./Login.css";
 import ThemeToggle from "../components/ThemeToggle";
 import { useAuth } from "../auth/AuthContext";
@@ -52,7 +52,7 @@ function Login() {
           </div>
 
           <p className="login-subtitle">
-            AI Classroom Dashboard — Sign in to continue
+            Sign in or create an account
           </p>
 
           {/*login card*/}
@@ -137,10 +137,6 @@ function Login() {
 
             </form>
           </div>
-
-          <p className="login-footer-link">
-            Don't have an account? <Link to="/signup">Sign Up</Link>
-          </p>
 
           <p className="login-footer">
             &copy; 2026 AICo — AI Classroom Dashboard. All rights reserved.

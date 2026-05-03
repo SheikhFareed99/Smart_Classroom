@@ -4,8 +4,8 @@ import { ThemeProvider } from "./components/ThemeToggle";
 import { AuthProvider } from "./auth/AuthContext";
 import ProtectedRoute from "./auth/ProtectedRoute";
 import PublicOnlyRoute from "./auth/PublicOnlyRoute";
+import Landing from "./pages/Landing";
 import Login from "./pages/Login";
-import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import Enrolled from "./pages/Enrolled";
 import TeacherPanel from "./pages/TeacherPanel";
@@ -32,15 +32,15 @@ function App() {
               path="/"
               element={
                 <PublicOnlyRoute>
-                  <Login />
+                  <Landing />
                 </PublicOnlyRoute>
               }
             />
             <Route
-              path="/signup"
+              path="/login"
               element={
                 <PublicOnlyRoute>
-                  <Signup />
+                  <Login />
                 </PublicOnlyRoute>
               }
             />

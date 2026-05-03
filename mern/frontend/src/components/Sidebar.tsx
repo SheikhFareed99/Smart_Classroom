@@ -9,7 +9,7 @@ type SidebarUser = {
 } | null;
 
 // Sidebar component — navigation links on the left
-export default function Sidebar({ isOpen, user }: { isOpen: boolean; user: SidebarUser }) {
+export default function Sidebar({ isOpen }: { isOpen: boolean; user: SidebarUser }) {
   return (
     <>
       {/* Backdrop for mobile — closes sidebar when clicked */}

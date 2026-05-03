@@ -217,24 +217,6 @@
   box-shadow: var(--shadow-md);
 }
 
-/* ---------- footer link ---------- */
-.login-footer-link {
-  text-align: center;
-  margin-top: var(--space-6);
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-}
-
-.login-footer-link a {
-  color: var(--primary);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.login-footer-link a:hover {
-  text-decoration: underline;
-}
-
 /* ---------- footer ---------- */
 .login-footer {
   text-align: center;
