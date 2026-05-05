@@ -8,6 +8,7 @@ import {
   getMyCourses,
   leaveCourse,
   removeStudentFromCourse,
+  exportMarksheet,
 } from "../controllers/course.controller";
 
 const router = express.Router();
@@ -21,5 +22,6 @@ router.post("/join", joinCourse);              // join via invite code
 router.delete("/:id", deleteCourse);           // delete a course
 router.post("/:id/leave", leaveCourse);        // leave a course (student)
 router.delete("/:id/students/:studentId", removeStudentFromCourse); // remove student (instructor)
+router.get("/:id/marksheet", exportMarksheet);
 
 export default router;

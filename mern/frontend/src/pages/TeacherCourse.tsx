@@ -163,6 +163,7 @@ export default function TeacherCourse() {
   // Enrolled students
   const [enrolledStudents, setEnrolledStudents] = useState<{ _id: string; name: string; email: string }[]>([]);
   const [stuLoading, setStuLoading] = useState(false);
+  const [marksheetLoading, setMarksheetLoading] = useState(false);
 
   // Modules & Materials
   const [modules, setModules] = useState<Module[]>([]);
@@ -989,12 +990,49 @@ export default function TeacherCourse() {
               <div>
                 <div className="flex justify-between items-center mb-24">
                   <h3 className="font-semibold">All Assignments</h3>
-                  <button
-                    className="btn btn-primary btn-sm"
-                    onClick={() => navigate(`/teacher-course/${courseId}/create-assignment`)}
-                  >
-                    + Create Assignment
-                  </button>
+                  <div style={{display: 'flex', gap: 8}}>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => navigate(`/teacher-course/${courseId}/create-assignment`)}
+                    >
+                      + Create Assignment
+                    </button>
+                    <button
+                      className="btn btn-outline btn-sm"
+                      onClick={async () => {
+                        if (!courseId) return;
+                        setMarksheetLoading(true);
+                        try {
+                          const r = await apiFetch(`/api/courses/${courseId}/marksheet?format=xlsx`);
+                          if (!r.ok) {
+                            const d = await r.json().catch(() => ({}));
+                            throw new Error(d.message || 'Failed to download marksheet');
+                          }
+                          const blob = await r.blob();
+                          const disp = r.headers.get('Content-Disposition') || '';
+                          let filename = `marksheet_${courseId}.csv`;
+                          const m = disp.match(/filename="?([^";]+)"?/);
+                          if (m && m[1]) filename = m[1];
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = filename;
+                          document.body.appendChild(a);
+                          a.click();
+                          a.remove();
+                          URL.revokeObjectURL(url);
+                          showToast('Marksheet download started');
+                        } catch (err: any) {
+                          showToast(err?.message || 'Failed to download marksheet', 'err');
+                        } finally {
+                          setMarksheetLoading(false);
+                        }
+                      }}
+                      disabled={marksheetLoading}
+                    >
+                      {marksheetLoading ? 'Generating…' : 'Download Marksheet'}
+                    </button>
+                  </div>
                 </div>
 
                 {aLoading && <p className="tc-loading">Loading assignments…</p>}
