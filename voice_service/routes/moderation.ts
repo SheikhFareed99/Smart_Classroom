@@ -3,10 +3,56 @@ import { RoomServiceClient, TrackSource } from "livekit-server-sdk";
 import Channel from "../models/Channel";
 import Session from "../models/Session";
 import auth = require("../middleware/auth");
+import { assertInstructorForVoiceChannel } from "../lib/channelAuth";
+import { getCourseAccess } from "../lib/courseAccess";
 
 const { requireAuth } = auth;
 
 const router = Router();
+
+function extractUserIdFromIdentity(identity: string): string {
+  const trimmed = identity.trim();
+  if (!trimmed) return "";
+  const lastDash = trimmed.lastIndexOf("-");
+  if (lastDash <= 0) return trimmed;
+  return trimmed.slice(0, lastDash);
+}
+
+async function assertStudentTargetForModeration(
+  roomName: string,
+  participantIdentity: string,
+  requesterId: string,
+  res: Response
+): Promise<boolean> {
+  const ch = await Channel.findById(roomName).select("courseId").lean();
+  if (!ch) {
+    res.status(404).json({ message: "Channel not found" });
+    return false;
+  }
+
+  const targetUserId = extractUserIdFromIdentity(participantIdentity);
+  if (!targetUserId) {
+    res.status(400).json({ message: "Invalid participant identity" });
+    return false;
+  }
+
+  if (String(targetUserId) === String(requesterId)) {
+    res.status(400).json({ message: "You cannot moderate yourself" });
+    return false;
+  }
+
+  const targetAccess = await getCourseAccess(targetUserId, String(ch.courseId));
+  if (!targetAccess) {
+    res.status(403).json({ message: "Target user is not part of this course" });
+    return false;
+  }
+  if (targetAccess !== "student") {
+    res.status(403).json({ message: "Only students can be muted or removed" });
+    return false;
+  }
+
+  return true;
+}
 
 function getLivekitClient(): RoomServiceClient {
   const host      = process.env.LIVEKIT_URL      || "";
@@ -45,6 +91,10 @@ router.post("/mute", requireAuth, async (req: Request, res: Response) => {
     return res.status(400).json({ message: "roomName and participantIdentity are required" });
   }
 
+  const requesterId = req.voiceUser!.userId;
+  if (!(await assertInstructorForVoiceChannel(requesterId, roomName, res))) return;
+  if (!(await assertStudentTargetForModeration(roomName, participantIdentity, requesterId, res))) return;
+
   try {
     const client   = getLivekitClient();
     const trackSid = await getMicTrackSid(client, roomName, participantIdentity);
@@ -73,6 +123,10 @@ router.post("/unmute", requireAuth, async (req: Request, res: Response) => {
     return res.status(400).json({ message: "roomName and participantIdentity are required" });
   }
 
+  const requesterId = req.voiceUser!.userId;
+  if (!(await assertInstructorForVoiceChannel(requesterId, roomName, res))) return;
+  if (!(await assertStudentTargetForModeration(roomName, participantIdentity, requesterId, res))) return;
+
   try {
     const client   = getLivekitClient();
     const trackSid = await getMicTrackSid(client, roomName, participantIdentity);
@@ -99,6 +153,11 @@ router.post("/kick", requireAuth, async (req: Request, res: Response) => {
   if (!roomName || !participantIdentity) {
     return res.status(400).json({ message: "roomName and participantIdentity are required" });
   }
+
+  const requesterId = req.voiceUser!.userId;
+  if (!(await assertInstructorForVoiceChannel(requesterId, roomName, res))) return;
+  if (!(await assertStudentTargetForModeration(roomName, participantIdentity, requesterId, res))) return;
+
   try {
     const client = getLivekitClient();
     await client.removeParticipant(roomName, participantIdentity);
@@ -116,6 +175,9 @@ router.post("/delete-channel", requireAuth, async (req: Request, res: Response) 
   if (!channelId) {
     return res.status(400).json({ message: "channelId is required" });
   }
+
+  const requesterId = req.voiceUser!.userId;
+  if (!(await assertInstructorForVoiceChannel(requesterId, channelId, res))) return;
 
   try {
     const client = getLivekitClient();

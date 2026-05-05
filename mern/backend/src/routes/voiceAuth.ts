@@ -14,7 +14,7 @@ router.get("/voice-token", (req: Request, res: Response) => {
 
   const token = jwt.sign(
     {
-      userId: user._id,
+      userId: String(user._id),
       email:  user.email,
       name:   user.name,
     },

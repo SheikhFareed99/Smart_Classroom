@@ -10,6 +10,7 @@ import {
   Track,
 } from "livekit-client";
 import type { VoicePeer, VoiceRole } from "../types/voice.types";
+import { voiceFetch } from "../lib/voiceFetch";
 
 export interface UseLiveKitOptions {
   userId: string;
@@ -64,7 +65,7 @@ export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked, 
 
   // ── Token fetch ────────────────────────────────────────────────────────────
   const fetchToken = useCallback(async (channelId: string): Promise<string> => {
-    const res = await fetch("/voice/api/livekit/token", {
+    const res = await voiceFetch("/voice/api/livekit/token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -493,11 +494,15 @@ export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked, 
     const channelId = channelIdRef.current;
     if (!channelId) return;
     try {
-      await fetch("/voice/api/moderation/mute", {
+      const res = await voiceFetch("/voice/api/moderation/mute", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ roomName: channelId, participantIdentity: identity }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || "Mute request failed");
+      }
     } catch (err) {
       console.error("[moderation] mute failed:", err);
     }
@@ -508,11 +513,15 @@ export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked, 
     const channelId = channelIdRef.current;
     if (!channelId) return;
     try {
-      await fetch("/voice/api/moderation/unmute", {
+      const res = await voiceFetch("/voice/api/moderation/unmute", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ roomName: channelId, participantIdentity: identity }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || "Unmute request failed");
+      }
     } catch (err) {
       console.error("[moderation] unmute failed:", err);
     }
@@ -524,7 +533,7 @@ export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked, 
     const room = roomRef.current;
     if (!channelId || !room) return;
     try {
-      await fetch("/voice/api/moderation/mute-all", {
+      await voiceFetch("/voice/api/moderation/mute-all", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -542,11 +551,15 @@ export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked, 
     const channelId = channelIdRef.current;
     if (!channelId) return;
     try {
-      await fetch("/voice/api/moderation/kick", {
+      const res = await voiceFetch("/voice/api/moderation/kick", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ roomName: channelId, participantIdentity: identity }),
       });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || "Kick request failed");
+      }
     } catch (err) {
       console.error("[moderation] kick failed:", err);
     }

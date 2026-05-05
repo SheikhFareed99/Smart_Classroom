@@ -1,6 +1,8 @@
 import { Router, Request, Response } from "express";
 import { AccessToken, TrackSource } from "livekit-server-sdk";
 import auth = require("../middleware/auth");
+import Channel from "../models/Channel";
+import { getCourseAccess } from "../lib/courseAccess";
 
 const { requireAuth } = auth;
 
@@ -8,15 +10,30 @@ const router = Router();
 
 // ── POST /api/livekit/token ──────────────────────────────
 // Generate a LiveKit access token for joining a room.
-// Body: { roomName, participantName, participantId, role }
-// Role: "teacher" → roomAdmin + canPublish; "student" → canPublish + canSubscribe
+// Body: { roomName, participantName, participantId }
+// roomAdmin (moderation) is granted only when the JWT user is the course instructor.
 router.post("/token", requireAuth, async (req: Request, res: Response) => {
-  const { roomName, participantName, participantId, role } = req.body;
+  const { roomName, participantName, participantId } = req.body;
+  const requesterId = req.voiceUser!.userId;
 
   if (!roomName || !participantName || !participantId) {
     return res.status(400).json({
       message: "roomName, participantName and participantId are required",
     });
+  }
+
+  if (String(participantId) !== String(requesterId)) {
+    return res.status(403).json({ message: "participantId must match the signed-in user" });
+  }
+
+  const channel = await Channel.findById(roomName).select("courseId").lean();
+  if (!channel) {
+    return res.status(404).json({ message: "Channel not found" });
+  }
+
+  const access = await getCourseAccess(requesterId, String(channel.courseId));
+  if (!access) {
+    return res.status(403).json({ message: "Not allowed to join this voice channel" });
   }
 
   const apiKey    = process.env.LIVEKIT_API_KEY;
@@ -29,7 +46,7 @@ router.post("/token", requireAuth, async (req: Request, res: Response) => {
   try {
     // Make identity unique per session to prevent LiveKit kicking duplicate identities
     const identity  = `${participantId}-${Date.now()}`;
-    const isTeacher = role === "teacher";
+    const isTeacher = access === "instructor";
 
     const token = new AccessToken(apiKey, apiSecret, {
       identity,
@@ -67,7 +84,7 @@ router.post("/token", requireAuth, async (req: Request, res: Response) => {
 
     // Debug log — redact in production if needed
     console.log(
-      `[livekit] token issued | identity=${identity} role=${role || "student"} ` +
+      `[livekit] token issued | identity=${identity} role=${isTeacher ? "teacher" : "student"} ` +
       `room=${roomName} canPublish=true canPublishSources=[MICROPHONE,SCREEN_SHARE,SCREEN_SHARE_AUDIO]`
     );
 

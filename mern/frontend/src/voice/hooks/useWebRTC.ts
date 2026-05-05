@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { io, Socket } from "socket.io-client";
 import type { VoicePeer, IceConfig, UseWebRTCReturn } from "../types/voice.types";
+import { voiceFetch } from "../lib/voiceFetch";
 
 export interface UseWebRTCOptions {
   userId: string;
@@ -30,7 +31,7 @@ export const useWebRTC = ({ userId, name }: UseWebRTCOptions): UseWebRTCReturn =
 
   const fetchIceConfig = async (): Promise<IceConfig> => {
     if (iceConfigRef.current) return iceConfigRef.current;
-    const res = await fetch("/voice/api/ice-config");
+    const res = await voiceFetch("/voice/api/ice-config");
     const config: IceConfig = await res.json();
     iceConfigRef.current = config;
     return config;

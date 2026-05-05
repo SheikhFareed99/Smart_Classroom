@@ -6,6 +6,7 @@ import VoiceControls from "./VoiceControls";
 import CreateChannelModal from "./CreateChannelModal";
 import ConfirmModal from "./ConfirmModal";
 import type { Channel, VoiceRole } from "../types/voice.types";
+import { voiceFetch } from "../lib/voiceFetch";
 
 interface VoiceChannelProps {
   courseId: string;
@@ -331,7 +332,7 @@ const VoiceChannel = ({ courseId, userId, userName, userRole }: VoiceChannelProp
   useEffect(() => {
     const fetchChannels = async () => {
       try {
-        const res = await fetch(`/voice/api/channels/${courseId}`);
+        const res = await voiceFetch(`/voice/api/channels/${courseId}`);
         const data = await res.json();
         setChannels(data.channels ?? []);
       } catch {
@@ -405,12 +406,13 @@ const VoiceChannel = ({ courseId, userId, userName, userRole }: VoiceChannelProp
 
   const handleCreate = async (channelName: string) => {
     try {
-      const res = await fetch("/voice/api/channels", {
+      const res = await voiceFetch("/voice/api/channels", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: channelName, courseId, createdBy: userId,
-          creatorName: userName, role: userRole,
+          name: channelName,
+          courseId,
+          creatorName: userName,
         }),
       });
       const data = await res.json();
@@ -433,7 +435,7 @@ const VoiceChannel = ({ courseId, userId, userName, userRole }: VoiceChannelProp
       async () => {
         closeConfirm();
         try {
-          const res = await fetch("/voice/api/moderation/delete-channel", {
+          const res = await voiceFetch("/voice/api/moderation/delete-channel", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ channelId }),

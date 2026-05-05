@@ -2,6 +2,8 @@ import { Router, Request, Response } from "express";
 import Channel from "../models/Channel";
 import auth = require("../middleware/auth");
 import { getParticipantsInChannel } from "../sockets/participantstore";
+import { getCourseAccess } from "../lib/courseAccess";
+import { assertInstructorForVoiceChannel } from "../lib/channelAuth";
 
 const { requireAuth } = auth;
 
@@ -10,19 +12,21 @@ const router = Router();
 // ── POST /api/channels ────────────────────────────────────
 // Create a new voice channel for a course.
 // Body: { name: string, courseId: string, createdBy: string, role?: string }
-// Only teachers (role === "teacher") can create channels.
+// Only the course instructor can create channels (verified via JWT + Course, not client `role`).
 router.post("/", requireAuth, async (req: Request, res: Response) => {
-  const { name, courseId, createdBy, role } = req.body;
+  const { name, courseId, creatorName } = req.body;
+  const requesterId = req.voiceUser!.userId;
 
-  if (!name || !courseId || !createdBy) {
+  if (!name || !courseId) {
     return res.status(400).json({
-      message: "name, courseId, and createdBy are required",
+      message: "name and courseId are required",
     });
   }
 
-  if (role !== "teacher") {
+  const access = await getCourseAccess(requesterId, courseId);
+  if (access !== "instructor") {
     return res.status(403).json({
-      message: "Only teachers can create voice channels",
+      message: "Only the course instructor can create voice channels",
     });
   }
 
@@ -30,11 +34,11 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
     const channel = await Channel.create({
       name,
       courseId,
-      createdBy,
+      createdBy: requesterId,
       participants: [
         {
-          userId: createdBy,
-          name:   req.body.creatorName || "Host",
+          userId: requesterId,
+          name:   creatorName || "Host",
           role:   "host",
         },
       ],
@@ -50,12 +54,21 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
 // MUST be declared BEFORE /:courseId to prevent the wildcard
 // from swallowing this more-specific path segment.
 // Returns live participant list from memory store.
-router.get("/:id/participants", requireAuth, (req: Request, res: Response) => {
+router.get("/:id/participants", requireAuth, async (req: Request, res: Response) => {
   const { id } = req.params;
   const channelId = Array.isArray(id) ? id[0] : id;
 
   if (!channelId) {
     return res.status(400).json({ message: "channel id is required" });
+  }
+
+  const ch = await Channel.findById(channelId).select("courseId").lean();
+  if (!ch) {
+    return res.status(404).json({ message: "Channel not found" });
+  }
+  const access = await getCourseAccess(req.voiceUser!.userId, String(ch.courseId));
+  if (!access) {
+    return res.status(403).json({ message: "Not allowed to view this channel" });
   }
 
   const participants = getParticipantsInChannel(channelId);
@@ -65,7 +78,16 @@ router.get("/:id/participants", requireAuth, (req: Request, res: Response) => {
 // ── GET /api/channels/:courseId ───────────────────────────
 // List all active channels for a given course.
 router.get("/:courseId", requireAuth, async (req: Request, res: Response) => {
-  const { courseId } = req.params;
+  const raw = req.params.courseId;
+  const courseId = Array.isArray(raw) ? raw[0] : raw;
+  if (!courseId) {
+    return res.status(400).json({ message: "courseId is required" });
+  }
+
+  const access = await getCourseAccess(req.voiceUser!.userId, courseId);
+  if (!access) {
+    return res.status(403).json({ message: "Not allowed to view channels for this course" });
+  }
 
   try {
     const channels = await Channel.find({
@@ -83,7 +105,15 @@ router.get("/:courseId", requireAuth, async (req: Request, res: Response) => {
 // Soft-delete a channel — sets isActive: false.
 // Does NOT remove the document (session history is preserved).
 router.delete("/:id", requireAuth, async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const raw = req.params.id;
+  const id = Array.isArray(raw) ? raw[0] : raw;
+  if (!id) {
+    return res.status(400).json({ message: "channel id is required" });
+  }
+
+  if (!(await assertInstructorForVoiceChannel(req.voiceUser!.userId, id, res))) {
+    return;
+  }
 
   try {
     const channel = await Channel.findByIdAndUpdate(

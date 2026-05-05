@@ -1,7 +1,3 @@
-/* =============================================
-   Create Channel Modal — Dark-themed overlay
-   ============================================= */
-
 .ccm-overlay {
   position: fixed;
   inset: 0;
@@ -14,19 +10,13 @@
 }
 
 @keyframes ccm-fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
+  from {
+    opacity: 0;
+  }
 
-/* Shared keyframes used by ConfirmModal and Toast animations */
-@keyframes vcFadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-@keyframes vcSlideUp {
-  from { transform: translateY(12px); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
+  to {
+    opacity: 1;
+  }
 }
 
 .ccm-modal {
@@ -41,8 +31,15 @@
 }
 
 @keyframes ccm-slide-up {
-  from { transform: translateY(16px); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 /* ── Header ── */
