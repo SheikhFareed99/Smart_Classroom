@@ -236,6 +236,7 @@
   padding: var(--sp-16) var(--sp-20);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--sp-16);
   transition: all var(--transition-fast);
   cursor: pointer;
@@ -273,6 +274,40 @@
   color: var(--text-muted);
 }
 
+.tc-assignment-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+}
+
+.tc-assignment-actions .btn-sm {
+  padding: 4px 8px;
+}
+
+.tc-compact-btn {
+  padding: 2px 6px;
+}
+
+.tc-right-btn {
+  margin-left: auto;
+}
+#create_module{
+  width: 8%;
+
+}
+#creare_assignment{
+  width: 12%;
+}
+#post_announcement{
+  width: 14%;
+ position: relative; /* or relative */
+  right: 700px;         /* 50px away from the left edge */
+  
+}
+
 /* ── Student List ──────────────────────────────────── */
 .student-list {
   display: flex;
@@ -301,6 +336,27 @@
 .student-email {
   font-size: 0.8125rem;
   color: var(--text-muted);
+}
+
+.student-remove {
+  margin-left: auto;
+  border: 1px solid var(--border-light);
+  background: transparent;
+  color: var(--text-muted);
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.student-remove:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: var(--danger-bg);
 }
 
 /* ── Materials ─────────────────────────────────────── */
@@ -390,6 +446,8 @@
   .tab-btn                { padding: var(--sp-12); font-size: 0.8125rem; }
   .assignment-item,
   .material-item          { padding: var(--sp-12) var(--sp-16); }
+  .assignment-item        { flex-wrap: wrap; align-items: flex-start; }
+  .tc-assignment-actions  { width: 100%; justify-content: flex-start; }
 }
 
 @media (max-width: 480px) {
@@ -576,8 +634,20 @@
   border-top: none !important;
   border-bottom: 1px solid var(--border-light) !important;
   padding: 14px 20px !important;
+  justify-content: space-between;
 }
 .tc-mat-row:last-child { border-bottom: none !important; }
+
+.tc-mat-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.tc-mat-actions .btn-sm {
+  padding: 4px 8px;
+}
 
 /* ── Uploaded file preview in modal ───────────────────────────── */
 .tc-uploaded-file {

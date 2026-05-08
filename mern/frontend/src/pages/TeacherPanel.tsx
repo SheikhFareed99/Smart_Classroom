@@ -4,6 +4,7 @@ import { useAuth } from "../auth/AuthContext";
 import { apiFetch } from "../lib/api";
 import { X } from "lucide-react";
 import { getCourseBannerColor } from "../lib/courseColors";
+import { SkeletonCard } from "../components/ui/Skeleton";
 
 import "./Dashboard.css";
 import "./TeacherPanel.css";
@@ -28,7 +29,10 @@ export default function TeacherPanel() {
   const activeCount = (teaching.filter((c) => !c.isArchived).length);
   //   for each course, we can calculate the number of active students by looking at the length of the enrollments array (after filtering out archived courses). However, since we don't have the enrollments data in this component, we'll just display the count of active courses for now. In a real implementation, we would likely need to fetch the enrollments data for each course to get the student count, or have that data included in the course object from the backend.
 
-  const activeStudents = enrolled.length;
+  const [totalStudents, setTotalStudents] = useState(0);
+  const [totalAssignments, setTotalAssignments] = useState(0);
+  const [pendingReviews, setPendingReviews] = useState(0);
+  const [statsLoading, setStatsLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -61,6 +65,91 @@ export default function TeacherPanel() {
       mounted = false;
     };
   }, [currentUser]);
+
+  useEffect(() => {
+    if (!currentUser?._id) return;
+    let mounted = true;
+    const loadStats = async () => {
+      if (teaching.length === 0) {
+        if (mounted) {
+          setTotalStudents(0);
+          setTotalAssignments(0);
+          setPendingReviews(0);
+        }
+        return;
+      }
+
+      setStatsLoading(true);
+      try {
+        const courseIds = teaching.map((c) => c._id);
+
+        const courseDetails = await Promise.all(
+          courseIds.map(async (courseId) => {
+            try {
+              const res = await apiFetch(`/api/courses/${courseId}`);
+              const data = await res.json();
+              return res.ok ? data.course : null;
+            } catch {
+              return null;
+            }
+          })
+        );
+
+        const studentIds = new Set<string>();
+        courseDetails.forEach((course) => {
+          const enrollments = course?.enrollments || [];
+          enrollments
+            .filter((e: any) => e && e.status === "active")
+            .forEach((e: any) => {
+              const student = e?.student;
+              if (student?._id) studentIds.add(String(student._id));
+            });
+        });
+
+        const deliverablesByCourse = await Promise.all(
+          courseIds.map(async (courseId) => {
+            try {
+              const res = await apiFetch(`/api/courses/${courseId}/deliverables`);
+              const data = await res.json();
+              return res.ok && Array.isArray(data.deliverables) ? data.deliverables : [];
+            } catch {
+              return [];
+            }
+          })
+        );
+
+        const allDeliverables = deliverablesByCourse.flat();
+        const assignmentTotal = allDeliverables.length;
+        const pendingCounts = await Promise.all(
+          allDeliverables.map(async (deliverable: any) => {
+            try {
+              const res = await apiFetch(`/api/deliverables/${deliverable._id}/submissions`);
+              const data = await res.json();
+              if (!res.ok || !Array.isArray(data.submissions)) return 0;
+              return data.submissions.filter((s: any) => s.status === "submitted" || s.status === "late").length;
+            } catch {
+              return 0;
+            }
+          })
+        );
+
+        const pendingTotal = pendingCounts.reduce((sum, count) => sum + count, 0);
+
+        if (mounted) {
+          setTotalStudents(studentIds.size);
+          setTotalAssignments(assignmentTotal);
+          setPendingReviews(pendingTotal);
+        }
+      } finally {
+        if (mounted) setStatsLoading(false);
+      }
+    };
+
+    loadStats();
+    return () => {
+      mounted = false;
+    };
+  }, [currentUser, teaching]);
 
   // Create course handler
   async function handleCreateCourse(e: React.FormEvent) {
@@ -180,7 +269,6 @@ export default function TeacherPanel() {
         <div className="page-header">
           <div>
             <h1 className="page-title">Teacher Panel</h1>
-            <p className="page-subtitle">Manage your courses, assignments, and AI tools.</p>
           </div>
         </div>
 
@@ -197,7 +285,7 @@ export default function TeacherPanel() {
             <div className="stat-icon" style={{ background: "var(--accent-bg)", color: "var(--accent)" }}>
               <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /></svg>
             </div>
-            <div className="stat-value">{loading ? "…" : activeStudents ? activeStudents : 0}</div>
+            <div className="stat-value">{loading || statsLoading ? "…" : totalStudents}</div>
             <div className="stat-label">Total Students</div>
           </div>
 
@@ -205,7 +293,7 @@ export default function TeacherPanel() {
             <div className="stat-icon" style={{ background: "var(--warning-bg)", color: "var(--warning)" }}>
               <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /></svg>
             </div>
-            <div className="stat-value">—</div>
+            <div className="stat-value">{loading || statsLoading ? "…" : totalAssignments}</div>
             <div className="stat-label">Assignments</div>
           </div>
 
@@ -213,7 +301,7 @@ export default function TeacherPanel() {
             <div className="stat-icon" style={{ background: "var(--danger-bg)", color: "var(--danger)" }}>
               <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
             </div>
-            <div className="stat-value">—</div>
+            <div className="stat-value">{loading || statsLoading ? "…" : pendingReviews}</div>
             <div className="stat-label">Pending Reviews</div>
           </div>
         </div>
@@ -257,26 +345,34 @@ export default function TeacherPanel() {
           <h3>Teaching</h3>
         </div>
         <div className="course-grid">
-          {teaching.map((c) => {
-            const bannerColor = getCourseBannerColor();
-            return (
-              <Link key={c._id} to={`/teacher-course/${c._id}`} state={{ color: bannerColor }} className="course-card">
-                <div className={`course-card-banner ${bannerColor}`}>
-                  <h3>{c.title}</h3>
-                </div>
-                <div className="course-card-body">
-                  <p className="course-card-section">{c.courseCode || ""}{c.inviteCode && ` · Invite: ${c.inviteCode}`}</p>
-                  <div className="course-card-meta">
-                    <div></div>
-                    <div>
-                      <button className="btn btn-outline" onClick={(e) => {e.preventDefault(); openManageStudents(c._id);}}>Manage</button>
-                      <button className="btn" style={{ marginLeft: 8 }} onClick={(e) => {e.preventDefault(); handleDeleteCourse(c._id);}}>Delete</button>
+          {loading ? (
+            <>
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+            </>
+          ) : (
+            teaching.map((c) => {
+              const bannerColor = getCourseBannerColor();
+              return (
+                <Link key={c._id} to={`/teacher-course/${c._id}`} state={{ color: bannerColor }} className="course-card">
+                  <div className={`course-card-banner ${bannerColor}`}>
+                    <h3>{c.title}</h3>
+                  </div>
+                  <div className="course-card-body">
+                    <p className="course-card-section">{c.courseCode || ""}{c.inviteCode && ` · Invite: ${c.inviteCode}`}</p>
+                    <div className="course-card-meta">
+                      <div></div>
+                      <div className="course-card-actions">
+                        <button className="btn btn-outline" onClick={(e) => {e.preventDefault(); openManageStudents(c._id);}}>Manage</button>
+                        <button className="btn" onClick={(e) => {e.preventDefault(); handleDeleteCourse(c._id);}}>Delete</button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Link>
-            );
-          })}
+                </Link>
+              );
+            })
+          )}
         </div>
 
 
