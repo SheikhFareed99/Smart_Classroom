@@ -439,7 +439,7 @@ function StudentCourse() {
               <p>{courseData?.courseCode} · {instructorName}</p>
              
             </div>
-            <button className="btn btn-outline" onClick={() => setShowLeaveConfirm(true)}>Unenroll</button>
+            <button className="btn btn-outline" id="unenroll_button" onClick={() => setShowLeaveConfirm(true)}>Unenroll</button>
           </div>
           {leaveMsg && (
             <div style={{ marginTop: 12 }}>

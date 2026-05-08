@@ -42,17 +42,14 @@ export default function Sidebar({ isOpen }: { isOpen: boolean; user: SidebarUser
             <Icon icon={CheckSquare} size={20} />
             To Do
           </NavLink>
-          <a href="#" className="sidebar-link">
+          <NavLink to="/student-panel#jamboard" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
             <Icon icon={PenTool} size={20} />
             Jamboard
-          </a>
+          </NavLink>
 
           {/* General section */}
-          <div className="sidebar-section">General</div>
-          <a href="#" className="sidebar-link">
-            <Icon icon={Settings} size={20} />
-            Settings
-          </a>
+         
+          
         </nav>
       </aside>
     </>

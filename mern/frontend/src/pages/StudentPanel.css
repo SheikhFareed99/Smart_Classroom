@@ -135,6 +135,19 @@
   gap: 10px;
 }
 
+.todo-note {
+  margin: 10px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.86rem;
+}
+
+.todo-error {
+  margin: 8px 0 0;
+  color: var(--danger);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
 .todo-item {
   display: flex;
   align-items: center;
@@ -289,7 +302,7 @@
 
 .jamboard-board-title {
   margin: 0;
-  color: var(--text-primary);
+  color: #414F5D;
   font-size: 0.96rem;
   font-weight: 800;
   letter-spacing: 0.01em;
@@ -422,6 +435,38 @@
   background: var(--card);
 }
 
+.schedule-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.schedule-card-actions {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.schedule-card-action {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--border-light);
+  background: transparent;
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+
+.schedule-card-action:hover {
+  border-color: var(--border);
+  color: var(--text-primary);
+  background: var(--bg);
+}
+
 .schedule-card.accent {
   background: rgba(16, 185, 129, 0.08);
   border-color: rgba(16, 185, 129, 0.25);
@@ -453,6 +498,79 @@
   margin: 6px 0 0;
   color: var(--text-secondary);
   font-size: 0.88rem;
+}
+
+.event-note {
+  margin: 0 0 10px;
+  color: var(--text-secondary);
+  font-size: 0.86rem;
+}
+
+.event-error {
+  margin: 0 0 10px;
+  color: var(--danger);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.event-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.48);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 1200;
+}
+
+.event-modal {
+  width: min(440px, 100%);
+  background: var(--card);
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  box-shadow: 0 20px 40px rgba(2, 6, 23, 0.24);
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.event-modal h4 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 1.03rem;
+}
+
+.event-modal-field {
+  display: grid;
+  gap: 8px;
+}
+
+.event-modal-field span {
+  font-size: 0.84rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.event-modal-field input,
+.event-modal-field textarea,
+.event-modal-field select {
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.93rem;
+  color: var(--text-primary);
+  background: var(--card);
+}
+
+.event-modal-field textarea {
+  resize: vertical;
+}
+
+.event-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 /* small utility classes used by JSX */

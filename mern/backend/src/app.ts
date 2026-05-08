@@ -13,6 +13,8 @@ import materialRouter from "./routes/material";
 import whiteboardRouter from "./routes/whiteboard";
 import announcementRouter from "./routes/announcement";
 import todoRouter from "./routes/todo";
+import studentTodoRouter from "./routes/studentTodo";
+import studentEventRouter from "./routes/studentEvent";
 import chatbotRouter from "./routes/chatbot";
 import { csrfProtection, initCsrfProtection } from "./security/csrf";
 
@@ -87,6 +89,8 @@ app.use("/api", materialRouter);
 app.use("/api/whiteboard", whiteboardRouter);
 app.use("/api/announcements", announcementRouter);
 app.use("/api/todo", todoRouter);
+app.use("/api/student-todos", studentTodoRouter);
+app.use("/api/student-events", studentEventRouter);
 app.use("/api/chatbot", chatbotRouter);
 app.get("/", (req, res) => {
   res.send("Home");

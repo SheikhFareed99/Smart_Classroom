@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
 import VoiceChannel from "../voice/components/VoiceChannel";
-import { X, CheckCircle2, AlertTriangle } from "lucide-react";
+import { UserX, X, CheckCircle2, AlertTriangle } from "lucide-react";
 import "./TeacherCourse.css";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -163,6 +163,8 @@ export default function TeacherCourse() {
   // Enrolled students
   const [enrolledStudents, setEnrolledStudents] = useState<{ _id: string; name: string; email: string }[]>([]);
   const [stuLoading, setStuLoading] = useState(false);
+  const [removingStudentId, setRemovingStudentId] = useState<string | null>(null);
+  const [removeTarget, setRemoveTarget] = useState<{ _id: string; name: string; email: string } | null>(null);
 
   // Modules & Materials
   const [modules, setModules] = useState<Module[]>([]);
@@ -322,15 +324,42 @@ export default function TeacherCourse() {
       .then(r => r.json())
       .then(d => {
         if (d.success && d.course) {
-          const enrolled = (d.course.enrollments || []).map((e: any) =>
-            typeof e === "object" && e.user ? e.user : e
-          );
-          setEnrolledStudents(enrolled.filter((s: any) => s && s._id));
+          const enrolled = (d.course.enrollments || [])
+            .filter((e: any) => e && e.status === "active")
+            .map((e: any) => (typeof e === "object" && e.student ? e.student : e));
+          const students = enrolled.filter((s: any) => s && s._id);
+          setEnrolledStudents(students);
+          setCourseDetails(`${d.course.courseCode || ""} · ${students.length} Students`);
         }
       })
       .catch(() => {})
       .finally(() => setStuLoading(false));
   }, [activeTab, courseId]);
+
+  function openRemoveStudent(student: { _id: string; name: string; email: string }) {
+    setRemoveTarget(student);
+  }
+
+  async function confirmRemoveStudent() {
+    if (!courseId || !removeTarget) return;
+    setRemovingStudentId(removeTarget._id);
+    try {
+      const r = await apiFetch(`/api/courses/${courseId}/students/${removeTarget._id}`, { method: "DELETE" });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.message || "Failed to remove student");
+      setEnrolledStudents((prev) => {
+        const next = prev.filter((s) => s._id !== removeTarget._id);
+        setCourseDetails(`${courseCode || ""} · ${next.length} Students`);
+        return next;
+      });
+      showToast("Student removed");
+    } catch (err: any) {
+      showToast(err.message || "Failed to remove student", "err");
+    } finally {
+      setRemovingStudentId(null);
+      setRemoveTarget(null);
+    }
+  }
 
   // ── Load submissions for a selected deliverable ───────────────────────────────
   async function openSubmissions(deliv: Deliverable) {
@@ -654,6 +683,7 @@ export default function TeacherCourse() {
                 <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
                   <button
                     className="btn btn-primary btn-sm"
+                    id="post_announcement"
                     onClick={postAnnouncement}
                     disabled={postingAnnouncement || !announcementText.trim()}
                   >
@@ -990,7 +1020,8 @@ export default function TeacherCourse() {
                 <div className="flex justify-between items-center mb-24">
                   <h3 className="font-semibold">All Assignments</h3>
                   <button
-                    className="btn btn-primary btn-sm"
+                    className="btn btn-primary btn-sm tc-compact-btn tc-right-btn"
+                    id="creare_assignment"
                     onClick={() => navigate(`/teacher-course/${courseId}/create-assignment`)}
                   >
                     + Create Assignment
@@ -1019,33 +1050,34 @@ export default function TeacherCourse() {
                           {" · "}{a.totalPoints} pts
                         </p>
                       </div>
-                      <AssignmentBadge status={a.status} />
-                      {/* View Submissions button */}
-                      <button
-                        className="btn btn-outline btn-sm"
-                        onClick={() => navigate(`/teacher-course/${courseId}/assignment/${a._id}/plagiarism`)}
-                        title="Open plagiarism checker"
-                      >
-                        Plagiarism
-                      </button>
-                      <button
-                        className="btn btn-outline btn-sm tc-view-subs-btn"
-                        onClick={() => openSubmissions(a)}
-                        title="View Submissions"
-                      >
-                        <UsersIcon />
-                        Submissions
-                      </button>
-                      <button
-                        className="btn btn-ghost btn-sm tc-del-btn"
-                        onClick={() => handleDeleteDeliverable(a._id, a.title)}
-                        title="Delete assignment"
-                      >
-                        <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="3 6 5 6 21 6" />
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                        </svg>
-                      </button>
+                      <div className="tc-assignment-actions">
+                        <AssignmentBadge status={a.status} />
+                        <button
+                          className="btn btn-outline btn-sm"
+                          onClick={() => navigate(`/teacher-course/${courseId}/assignment/${a._id}/plagiarism`)}
+                          title="Open plagiarism checker"
+                        >
+                          Plagiarism
+                        </button>
+                        <button
+                          className="btn btn-outline btn-sm tc-view-subs-btn"
+                          onClick={() => openSubmissions(a)}
+                          title="View Submissions"
+                        >
+                          <UsersIcon />
+                          Submissions
+                        </button>
+                        <button
+                          className="btn btn-ghost btn-sm tc-del-btn"
+                          onClick={() => handleDeleteDeliverable(a._id, a.title)}
+                          title="Delete assignment"
+                        >
+                          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1080,6 +1112,15 @@ export default function TeacherCourse() {
                           <p className="student-name">{s.name}</p>
                           <p className="student-email">{s.email}</p>
                         </div>
+                        <button
+                          className="student-remove"
+                          onClick={() => openRemoveStudent(s)}
+                          disabled={removingStudentId === s._id}
+                          title="Remove student"
+                          aria-label={`Remove ${s.name}`}
+                        >
+                          <UserX size={16} />
+                        </button>
                       </div>
                     );
                   })}
@@ -1096,6 +1137,7 @@ export default function TeacherCourse() {
               <h3 className="font-semibold">Course Modules &amp; Materials</h3>
               <button
                 className="btn btn-primary btn-sm"
+                id="create_module"
                 onClick={() => setShowCreateModule(true)}
               >
                 + Create Module
@@ -1172,19 +1214,21 @@ export default function TeacherCourse() {
                                 {new Date(mat.uploadedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                               </p>
                             </div>
-                            <a href={mat.url} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm">
-                              Download
-                            </a>
-                            <button
-                              className="btn btn-ghost btn-sm tc-del-btn"
-                              onClick={() => handleDeleteMaterial(mod, mat)}
-                              title="Delete material"
-                            >
-                              <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="3 6 5 6 21 6" />
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                              </svg>
-                            </button>
+                            <div className="tc-mat-actions">
+                              <a href={mat.url} target="_blank" rel="noopener noreferrer" className="btn btn-ghost btn-sm">
+                                Download
+                              </a>
+                              <button
+                                className="btn btn-ghost btn-sm tc-del-btn"
+                                onClick={() => handleDeleteMaterial(mod, mat)}
+                                title="Delete material"
+                              >
+                                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="3 6 5 6 21 6" />
+                                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                </svg>
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -1196,6 +1240,54 @@ export default function TeacherCourse() {
           </div>
         )}
       </main>
+
+      {/* ══ REMOVE STUDENT MODAL ══ */}
+      {removeTarget && (
+        <div
+          className="modal-overlay active"
+          onClick={(e) => { if (e.target === e.currentTarget && !removingStudentId) setRemoveTarget(null); }}
+        >
+          <div className="modal">
+            <div className="modal-header">
+              <h2>Remove student?</h2>
+              <button
+                className="btn btn-ghost btn-icon"
+                onClick={() => setRemoveTarget(null)}
+                aria-label="Close"
+                disabled={!!removingStudentId}
+              >
+                <X size={18} aria-hidden="true" />
+              </button>
+            </div>
+            <div className="modal-body">
+              <p>
+                This will remove <strong>{removeTarget.name || "this student"}</strong> from the course.
+              </p>
+              {removeTarget.email && (
+                <p className="text-sm" style={{ color: "var(--text-muted)" }}>{removeTarget.email}</p>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => setRemoveTarget(null)}
+                disabled={!!removingStudentId}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={confirmRemoveStudent}
+                disabled={!!removingStudentId}
+              >
+                {removingStudentId ? "Removing..." : "Remove"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ══ CREATE MODULE MODAL ══ */}
       {showCreateModule && (

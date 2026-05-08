@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { getCourseBannerColor } from "../lib/courseColors";
 import "./Dashboard.css";
 import "./StudentPanel.css";
@@ -15,17 +15,24 @@ interface CourseAPIItem {
   instructor?: { _id?: string; name?: string; email?: string } | null;
 }
 
-interface TodoItem {
-  id: number;
+type ScheduleEventVariant = "accent" | "warning" | "danger" | "default";
+
+interface StudentTodoItem {
+  _id: string;
   text: string;
   completed: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-interface ScheduleEvent {
+interface StudentEventItem {
+  _id: string;
   date: string;
   title: string;
   desc: string;
-  variant?: "accent" | "warning" | "danger" | "default";
+  variant?: ScheduleEventVariant;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface WhiteboardItem {
@@ -60,31 +67,7 @@ const JAMBOARD_SOFT_COLORS = [
   { shade: "#C7D2FE", family: "blue" },
 ] as const satisfies readonly JamboardColorOption[];
 
-const TIMETABLE_ROWS = [
-  { time: "8:00 AM", mon: { label: "AI (CS-401)", color: "" }, tue: null, wed: { label: "AI (CS-401)", color: "" }, thu: null, fri: { label: "AI Lab", color: "" } },
-  { time: "9:30 AM", mon: null, tue: { label: "HCI (CS-312)", color: "green" }, wed: null, thu: { label: "HCI (CS-312)", color: "green" }, fri: null },
-  { time: "11:00 AM", mon: { label: "NLP (CS-482)", color: "purple" }, tue: null, wed: { label: "NLP (CS-482)", color: "purple" }, thu: null, fri: { label: "NLP Lab", color: "purple" } },
-  { time: "12:30 PM", mon: null, tue: null, wed: null, thu: null, fri: null, isLunch: true },
-  { time: "2:00 PM", mon: null, tue: { label: "CV (CS-491)", color: "orange" }, wed: null, thu: { label: "CV (CS-491)", color: "orange" }, fri: null },
-  { time: "3:30 PM", mon: { label: "CV Lab", color: "orange" }, tue: null, wed: null, thu: null, fri: null },
-] as const;
 
-const DEFAULT_TODOS: TodoItem[] = [
-  { id: 1, text: "Read HCI Chapter 1-2", completed: true },
-  { id: 2, text: "Complete AI Assignment 1", completed: false },
-  { id: 3, text: "Study for NLP quiz", completed: false },
-  { id: 4, text: "Prepare wireframes for HCI project", completed: false },
-  { id: 5, text: "Review Deep Learning lecture notes", completed: false },
-];
-
-const SCHEDULE_EVENTS: ScheduleEvent[] = [
-  { date: "Feb 15, 2026 · 8:00 AM", title: "AI Lecture – Game Trees", desc: "Room 301, CS Building", variant: "default" },
-  { date: "Feb 15, 2026 · 9:30 AM", title: "HCI Lab Session", desc: "Lab 205, Design Wing", variant: "accent" },
-  { date: "Feb 18, 2026 · 11:59 PM", title: "NLP Quiz 2 Deadline", desc: "Online submission via portal", variant: "warning" },
-  { date: "Feb 28, 2026 · 11:59 PM", title: "AI Assignment 1 Due", desc: "Search Algorithms — Submit online", variant: "danger" },
-  { date: "Mar 1, 2026 · 11:59 PM", title: "HCI Assignment 1 Due", desc: "Heuristic Evaluation — PDF only", variant: "default" },
-  { date: "Mar 5, 2026 · 2:00 PM", title: "CV Guest Lecture", desc: "Auditorium — Dr. Li Wei on Object Detection", variant: "accent" },
-];
 
 const POMODORO_DURATION = 25 * 60; // seconds
 const CIRCUMFERENCE = 2 * Math.PI * 90; // ~565.48
@@ -219,25 +202,96 @@ function PomodoroTimer() {
 
 /** To-do list widget */
 function TodoList() {
-  const [todos, setTodos] = useState<TodoItem[]>(DEFAULT_TODOS);
+  const [todos, setTodos] = useState<StudentTodoItem[]>([]);
   const [input, setInput] = useState("");
-  const nextId = useRef(DEFAULT_TODOS.length + 1);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [error, setError] = useState("");
 
-  function addTodo() {
+  useEffect(() => {
+    let mounted = true;
+    const loadTodos = async () => {
+      setIsLoading(true);
+      setError("");
+      try {
+        const res = await apiFetch("/api/student-todos");
+        const data = await res.json().catch(() => null);
+        if (!res.ok) throw new Error(data?.message || "Failed to load todos");
+        if (mounted) setTodos(Array.isArray(data?.items) ? data.items : []);
+      } catch (err: any) {
+        if (mounted) setError(err?.message || "Could not load todos");
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    };
+    loadTodos();
+    return () => { mounted = false; };
+  }, []);
+
+  async function addTodo() {
     const text = input.trim();
-    if (!text) return;
-    setTodos((prev) => [...prev, { id: nextId.current++, text, completed: false }]);
-    setInput("");
+    if (!text || isSaving) return;
+    setIsSaving(true);
+    setError("");
+    try {
+      const res = await apiFetch("/api/student-todos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.message || "Failed to add todo");
+      if (data?.item) {
+        setTodos((prev) => [data.item, ...prev]);
+      }
+      setInput("");
+    } catch (err: any) {
+      setError(err?.message || "Could not add todo");
+    } finally {
+      setIsSaving(false);
+    }
   }
 
-  function toggleTodo(id: number) {
-    setTodos((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
-    );
+  async function toggleTodo(todo: StudentTodoItem) {
+    if (updatingId) return;
+    setUpdatingId(todo._id);
+    setError("");
+    try {
+      const res = await apiFetch(`/api/student-todos/${todo._id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completed: !todo.completed }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.message || "Failed to update todo");
+      if (data?.item) {
+        setTodos((prev) => prev.map((t) => (t._id === todo._id ? data.item : t)));
+      }
+    } catch (err: any) {
+      setError(err?.message || "Could not update todo");
+    } finally {
+      setUpdatingId(null);
+    }
   }
 
-  function deleteTodo(id: number) {
-    setTodos((prev) => prev.filter((t) => t.id !== id));
+  async function deleteTodo(todoId: string) {
+    if (deletingId) return;
+    setDeletingId(todoId);
+    setError("");
+    try {
+      const res = await apiFetch(`/api/student-todos/${todoId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.message || "Failed to delete todo");
+      setTodos((prev) => prev.filter((t) => t._id !== todoId));
+    } catch (err: any) {
+      setError(err?.message || "Could not delete todo");
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   return (
@@ -260,21 +314,23 @@ function TodoList() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") addTodo(); }}
           />
-          <button className="btn btn-primary btn-sm" onClick={addTodo}>Add</button>
+          <button className="btn btn-primary btn-sm" onClick={addTodo} disabled={isSaving}>Add</button>
         </div>
+        {error && <p className="todo-error">{error}</p>}
+        {isLoading && <p className="todo-note">Loading your tasks...</p>}
         <div className="todo-list">
           {todos.map((todo) => (
-            <div key={todo.id} className="todo-item">
+            <div key={todo._id} className="todo-item">
               <div
                 className={`todo-checkbox${todo.completed ? " checked" : ""}`}
-                onClick={() => toggleTodo(todo.id)}
+                onClick={() => toggleTodo(todo)}
               >
                 <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="10 2 4 8 1 5" />
                 </svg>
               </div>
               <span className={`todo-text${todo.completed ? " completed" : ""}`}>{todo.text}</span>
-              <button className="todo-delete" onClick={() => deleteTodo(todo.id)}>
+              <button className="todo-delete" onClick={() => deleteTodo(todo._id)} disabled={deletingId === todo._id || updatingId === todo._id}>
                 <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18" />
                   <line x1="6" y1="6" x2="18" y2="18" />
@@ -283,71 +339,9 @@ function TodoList() {
             </div>
           ))}
         </div>
-      </div>
-    </div>
-  );
-}
-
-/** A single timetable cell */
-function TimetableCell({ block }: { block: { label: string; color: string } | null }) {
-  if (!block) return <td />;
-  return (
-    <td>
-      <span className={`class-block${block.color ? ` ${block.color}` : ""}`}>
-        {block.label}
-      </span>
-    </td>
-  );
-}
-
-/** Weekly timetable */
-function WeeklyTimetable() {
-  return (
-    <div className="card mb-32">
-      <div className="card-header">
-        <h3 className="font-semibold flex items-center gap-8">
-          <svg width="20" height="20" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-            <line x1="16" y1="2" x2="16" y2="6" />
-            <line x1="8" y1="2" x2="8" y2="6" />
-            <line x1="3" y1="10" x2="21" y2="10" />
-          </svg>
-          Weekly Timetable
-        </h3>
-      </div>
-      <div className="card-body" style={{ overflowX: "auto" }}>
-        <table className="timetable">
-          <thead>
-            <tr>
-              <th>Time</th>
-              <th>Monday</th>
-              <th>Tuesday</th>
-              <th>Wednesday</th>
-              <th>Thursday</th>
-              <th>Friday</th>
-            </tr>
-          </thead>
-          <tbody>
-            {TIMETABLE_ROWS.map((row) => (
-              <tr key={row.time}>
-                <td className="time-col">{row.time}</td>
-                {"isLunch" in row && row.isLunch ? (
-                  <td colSpan={5} style={{ textAlign: "center", color: "var(--text-muted)", fontStyle: "italic" }}>
-                    — Lunch Break —
-                  </td>
-                ) : (
-                  <>
-                    <TimetableCell block={"mon" in row ? row.mon as { label: string; color: string } | null : null} />
-                    <TimetableCell block={"tue" in row ? row.tue as { label: string; color: string } | null : null} />
-                    <TimetableCell block={"wed" in row ? row.wed as { label: string; color: string } | null : null} />
-                    <TimetableCell block={"thu" in row ? row.thu as { label: string; color: string } | null : null} />
-                    <TimetableCell block={"fri" in row ? row.fri as { label: string; color: string } | null : null} />
-                  </>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {!isLoading && !error && todos.length === 0 && (
+          <p className="todo-note">No personal tasks yet. Add one to get started.</p>
+        )}
       </div>
     </div>
   );
@@ -634,6 +628,117 @@ function Jamboard({ studentID }: { studentID?: string }) {
 
 /** Upcoming schedule */
 function UpcomingSchedule() {
+  const [events, setEvents] = useState<StudentEventItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<StudentEventItem | null>(null);
+  const [formState, setFormState] = useState({
+    date: "",
+    title: "",
+    desc: "",
+    variant: "default" as ScheduleEventVariant,
+  });
+
+  useEffect(() => {
+    let mounted = true;
+    const loadEvents = async () => {
+      setIsLoading(true);
+      setError("");
+      try {
+        const res = await apiFetch("/api/student-events");
+        const data = await res.json().catch(() => null);
+        if (!res.ok) throw new Error(data?.message || "Failed to load events");
+        if (mounted) setEvents(Array.isArray(data?.items) ? data.items : []);
+      } catch (err: any) {
+        if (mounted) setError(err?.message || "Could not load events");
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    };
+    loadEvents();
+    return () => { mounted = false; };
+  }, []);
+
+  function openCreateModal() {
+    setEditingEvent(null);
+    setFormState({ date: "", title: "", desc: "", variant: "default" });
+    setIsModalOpen(true);
+  }
+
+  function openEditModal(event: StudentEventItem) {
+    setEditingEvent(event);
+    setFormState({
+      date: event.date,
+      title: event.title,
+      desc: event.desc,
+      variant: event.variant || "default",
+    });
+    setIsModalOpen(true);
+  }
+
+  async function saveEvent() {
+    if (isSaving) return;
+    const date = formState.date.trim();
+    const title = formState.title.trim();
+    const desc = formState.desc.trim();
+    if (!date || !title || !desc) {
+      setError("Date, title, and description are required");
+      return;
+    }
+
+    setIsSaving(true);
+    setError("");
+    try {
+      const payload = { date, title, desc, variant: formState.variant };
+      const endpoint = editingEvent
+        ? `/api/student-events/${editingEvent._id}`
+        : "/api/student-events";
+      const method = editingEvent ? "PATCH" : "POST";
+      const res = await apiFetch(endpoint, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.message || "Failed to save event");
+      if (data?.item) {
+        setEvents((prev) => {
+          if (editingEvent) {
+            return prev.map((ev) => (ev._id === editingEvent._id ? data.item : ev));
+          }
+          return [data.item, ...prev];
+        });
+      }
+      setIsModalOpen(false);
+    } catch (err: any) {
+      setError(err?.message || "Could not save event");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function deleteEvent(event: StudentEventItem) {
+    if (deletingId) return;
+    if (!window.confirm(`Delete "${event.title}"?`)) return;
+    setDeletingId(event._id);
+    setError("");
+    try {
+      const res = await apiFetch(`/api/student-events/${event._id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.message || "Failed to delete event");
+      setEvents((prev) => prev.filter((ev) => ev._id !== event._id));
+    } catch (err: any) {
+      setError(err?.message || "Could not delete event");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   return (
     <div className="card">
       <div className="card-header flex justify-between items-center">
@@ -646,19 +751,119 @@ function UpcomingSchedule() {
           </svg>
           Upcoming Schedule
         </h3>
-        <button className="btn btn-outline btn-sm">+ Add Event</button>
+        <button className="btn btn-outline btn-sm" onClick={openCreateModal}>
+          + Add Event
+        </button>
       </div>
       <div className="card-body">
+        {error && <p className="event-error">{error}</p>}
+        {isLoading && <p className="event-note">Loading events...</p>}
         <div className="scheduler-grid">
-          {SCHEDULE_EVENTS.map((ev, i) => (
-            <div key={i} className={`schedule-card${ev.variant && ev.variant !== "default" ? ` ${ev.variant}` : ""}`}>
+          {events.map((ev) => (
+            <div key={ev._id} className={`schedule-card${ev.variant && ev.variant !== "default" ? ` ${ev.variant}` : ""}`}>
+              <div className="schedule-card-header">
+                <p className="schedule-title">{ev.title}</p>
+                <div className="schedule-card-actions">
+                  <button
+                    type="button"
+                    className="schedule-card-action"
+                    onClick={() => openEditModal(ev)}
+                    title="Edit event"
+                  >
+                    <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <path d="M12 20h9" />
+                      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    className="schedule-card-action"
+                    onClick={() => deleteEvent(ev)}
+                    title="Delete event"
+                    disabled={deletingId === ev._id}
+                  >
+                    <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
+                      <path d="M19 6l-1 14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 6" />
+                      <line x1="10" y1="11" x2="10" y2="17" />
+                      <line x1="14" y1="11" x2="14" y2="17" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
               <p className="schedule-date">{ev.date}</p>
-              <p className="schedule-title">{ev.title}</p>
               <p className="schedule-desc">{ev.desc}</p>
             </div>
           ))}
         </div>
+        {!isLoading && !error && events.length === 0 && (
+          <p className="event-note">No upcoming events yet. Add one to plan your week.</p>
+        )}
       </div>
+      {isModalOpen && (
+        <div className="event-modal-overlay" role="presentation" onClick={() => !isSaving && setIsModalOpen(false)}>
+          <div
+            className="event-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="event-modal-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h4 id="event-modal-title">{editingEvent ? "Edit Event" : "Add Event"}</h4>
+            <label className="event-modal-field">
+              <span>Date and time</span>
+              <input
+                type="text"
+                value={formState.date}
+                onChange={(e) => setFormState((prev) => ({ ...prev, date: e.target.value }))}
+                maxLength={120}
+                placeholder="Mar 5, 2026 · 2:00 PM"
+              />
+            </label>
+            <label className="event-modal-field">
+              <span>Title</span>
+              <input
+                type="text"
+                value={formState.title}
+                onChange={(e) => setFormState((prev) => ({ ...prev, title: e.target.value }))}
+                maxLength={160}
+                placeholder="Guest lecture"
+              />
+            </label>
+            <label className="event-modal-field">
+              <span>Description</span>
+              <textarea
+                value={formState.desc}
+                onChange={(e) => setFormState((prev) => ({ ...prev, desc: e.target.value }))}
+                maxLength={500}
+                rows={3}
+                placeholder="Auditorium A"
+              />
+            </label>
+            <label className="event-modal-field">
+              <span>Priority</span>
+              <select
+                value={formState.variant}
+                onChange={(e) => setFormState((prev) => ({ ...prev, variant: e.target.value as ScheduleEventVariant }))}
+              >
+                <option value="default">Default</option>
+                <option value="accent">Accent</option>
+                <option value="warning">Warning</option>
+                <option value="danger">Danger</option>
+              </select>
+            </label>
+            <div className="event-modal-actions">
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setIsModalOpen(false)} disabled={isSaving}>
+                Cancel
+              </button>
+              <button type="button" className="btn btn-primary btn-sm" onClick={saveEvent} disabled={isSaving}>
+                {isSaving ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -667,9 +872,9 @@ function UpcomingSchedule() {
 
 function StudentDashboard() {
   const { user } = useAuth();
+  const location = useLocation();
   const [enrolledCourses, setEnrolledCourses] = useState<CourseAPIItem[]>([]);
   const [coursesLoading, setCoursesLoading] = useState(true);
-  const [userName, setUserName] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -680,7 +885,6 @@ function StudentDashboard() {
           return;
         }
 
-        if (mounted) setUserName(user.name || "");
         const res = await apiFetch(`/api/courses/user/${user._id}`);
         if (!res.ok) { if (mounted) setCoursesLoading(false); return; }
         const data = await res.json();
@@ -696,6 +900,15 @@ function StudentDashboard() {
     return () => { mounted = false; };
   }, [user]);
 
+  useEffect(() => {
+    if (!location.hash) return;
+    const targetId = location.hash.replace("#", "");
+    const target = document.getElementById(targetId);
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [location.hash]);
+
   return (
     <main className="main-content">
 
@@ -703,9 +916,7 @@ function StudentDashboard() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Student Panel</h1>
-          <p className="page-subtitle">
-            {userName ? `Welcome, ${userName}. ` : ""}Manage your study tools, schedule, and productivity.
-          </p>
+         
         </div>
       </div>
 
@@ -743,11 +954,11 @@ function StudentDashboard() {
         <TodoList />
       </div>
 
-      {/* ===== Weekly Timetable ===== */}
-      <WeeklyTimetable />
 
       {/* ===== Jamboard ===== */}
-      <Jamboard studentID={user?._id} />
+      <div id="jamboard">
+        <Jamboard studentID={user?._id} />
+      </div>
 
       {/* ===== Upcoming Schedule ===== */}
       <UpcomingSchedule />
