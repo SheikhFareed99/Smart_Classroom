@@ -4,6 +4,7 @@ import { useAuth } from "../auth/AuthContext";
 import { apiFetch } from "../lib/api";
 import { X } from "lucide-react";
 import { getCourseBannerColor } from "../lib/courseColors";
+import { SkeletonCard } from "../components/ui/Skeleton";
 
 import "./Dashboard.css";
 import "./TeacherPanel.css";
@@ -344,26 +345,34 @@ export default function TeacherPanel() {
           <h3>Teaching</h3>
         </div>
         <div className="course-grid">
-          {teaching.map((c) => {
-            const bannerColor = getCourseBannerColor();
-            return (
-              <Link key={c._id} to={`/teacher-course/${c._id}`} state={{ color: bannerColor }} className="course-card">
-                <div className={`course-card-banner ${bannerColor}`}>
-                  <h3>{c.title}</h3>
-                </div>
-                <div className="course-card-body">
-                  <p className="course-card-section">{c.courseCode || ""}{c.inviteCode && ` · Invite: ${c.inviteCode}`}</p>
-                  <div className="course-card-meta">
-                    <div></div>
-                    <div className="course-card-actions">
-                      <button className="btn btn-outline" onClick={(e) => {e.preventDefault(); openManageStudents(c._id);}}>Manage</button>
-                      <button className="btn" onClick={(e) => {e.preventDefault(); handleDeleteCourse(c._id);}}>Delete</button>
+          {loading ? (
+            <>
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+            </>
+          ) : (
+            teaching.map((c) => {
+              const bannerColor = getCourseBannerColor();
+              return (
+                <Link key={c._id} to={`/teacher-course/${c._id}`} state={{ color: bannerColor }} className="course-card">
+                  <div className={`course-card-banner ${bannerColor}`}>
+                    <h3>{c.title}</h3>
+                  </div>
+                  <div className="course-card-body">
+                    <p className="course-card-section">{c.courseCode || ""}{c.inviteCode && ` · Invite: ${c.inviteCode}`}</p>
+                    <div className="course-card-meta">
+                      <div></div>
+                      <div className="course-card-actions">
+                        <button className="btn btn-outline" onClick={(e) => {e.preventDefault(); openManageStudents(c._id);}}>Manage</button>
+                        <button className="btn" onClick={(e) => {e.preventDefault(); handleDeleteCourse(c._id);}}>Delete</button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Link>
-            );
-          })}
+                </Link>
+              );
+            })
+          )}
         </div>
 
 

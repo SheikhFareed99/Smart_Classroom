@@ -5,6 +5,7 @@ import "./Dashboard.css";
 import "./StudentPanel.css";
 import { useAuth } from "../auth/AuthContext";
 import { apiFetch } from "../lib/api";
+import { SkeletonCard } from "../components/ui/Skeleton";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -69,7 +70,8 @@ const JAMBOARD_SOFT_COLORS = [
 
 
 
-const POMODORO_DURATION = 25 * 60; // seconds
+const DEFAULT_POMODORO_MINUTES = 25;
+const POMODORO_OPTIONS = [1, 2, 3, 5, 10, 15,25] as const;
 const CIRCUMFERENCE = 2 * Math.PI * 90; // ~565.48
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -105,15 +107,39 @@ function EnrolledCourseCard({ course }: { course: CourseAPIItem }) {
 
 /** Pomodoro timer widget */
 function PomodoroTimer() {
-  const [timeLeft, setTimeLeft] = useState(POMODORO_DURATION);
+  const [durationMinutes, setDurationMinutes] = useState<number>(DEFAULT_POMODORO_MINUTES);
+  const [timeLeft, setTimeLeft] = useState(DEFAULT_POMODORO_MINUTES * 60);
   const [running, setRunning] = useState(false);
   const [label, setLabel] = useState("Focus Session");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const mins = String(Math.floor(timeLeft / 60)).padStart(2, "0");
   const secs = String(timeLeft % 60).padStart(2, "0");
-  const progress = (POMODORO_DURATION - timeLeft) / POMODORO_DURATION;
+  const totalSeconds = durationMinutes * 60;
+  const progress = (totalSeconds - timeLeft) / totalSeconds;
   const offset = CIRCUMFERENCE * progress;
+
+  function playAlarm() {
+    try {
+      const AudioCtx = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      oscillator.type = "sine";
+      oscillator.frequency.value = 880;
+      gain.gain.value = 0.15;
+      oscillator.connect(gain);
+      gain.connect(ctx.destination);
+      oscillator.start();
+      setTimeout(() => {
+        oscillator.stop();
+        ctx.close();
+      }, 600);
+    } catch {
+      // ignore audio errors (autoplay policy or unsupported context)
+    }
+  }
 
   function start() {
     if (running) return;
@@ -125,6 +151,7 @@ function PomodoroTimer() {
           clearInterval(intervalRef.current!);
           setRunning(false);
           setLabel("Time's up! Take a break.");
+          playAlarm();
           return 0;
         }
         return prev - 1;
@@ -141,7 +168,15 @@ function PomodoroTimer() {
   function reset() {
     if (intervalRef.current) clearInterval(intervalRef.current);
     setRunning(false);
-    setTimeLeft(POMODORO_DURATION);
+    setTimeLeft(durationMinutes * 60);
+    setLabel("Focus Session");
+  }
+
+  function changeDuration(nextMinutes: number) {
+    setDurationMinutes(nextMinutes);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    setRunning(false);
+    setTimeLeft(nextMinutes * 60);
     setLabel("Focus Session");
   }
 
@@ -160,6 +195,19 @@ function PomodoroTimer() {
         </h3>
       </div>
       <div className="card-body pomodoro-card">
+        <div className="pomodoro-presets" role="group" aria-label="Pomodoro duration">
+          {POMODORO_OPTIONS.map((mins) => (
+            <button
+              key={mins}
+              type="button"
+              className={`pomodoro-preset${durationMinutes === mins ? " active" : ""}`}
+              onClick={() => changeDuration(mins)}
+              disabled={running}
+            >
+              {mins} min
+            </button>
+          ))}
+        </div>
         <div className="pomodoro-progress">
           <svg width="200" height="200" viewBox="0 0 200 200">
             <circle className="bg" cx="100" cy="100" r="90" />
@@ -932,9 +980,10 @@ function StudentDashboard() {
       </div>
 
       {coursesLoading ? (
-        <div className="courses-loading mb-32">
-          <span className="courses-loading-spinner" />
-          Loading courses…
+        <div className="course-grid mb-32">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
         </div>
       ) : enrolledCourses.length === 0 ? (
         <p className="mb-32" style={{ color: "var(--text-muted)", padding: "16px 0" }}>
