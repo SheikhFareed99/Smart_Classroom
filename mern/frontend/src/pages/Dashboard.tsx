@@ -117,10 +117,9 @@ function Dashboard() {
         <div className="page-header">
           <div>
             <h1 className="page-title">
-              Welcome back, {name}
-              <Icon icon={Hand} size={28} className="wave-icon" />
+             {name}
+              
             </h1>
-            <p className="page-subtitle">Here's your classroom overview for today.</p>
           </div>
         </div>
 

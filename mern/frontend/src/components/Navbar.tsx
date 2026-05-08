@@ -78,11 +78,6 @@ const profileName = user?.name
 
       {/* Right */}
       <div className="navbar-right">
-        {/* Notification */}
-        <button className="nav-icon-btn" aria-label="Notifications">
-          <Icon icon={Bell} size={20} />
-          <span className="notification-dot" />
-        </button>
 
         {/* Theme toggle */}
         <button className="nav-icon-btn" onClick={toggleTheme} aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}>

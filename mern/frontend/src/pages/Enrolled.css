@@ -85,7 +85,11 @@
   .tabs::-webkit-scrollbar {
     display: none;
   }
-  
+ #unenroll_button{
+  width: 8%;
+color: black;
+border-color: rgb(68, 64, 64);
+ }
   .tab-btn {
     display: inline-flex;
     align-items: center;
