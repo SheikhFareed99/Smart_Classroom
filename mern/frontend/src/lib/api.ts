@@ -1,74 +1,49 @@
 export const AUTH_UNAUTHORIZED_EVENT = "auth:unauthorized";
 
-// Deployed service URLs — set via .env (VITE_ prefix required by Vite)
-export const API_BASE_URL   = import.meta.env.VITE_API_BASE_URL   ?? "";
-export const VOICE_BASE_URL = import.meta.env.VITE_VOICE_URL      ?? "";
-export const AI_BASE_URL    = import.meta.env.VITE_AI_URL         ?? "";
+// Service URLs from .env
+export const API_BASE_URL   = import.meta.env.VITE_API_BASE_URL ?? "";
+export const VOICE_BASE_URL = import.meta.env.VITE_VOICE_URL    ?? "";
+export const AI_BASE_URL    = import.meta.env.VITE_AI_URL       ?? "";
 
-const CSRF_TOKEN_ENDPOINT = "/auth/csrf-token";
+const TOKEN_KEY = "auth_token";
 
-let csrfTokenCache: string | null = null;
+export const getStoredToken  = (): string | null => localStorage.getItem(TOKEN_KEY);
+export const setStoredToken  = (token: string)   => localStorage.setItem(TOKEN_KEY, token);
+export const clearStoredToken = ()               => localStorage.removeItem(TOKEN_KEY);
 
-const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
-
-/** Resolves a relative path to the full MERN backend URL. */
+/** Resolves a relative path to the full backend URL. */
 function resolveUrl(input: RequestInfo | URL): string {
   const url = typeof input === "string" ? input : input.toString();
   if (url.startsWith("http://") || url.startsWith("https://")) return url;
   return `${API_BASE_URL}${url}`;
 }
 
-async function getCsrfToken(): Promise<string> {
-  if (csrfTokenCache) return csrfTokenCache;
-
-  const response = await fetch(resolveUrl(CSRF_TOKEN_ENDPOINT), {
-    method: "GET",
-    credentials: "include",
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to retrieve CSRF token");
-  }
-
-  const data = (await response.json()) as { csrfToken?: string };
-  if (!data.csrfToken) {
-    throw new Error("Missing CSRF token in response");
-  }
-
-  csrfTokenCache = data.csrfToken;
-  return csrfTokenCache;
-}
-
+/**
+ * Drop-in replacement for fetch — automatically attaches the JWT from
+ * localStorage as Authorization: Bearer <token>.
+ * No cookies, no CSRF — works cross-domain on every browser.
+ */
 export async function apiFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
-  const method = (init.method || "GET").toUpperCase();
-  const isSafeMethod = SAFE_METHODS.has(method);
-  const requestUrl = typeof input === "string" ? input : input.toString();
-  const isCsrfTokenRequest = requestUrl.includes(CSRF_TOKEN_ENDPOINT);
-
   const headers = new Headers(init.headers || {});
 
-  if (!isSafeMethod && !isCsrfTokenRequest) {
-    const csrfToken = await getCsrfToken();
-    headers.set("X-CSRF-Token", csrfToken);
+  const token = getStoredToken();
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
   }
 
   const response = await fetch(resolveUrl(input), {
-    credentials: "include",
     ...init,
     headers,
+    credentials: "include", // kept for session fallback in local dev
   });
 
-  if (response.status === 403 && !isSafeMethod) {
-    csrfTokenCache = null;
-  }
-
   if (response.status === 401) {
+    clearStoredToken();
     window.dispatchEvent(new CustomEvent(AUTH_UNAUTHORIZED_EVENT));
   }
 
   return response;
 }
 
-export function clearCsrfTokenCache() {
-  csrfTokenCache = null;
-}
+/** @deprecated No longer needed — kept for call-site compatibility */
+export function clearCsrfTokenCache() { /* no-op */ }

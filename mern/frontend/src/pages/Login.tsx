@@ -13,7 +13,7 @@ function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
-  const { refreshUser } = useAuth();
+  const { setTokenAndUser } = useAuth();
 
   //handle form submit
   async function handleLogin(e: React.FormEvent) {
@@ -25,8 +25,8 @@ function Login() {
         body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
-      if (res.ok) {
-        await refreshUser();
+      if (res.ok && data.token) {
+        setTokenAndUser(data.token, data.user);
         navigate("/dashboard");
       } else {
         alert(data.message || "Login failed");
