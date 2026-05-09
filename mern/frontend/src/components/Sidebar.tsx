@@ -1,6 +1,6 @@
 import "./Sidebar.css";
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Users, BookOpen, CheckSquare, PenTool, Settings } from "lucide-react";
+import { LayoutDashboard, Users, BookOpen, CheckSquare, PenTool } from "lucide-react";
 import Icon from "./ui/Icon";
 
 type SidebarUser = {

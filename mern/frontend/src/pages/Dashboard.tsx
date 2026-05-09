@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "../auth/AuthContext";
 import { apiFetch } from "../lib/api";
-import { Users, BookOpen, Hand } from "lucide-react";
+import { Users, BookOpen } from "lucide-react";
 import Icon from "../components/ui/Icon";
 import Badge from "../components/ui/Badge";
 import { SkeletonCard } from "../components/ui/Skeleton";
@@ -21,43 +21,6 @@ type Course = {
   badge?: string;
 };
 
-
-
-// A single course card — keeps things simple and readable
-function CourseCard({ _id, title, code, courseCode, students, color, badge }: {
-  _id?: string;
-  title: string;
-  code?: string;
-  courseCode?: string;
-  students?: number;
-  color?: string;
-  badge?: string;
-}) {
-  const displayCode = code || courseCode || '';
-  
-  return (
-    <Link to={`/teacher-course/${_id || ''}`} className="course-card">
-      <div className={`course-card-banner ${color || 'blue'}`}>
-        <h3>{title}</h3>
-      </div>
-      <div className="course-card-body">
-        
-        <p className="course-card-section">{displayCode}</p>
-        <div className="course-card-meta">
-          <div className="course-card-students">
-            <Icon icon={Users} size={16} />
-            {students} students
-          </div>
-          {badge && (
-            <Badge variant={badge === "Active" ? "primary" : "success"}>
-              {badge}
-            </Badge>
-          )}
-        </div>
-      </div>
-    </Link>
-  );
-}
 
 
 function Dashboard() {

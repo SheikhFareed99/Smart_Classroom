@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useTheme } from "./ThemeToggle";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
-import { Search, Bell, Sun, Moon, ChevronDown, LogOut } from "lucide-react";
+import { Search, Sun, Moon, ChevronDown, LogOut } from "lucide-react";
 import Icon from "./ui/Icon";
 import Avatar from "./ui/Avatar";
 import "./Navbar.css";
@@ -30,15 +30,6 @@ export default function Navbar({ user }: NavbarProps) {
 const profileName = user?.name 
   ? user.name.split(" ").slice(0, 2).join(" ") 
   : (user?.email || "");
-
-  const profileInitials = profileName
-    ? profileName
-        .split(" ")
-        .map((s: string) => s[0])
-        .slice(0, 2)
-        .join("")
-        .toUpperCase()
-    : "";
 
   // close dropdown when clicking outside
   useEffect(() => {
