@@ -10,7 +10,7 @@ import { startNotificationWorker, stopNotificationWorker } from './notifications
 
 dotenv.config();
 
-const PORT = process.env.PORT || 5000;
+const PORT = 5000;
 
 connectDB().then(() => {
     const server = app.listen(PORT, () => {
