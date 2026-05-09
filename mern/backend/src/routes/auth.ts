@@ -10,29 +10,26 @@ import {
 } from "../controllers/auth.controller";
 import { requireAuth } from "../middleware/auth.middleware";
 
-// router for authentication routes
-
 const router = Router();
 
-// local authentication routes
+// Local auth
 router.post("/signup", signup);
 router.post("/login", login);
 router.get("/csrf-token", getCsrfToken);
 
-// google oauth routes
-router.get(
-  "/google",
-  passport.authenticate("google", { scope: ["profile", "email"] })
-);
-
+// Google OAuth
+router.get("/google", passport.authenticate("google", { scope: ["profile", "email"] }));
 router.get(
   "/google/callback",
-  passport.authenticate("google", { failureRedirect: "http://localhost:5173/" }),
+  passport.authenticate("google", {
+    failureRedirect: `${process.env.APP_BASE_URL || "http://localhost:5173"}/login?error=oauth_failed`,
+    session: true, // needed for OAuth state verification
+  }),
   googleCallback
 );
 
-// session routes
+// Session/user routes
 router.get("/user", requireAuth, getCurrentUser);
-router.post("/logout", requireAuth, logout);
+router.post("/logout", logout);
 
 export default router;

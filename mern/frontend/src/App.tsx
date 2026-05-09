@@ -18,6 +18,7 @@ import JamboardEditor from "./pages/JamboardEditor";
 import ToDo from "./pages/ToDo";
 import TeacherPlagiarismReport from "./pages/TeacherPlagiarismReport";
 import SearchResults from "./pages/SearchResults";
+import AuthCallback from "./pages/AuthCallback";
 
 
 
@@ -37,14 +38,11 @@ function App() {
                 </PublicOnlyRoute>
               }
             />
-            <Route
-              path="/login"
-              element={
-                <PublicOnlyRoute>
-                  <Login />
-                </PublicOnlyRoute>
-              }
-            />
+            <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
+
+            {/* Google OAuth callback — must be public, no auth check */}
+            <Route path="/auth/callback" element={<AuthCallback />} />
+
 
             {/* Protected routes (inside Layout) */}
             <Route

@@ -82,10 +82,7 @@
   background: rgba(2, 6, 23, 0.5);
   z-index: 899;
   backdrop-filter: blur(2px);
-}
-
-.sidebar-backdrop.active {
-  display: block;
+  cursor: pointer;
 }
 
 /* ---------- Dark mode ---------- */
@@ -103,6 +100,10 @@
 
 /* ---------- Responsive ---------- */
 @media (max-width: 768px) {
+  .sidebar-backdrop.active {
+    display: block;
+  }
+
   .sidebar {
     transform: translateX(-100%);
   }

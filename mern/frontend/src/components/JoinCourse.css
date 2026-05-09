@@ -5,9 +5,9 @@
 /* Floating button */
 .join-course-btn {
   position: fixed;
-  right: var(--space-5);
-  bottom: var(--space-10);
-  z-index: 1000;
+  right: max(var(--space-4), env(safe-area-inset-right, 16px));
+  bottom: max(var(--space-5), calc(var(--space-4) + env(safe-area-inset-bottom, 0px)));
+  z-index: 980;
   box-shadow: var(--shadow-lg);
 }
 
@@ -151,4 +151,30 @@
 .dark .join-course-notice.error {
   background: rgba(239, 68, 68, 0.12);
   color: var(--error-500);
+}
+
+@media (max-width: 768px) {
+  .join-course-btn {
+    font-size: var(--text-sm) !important;
+    padding-inline: var(--space-3) var(--space-4) !important;
+    padding-block: var(--space-2) !important;
+  }
+
+  .join-course-overlay {
+    align-items: flex-end;
+    padding: env(safe-area-inset-bottom) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+  }
+
+  .join-course-modal {
+    width: 100%;
+    max-width: 100%;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: var(--space-5);
+  }
+
+  .join-course-input {
+    font-size: 16px !important;
+  }
 }

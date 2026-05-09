@@ -16,7 +16,6 @@ import todoRouter from "./routes/todo";
 import studentTodoRouter from "./routes/studentTodo";
 import studentEventRouter from "./routes/studentEvent";
 import chatbotRouter from "./routes/chatbot";
-import { csrfProtection, initCsrfProtection } from "./security/csrf";
 
 import "./config/passport";
 
@@ -26,17 +25,21 @@ dotenv.config();
 
 const isProduction = process.env.NODE_ENV === "production";
 const sessionMaxAgeMs = Number(process.env.SESSION_TIMEOUT_MS || 1000 * 60 * 60 * 2);
-const frontendOrigin = process.env.FRONTEND_ORIGIN || "http://localhost:5173";
+
+// Build an allowlist from env vars — supports both FRONTEND_ORIGIN and APP_BASE_URL
+// NOTE: cannot use origin:'*' with credentials:true, so we use a function
+const allowedOrigins = [
+  process.env.FRONTEND_ORIGIN,
+  process.env.APP_BASE_URL,
+  "http://localhost:5173",
+  "http://localhost:3000",
+].filter(Boolean).map(o => o!.replace(/\/$/, "")) as string[];
 
 if (!process.env.SESSION_SECRET) {
   throw new Error("SESSION_SECRET is required");
 }
 
-if (isProduction) {
-  // trust first proxy in production deployments (e.g., reverse proxy / load balancer)
-}
 
-initCsrfProtection({ isProduction });
 
 const app = express();
 
@@ -44,10 +47,19 @@ if (isProduction) {
   app.set("trust proxy", 1);
 }
 
-// CORS
+// CORS — allow all configured origins with credentials
 app.use(cors({
-  origin: frontendOrigin,
-  credentials: true
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g., server-to-server, curl)
+    if (!origin) return callback(null, true);
+    const clean = origin.replace(/\/$/, "");
+    if (allowedOrigins.includes(clean)) {
+      return callback(null, true);
+    }
+    console.warn(`CORS blocked origin: ${origin}`);
+    return callback(new Error(`CORS: origin ${origin} not allowed`));
+  },
+  credentials: true,
 }));
 
 app.use(cookieParser());
@@ -71,9 +83,8 @@ app.use(
   })
 );
 
-app.use(csrfProtection);
-
 // Passport
+
 app.use(passport.initialize());
 app.use(passport.session());
 

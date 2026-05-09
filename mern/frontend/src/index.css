@@ -90,3 +90,107 @@ body {
   background-color: var(--primary-800);
   color: var(--primary-100);
 }
+
+/* ============================================================
+   Global Mobile Responsive Overrides
+   These rules fix the layout for all pages on small screens.
+   ============================================================ */
+
+/* ── Layout: main content area ─────────────────────────────── */
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 0 !important;
+    padding: var(--space-4) max(var(--space-3), env(safe-area-inset-left)) var(--space-4)
+      max(var(--space-3), env(safe-area-inset-right)) !important;
+    padding-top: calc(var(--navbar-height, 64px) + var(--space-3)) !important;
+  }
+
+  /* Navbar respects horizontal safe area on phones */
+  .navbar {
+    padding-left: max(var(--space-3), env(safe-area-inset-left)) !important;
+    padding-right: max(var(--space-3), env(safe-area-inset-right)) !important;
+  }
+}
+
+/* ── Cards & grids ─────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Force single column on grids */
+  .dashboard-grid,
+  .courses-grid,
+  .card-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Cards full width */
+  .card, .course-card, .stat-card {
+    width: 100% !important;
+    min-width: unset !important;
+  }
+}
+
+/* ── Tables scroll horizontally ────────────────────────────── */
+@media (max-width: 768px) {
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* ── Touch targets — bigger tap areas ──────────────────────── */
+@media (max-width: 768px) {
+  button, .btn, a.btn {
+    min-height: 44px;
+  }
+
+  input, select, textarea {
+    font-size: 16px !important; /* prevents iOS zoom on focus */
+    min-height: 44px;
+  }
+}
+
+/* ── Tabs wrap on mobile ───────────────────────────────────── */
+@media (max-width: 600px) {
+  .tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    white-space: nowrap;
+    display: flex;
+    flex-wrap: nowrap;
+    padding-bottom: 2px;
+  }
+
+  .tab-btn {
+    flex-shrink: 0;
+  }
+}
+
+/* ── Hide non-essential text on small screens ─────────────── */
+@media (max-width: 480px) {
+  .hide-mobile {
+    display: none !important;
+  }
+
+  h1 { font-size: 1.4rem !important; }
+  h2 { font-size: 1.2rem !important; }
+  h3 { font-size: 1rem !important; }
+}
+
+/* ── Modals full screen on mobile ──────────────────────────── */
+@media (max-width: 480px) {
+  .modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+  }
+
+  .modal-overlay {
+    align-items: flex-end !important;
+  }
+}

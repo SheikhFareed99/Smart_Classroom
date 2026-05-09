@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { io, Socket } from "socket.io-client";
+import { getVoiceSocketIoClientOptions, voiceHttpUrl } from "../../lib/voiceUrl";
 import type { VoicePeer, IceConfig, UseWebRTCReturn } from "../types/voice.types";
 
 export interface UseWebRTCOptions {
@@ -30,7 +31,7 @@ export const useWebRTC = ({ userId, name }: UseWebRTCOptions): UseWebRTCReturn =
 
   const fetchIceConfig = async (): Promise<IceConfig> => {
     if (iceConfigRef.current) return iceConfigRef.current;
-    const res = await fetch("/voice/api/ice-config");
+    const res = await fetch(voiceHttpUrl("/api/ice-config"));
     const config: IceConfig = await res.json();
     iceConfigRef.current = config;
     return config;
@@ -95,11 +96,12 @@ export const useWebRTC = ({ userId, name }: UseWebRTCOptions): UseWebRTCReturn =
 
     await fetchIceConfig();
 
-const socket = io("http://localhost:5173", {
-  path:            "/voice/socket.io",
-  transports:      ["websocket"],
-  withCredentials: true,
-});
+    const { url: socketUrl, path: socketPath, withCredentials } = getVoiceSocketIoClientOptions();
+    const socket = io(socketUrl || window.location.origin, {
+      path:            socketPath,
+      transports:      ["websocket"],
+      withCredentials,
+    });
     socketRef.current = socket;
 
     socket.on("connect", () => {

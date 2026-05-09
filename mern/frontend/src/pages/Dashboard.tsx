@@ -74,7 +74,7 @@ function Dashboard() {
    }} />
 
       
-      <main className="main-content">
+      <main className="main-content main-content--with-joinfab">
 
         {/* Page header */}
         <div className="page-header">
@@ -125,10 +125,14 @@ function Dashboard() {
                       </svg>
                       {course.students} students
                     </div>
-                    <p id="active-text">active</p>
-                    <span className={`badge badge-${course.badge === "Active" ? "primary" : "accent"}`}>
-                      {course.badge}
-                    </span>
+                    <div className="course-card-meta-actions">
+                      {course.badge && (
+                        <span className={`badge badge-${course.badge === "Active" ? "primary" : "accent"}`}>
+                          {course.badge}
+                        </span>
+                      )}
+                      <span className="badge course-card-status">Active</span>
+                    </div>
                   </div>
                 </div>
               </Link>

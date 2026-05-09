@@ -14,8 +14,6 @@ import "./Landing.css";
 function Landing() {
   return (
     <>
-      <ThemeToggle className="landing-toggle" />
-
       <div className="landing-page">
         {/* ---- Navigation Bar ---- */}
         <nav className="landing-nav">
@@ -24,11 +22,16 @@ function Landing() {
               <div className="logo-icon">AI</div>
               <span className="logo-text">AI<span>Co</span></span>
             </div>
-            <div className="landing-nav-links">
-              <a href="#features" className="nav-link">Features</a>
-              <Link to="/login" className="nav-link nav-link-login">
-                Login or Sign Up
-              </Link>
+            <div className="landing-nav-actions">
+              <div className="landing-nav-links">
+                <a href="#features" className="nav-link">
+                  Features
+                </a>
+                <Link to="/login" className="nav-link nav-link-login">
+                  Login / Sign up
+                </Link>
+              </div>
+              <ThemeToggle inline className="landing-theme-btn" />
             </div>
           </div>
         </nav>
@@ -50,7 +53,7 @@ function Landing() {
             </p>
             <div className="hero-cta">
               <Link to="/login" className="btn btn-primary btn-lg">
-                Login or Sign Up
+                Login / Sign up
                 <ArrowRight size={20} />
               </Link>
             </div>
@@ -164,7 +167,7 @@ function Landing() {
                 Join thousands of educators and students already using AICo
               </p>
               <Link to="/login" className="btn btn-primary btn-lg">
-                Login or Sign Up
+                Login / Sign up
                 <ArrowRight size={20} />
               </Link>
             </div>

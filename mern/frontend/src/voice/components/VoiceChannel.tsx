@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import type { RemoteTrack } from "livekit-client";
+import { voiceHttpUrl } from "../../lib/voiceUrl";
 import { useLiveKit as useWebRTC } from "../hooks/useLiveKit";
 import { useSoundEffects } from "../hooks/useSoundEffects";
 import VoiceControls from "./VoiceControls";
@@ -331,7 +332,7 @@ const VoiceChannel = ({ courseId, userId, userName, userRole }: VoiceChannelProp
   useEffect(() => {
     const fetchChannels = async () => {
       try {
-        const res = await fetch(`/voice/api/channels/${courseId}`);
+        const res = await fetch(voiceHttpUrl(`/api/channels/${courseId}`));
         const data = await res.json();
         setChannels(data.channels ?? []);
       } catch {
@@ -405,7 +406,7 @@ const VoiceChannel = ({ courseId, userId, userName, userRole }: VoiceChannelProp
 
   const handleCreate = async (channelName: string) => {
     try {
-      const res = await fetch("/voice/api/channels", {
+      const res = await fetch(voiceHttpUrl("/api/channels"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -433,7 +434,7 @@ const VoiceChannel = ({ courseId, userId, userName, userRole }: VoiceChannelProp
       async () => {
         closeConfirm();
         try {
-          const res = await fetch("/voice/api/moderation/delete-channel", {
+          const res = await fetch(voiceHttpUrl("/api/moderation/delete-channel"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ channelId }),
