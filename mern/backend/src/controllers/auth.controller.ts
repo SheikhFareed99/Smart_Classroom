@@ -76,7 +76,7 @@ export const login = (req: Request, res: Response, next: NextFunction) => {
 
 // GET /api/auth/google/callback
 export const googleCallback = (req: Request, res: Response) => {
-  res.redirect("http://localhost:5173/dashboard");
+  res.redirect(`${process.env.APP_BASE_URL || "http://localhost:5173"}/dashboard`);
 };
 
 // GET /api/auth/user

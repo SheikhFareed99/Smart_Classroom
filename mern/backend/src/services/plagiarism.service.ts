@@ -21,7 +21,7 @@ type PlagiarismReport = {
 };
 
 function getAiBaseUrl(): string {
-  return process.env.AI_BACKEND_BASE_URL || "http://127.0.0.1:8000";
+  return process.env.AI_BACKEND_URL || "http://127.0.0.1:8000";
 }
 
 function getCheckEndpoint(): string {
