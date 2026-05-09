@@ -5,7 +5,8 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
 
   const backendUrl = env.VITE_API_BASE_URL || 'http://localhost:5000'
-  const voiceUrl   = env.VITE_VOICE_URL    || 'http://localhost:4001'
+  // Proxy target when the browser uses relative `/voice/api/*` paths (empty VITE_VOICE_URL at dev time).
+  const voiceUrl = env.VITE_VOICE_URL || 'http://localhost:4001'
 
   return {
     plugins: [react()],

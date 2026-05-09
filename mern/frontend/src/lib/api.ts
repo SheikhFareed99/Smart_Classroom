@@ -1,8 +1,14 @@
+import { getVoiceServiceOrigin as voiceOrigin } from "./voiceUrl";
+
 export const AUTH_UNAUTHORIZED_EVENT = "auth:unauthorized";
 
 // Service URLs from .env
-export const API_BASE_URL   = import.meta.env.VITE_API_BASE_URL ?? "";
-export const VOICE_BASE_URL = import.meta.env.VITE_VOICE_URL    ?? "";
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
+
+export { getVoiceServiceOrigin, voiceHttpUrl } from "./voiceUrl";
+
+/** Voice host URL when `VITE_VOICE_URL` is set; empty means use `/voice` dev proxy paths */
+export const VOICE_BASE_URL = voiceOrigin();
 export const AI_BASE_URL    = import.meta.env.VITE_AI_URL       ?? "";
 
 const TOKEN_KEY = "auth_token";
