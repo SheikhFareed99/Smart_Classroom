@@ -60,13 +60,21 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-//toggle button component — pass className to override position
-export default function ThemeToggle({ className = "" }: { className?: string }) {
+// toggle button component — pass className to override position; inline drops fixed positioning
+export default function ThemeToggle({
+  className = "",
+  inline = false,
+}: {
+  className?: string;
+  /** When true, sits in normal flow (e.g. inside nav bars) instead of fixed top-right */
+  inline?: boolean;
+}) {
   const { darkMode, toggleTheme } = useTheme();
 
   return (
     <button
-      className={`theme-toggle ${className}`}
+      type="button"
+      className={`theme-toggle ${inline ? "theme-toggle--inline" : ""} ${className}`.trim()}
       onClick={toggleTheme}
       aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
     >

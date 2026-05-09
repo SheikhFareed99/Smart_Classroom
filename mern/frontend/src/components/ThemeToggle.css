@@ -32,3 +32,10 @@
   box-shadow: var(--focus-ring);
   outline: none;
 }
+
+.theme-toggle--inline {
+  position: static;
+  top: auto;
+  right: auto;
+  flex-shrink: 0;
+}

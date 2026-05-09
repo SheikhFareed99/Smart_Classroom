@@ -89,10 +89,12 @@ function Login() {
   }
 
   return (
-    <>
-      <ThemeToggle className="login-toggle" />
+    <div className="login-page">
+      <div className="login-shell">
+        <header className="login-toolbar">
+          <ThemeToggle inline />
+        </header>
 
-      <div className="login-page">
         <div className="login-container">
 
           {/* Logo */}
@@ -297,7 +299,7 @@ function Login() {
           <p className="login-footer">© 2026 AICo — AI Classroom Dashboard. All rights reserved.</p>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 

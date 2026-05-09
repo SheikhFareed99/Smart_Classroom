@@ -2,20 +2,33 @@
    Login Page + Signup — with design tokens
    ============================================ */
 
-.login-toggle {
-  top: var(--space-5);
-  right: var(--space-5);
-  left: auto;
-}
-
 .login-page {
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
   background: linear-gradient(135deg, var(--primary-50) 0%, var(--neutral-50) 50%, var(--success-50) 100%);
-  padding: var(--space-6);
+  padding: max(var(--space-4), env(safe-area-inset-top))
+    max(var(--space-4), env(safe-area-inset-right))
+    max(var(--space-6), env(safe-area-inset-bottom))
+    max(var(--space-4), env(safe-area-inset-left));
   font-family: var(--font-sans);
+  box-sizing: border-box;
+}
+
+.login-shell {
+  width: 100%;
+  max-width: 440px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.login-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-4);
+  flex-shrink: 0;
 }
 
 .dark .login-page {
@@ -24,7 +37,11 @@
 
 .login-container {
   width: 100%;
-  max-width: 440px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0;
 }
 
 /* Logo */
@@ -231,11 +248,33 @@
 /* ── Mobile responsive ────────────────────────────── */
 @media (max-width: 480px) {
   .login-page {
-    padding: var(--space-3);
-    align-items: flex-start;
-    padding-top: 48px;
+    justify-content: flex-start;
+    padding-top: max(var(--space-3), env(safe-area-inset-top));
   }
-  .login-card { padding: var(--space-6) var(--space-5); }
-  .login-logo h1 { font-size: 1.4rem; }
-  .auth-tabs { margin-bottom: var(--space-4); }
+
+  .login-toolbar {
+    margin-bottom: var(--space-2);
+  }
+
+  .login-shell {
+    max-width: 100%;
+  }
+
+  .login-card {
+    padding: var(--space-6) var(--space-4);
+  }
+
+  .auth-tabs {
+    margin-bottom: var(--space-4);
+    gap: 2px;
+  }
+
+  .auth-tab {
+    padding: var(--space-2);
+    font-size: var(--text-xs);
+  }
+
+  .login-logo h1 {
+    font-size: 1.35rem;
+  }
 }

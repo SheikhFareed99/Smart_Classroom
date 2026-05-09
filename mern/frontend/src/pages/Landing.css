@@ -2,14 +2,6 @@
    Landing Page — Clean, modern, AI-focused
    ============================================ */
 
-/* ---- Theme Toggle Position ---- */
-.landing-toggle {
-  top: var(--space-5);
-  right: var(--space-5);
-  left: auto;
-  z-index: 50;
-}
-
 /* ---- Page Layout ---- */
 .landing-page {
   min-height: 100vh;
@@ -24,7 +16,7 @@
   top: 0;
   left: 0;
   right: 0;
-  z-index: 40;
+  z-index: 100;
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -38,16 +30,36 @@
 .landing-nav-content {
   max-width: var(--container-max);
   margin: 0 auto;
-  padding: var(--space-4) var(--space-6);
+  padding-top: max(var(--space-3), env(safe-area-inset-top));
+  padding-bottom: var(--space-3);
+  padding-inline: max(var(--space-4), env(safe-area-inset-left))
+    max(var(--space-4), env(safe-area-inset-right));
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.landing-nav-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  flex-wrap: nowrap;
+}
+
+.landing-theme-btn.theme-toggle {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
 }
 
 .landing-logo {
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  min-width: 0;
 }
 
 .landing-logo .logo-icon {
@@ -77,7 +89,7 @@
 .landing-nav-links {
   display: flex;
   align-items: center;
-  gap: var(--space-6);
+  gap: var(--space-3);
 }
 
 .nav-link {
@@ -94,7 +106,7 @@
 }
 
 .nav-link-login {
-  padding: var(--space-2) var(--space-4);
+  padding: var(--space-2) var(--space-3);
   border: 1.5px solid var(--border-default);
   border-radius: var(--radius-md);
   transition: border-color var(--duration-normal) var(--ease-default),
@@ -113,7 +125,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-24) var(--space-6) var(--space-16);
+  padding: max(var(--space-24), calc(var(--navbar-height) + var(--space-10)))
+    max(var(--space-4), env(safe-area-inset-right)) var(--space-16)
+    max(var(--space-4), env(safe-area-inset-left));
   gap: var(--space-16);
   max-width: var(--container-max);
   margin: 0 auto;
@@ -263,7 +277,7 @@
 
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
   gap: var(--space-6);
 }
 
@@ -489,8 +503,29 @@
 }
 
 @media (max-width: 768px) {
+  .landing-nav-content {
+    padding-inline: max(var(--space-3), env(safe-area-inset-left))
+      max(var(--space-3), env(safe-area-inset-right));
+  }
+
+  .landing-logo .logo-icon {
+    width: 34px;
+    height: 34px;
+    font-size: var(--text-base);
+  }
+
+  .landing-logo .logo-text {
+    font-size: var(--text-lg);
+  }
+
   .landing-nav-links .nav-link:not(.nav-link-login) {
     display: none;
+  }
+
+  .nav-link-login {
+    font-size: var(--text-xs);
+    padding: var(--space-2) var(--space-3);
+    white-space: nowrap;
   }
 
   .hero-stats {
@@ -524,15 +559,34 @@
 }
 
 @media (max-width: 480px) {
+  .landing-nav-actions {
+    gap: var(--space-2);
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
   .hero-cta {
     flex-direction: column;
   }
 
   .btn-lg {
     width: 100%;
+    max-width: 100%;
+    justify-content: center;
+    padding: var(--space-3) var(--space-5);
+    font-size: var(--text-base);
   }
 
   .cta-card {
-    padding: var(--space-8) var(--space-6);
+    padding: var(--space-8) var(--space-5);
+    border-radius: var(--radius-xl);
+  }
+
+  .hero-subtitle {
+    font-size: var(--text-base);
+  }
+
+  .section-title {
+    font-size: var(--text-xl);
   }
 }

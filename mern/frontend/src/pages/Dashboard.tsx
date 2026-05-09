@@ -74,7 +74,7 @@ function Dashboard() {
    }} />
 
       
-      <main className="main-content">
+      <main className="main-content main-content--with-joinfab">
 
         {/* Page header */}
         <div className="page-header">
