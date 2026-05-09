@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <defs>
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4F46E5;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#9333EA;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Rounded App Icon Background -->
+  <rect width="120" height="120" rx="28" fill="url(#bg-grad)" />
+  
+  <!-- The Letter 'A' -->
+  <path d="M60 25 L30 90 L50 90 L56 72 L70 72 L74 85 L90 90 Z" fill="#FFFFFF"/>
+  <polygon points="63,45 58,60 68,60" fill="url(#bg-grad)"/>
+  
+  <!-- AI Spark / Star -->
+  <path d="M85 20 Q85 30 95 30 Q85 30 85 40 Q85 30 75 30 Q85 30 85 20 Z" fill="#34D399"/>
+</svg>
