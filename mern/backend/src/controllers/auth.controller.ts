@@ -1,20 +1,22 @@
 import { Request, Response, NextFunction } from "express";
 import passport from "passport";
-import crypto from "crypto";
+import jwt from "jsonwebtoken";
 import User from "../models/users.model";
 import { findUserByEmail, createLocalUser } from "../services/user.service";
 import { generateCsrfToken } from "../security/csrf";
 
-// ── One-time OAuth token store (in-memory, 60s TTL) ─────────────────────────
-// Solves cross-site cookie blocking (Safari ITP / Edge) by having the frontend
-// exchange this token in a direct fetch instead of relying on a cross-site cookie.
-type OAuthEntry = { userId: string; expires: number };
-const oauthTokens = new Map<string, OAuthEntry>();
-
+// ── Stateless OAuth token (JWT-signed) ───────────────────────────────────────
+// Replaces the in-memory Map which was wiped on every Render restart (SIGTERM).
+// JWT tokens are self-contained and survive restarts — signed with SESSION_SECRET.
 function generateOAuthToken(userId: string): string {
-  const token = crypto.randomBytes(32).toString("hex");
-  oauthTokens.set(token, { userId, expires: Date.now() + 60_000 }); // 60s TTL
-  return token;
+  const secret = process.env.SESSION_SECRET!;
+  return jwt.sign({ userId }, secret, { expiresIn: "60s" });
+}
+
+function verifyOAuthToken(token: string): string {
+  const secret = process.env.SESSION_SECRET!;
+  const payload = jwt.verify(token, secret) as { userId: string };
+  return payload.userId;
 }
 
 
@@ -105,21 +107,24 @@ export const googleCallback = (req: Request, res: Response) => {
 };
 
 // POST /auth/exchange-oauth-token
-// Frontend calls this with the one-time token received from googleCallback redirect.
-// We look up the user, log them into a session, and return user data as JSON.
+// POST /auth/exchange-oauth-token
+// Frontend POSTs the JWT token received in the redirect URL.
+// We verify the JWT (signed with SESSION_SECRET, 60s expiry),
+// look up the user, log them in, and return user data as JSON.
 export const exchangeOAuthToken = async (req: Request, res: Response) => {
   const { token } = req.body as { token?: string };
   if (!token) return res.status(400).json({ message: "Token required" });
 
-  const entry = oauthTokens.get(token);
-  if (!entry || entry.expires < Date.now()) {
-    oauthTokens.delete(token);
-    return res.status(401).json({ message: "Token expired or invalid" });
+  let userId: string;
+  try {
+    userId = verifyOAuthToken(token);
+  } catch (err: any) {
+    const msg = err?.name === "TokenExpiredError" ? "Token expired — please sign in again" : "Invalid token";
+    return res.status(401).json({ message: msg });
   }
-  oauthTokens.delete(token); // one-time use
 
   try {
-    const user = await User.findById(entry.userId).select("_id name email createdAt updatedAt");
+    const user = await User.findById(userId).select("_id name email createdAt updatedAt");
     if (!user) return res.status(404).json({ message: "User not found" });
 
     await new Promise<void>((resolve, reject) => {
@@ -132,6 +137,7 @@ export const exchangeOAuthToken = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Session error" });
   }
 };
+
 
 // GET /api/auth/user
 export const getCurrentUser = (req: Request, res: Response) => {
