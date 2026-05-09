@@ -95,7 +95,9 @@ export const useWebRTC = ({ userId, name }: UseWebRTCOptions): UseWebRTCReturn =
 
     await fetchIceConfig();
 
-const socket = io("http://localhost:5173", {
+const VOICE_URL = import.meta.env.VITE_VOICE_URL ?? "http://localhost:4001";
+
+const socket = io(VOICE_URL, {
   path:            "/voice/socket.io",
   transports:      ["websocket"],
   withCredentials: true,
