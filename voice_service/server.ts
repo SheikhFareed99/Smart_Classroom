@@ -31,6 +31,10 @@ const io = new Server(server, {
 app.use(cors({ origin: "*", credentials: false }));
 app.use(express.json());
 
+app.get("/", (req, res) => {
+  res.json({ status: "ok", service: "voice_service" });
+});
+
 app.get("/health", (req, res) => {
   res.json({ status: "ok", service: "voice_service" });
 });
