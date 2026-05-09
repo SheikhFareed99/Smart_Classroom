@@ -16,7 +16,6 @@ import todoRouter from "./routes/todo";
 import studentTodoRouter from "./routes/studentTodo";
 import studentEventRouter from "./routes/studentEvent";
 import chatbotRouter from "./routes/chatbot";
-import { csrfProtection, initCsrfProtection } from "./security/csrf";
 
 import "./config/passport";
 
@@ -40,7 +39,7 @@ if (!process.env.SESSION_SECRET) {
   throw new Error("SESSION_SECRET is required");
 }
 
-initCsrfProtection({ isProduction });
+
 
 const app = express();
 
@@ -84,9 +83,8 @@ app.use(
   })
 );
 
-app.use(csrfProtection);
-
 // Passport
+
 app.use(passport.initialize());
 app.use(passport.session());
 
