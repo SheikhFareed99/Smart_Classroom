@@ -10,6 +10,7 @@ import {
   Track,
 } from "livekit-client";
 import type { VoicePeer, VoiceRole } from "../types/voice.types";
+import { voiceHttpUrl } from "../../lib/voiceUrl";
 
 export interface UseLiveKitOptions {
   userId: string;
@@ -64,7 +65,7 @@ export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked, 
 
   // ── Token fetch ────────────────────────────────────────────────────────────
   const fetchToken = useCallback(async (channelId: string): Promise<string> => {
-    const res = await fetch("/voice/api/livekit/token", {
+    const res = await fetch(voiceHttpUrl("/api/livekit/token"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -493,7 +494,7 @@ export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked, 
     const channelId = channelIdRef.current;
     if (!channelId) return;
     try {
-      await fetch("/voice/api/moderation/mute", {
+      await fetch(voiceHttpUrl("/api/moderation/mute"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ roomName: channelId, participantIdentity: identity }),
@@ -508,7 +509,7 @@ export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked, 
     const channelId = channelIdRef.current;
     if (!channelId) return;
     try {
-      await fetch("/voice/api/moderation/unmute", {
+      await fetch(voiceHttpUrl("/api/moderation/unmute"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ roomName: channelId, participantIdentity: identity }),
@@ -524,7 +525,7 @@ export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked, 
     const room = roomRef.current;
     if (!channelId || !room) return;
     try {
-      await fetch("/voice/api/moderation/mute-all", {
+      await fetch(voiceHttpUrl("/api/moderation/mute-all"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -542,7 +543,7 @@ export const useLiveKit = ({ userId, name, role, onForceDisconnected, onKicked, 
     const channelId = channelIdRef.current;
     if (!channelId) return;
     try {
-      await fetch("/voice/api/moderation/kick", {
+      await fetch(voiceHttpUrl("/api/moderation/kick"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ roomName: channelId, participantIdentity: identity }),

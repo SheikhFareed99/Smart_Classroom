@@ -37,6 +37,11 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction) 
   if (!csrfUtilities) {
     return next(new Error("CSRF protection not initialized"));
   }
+  // The OAuth token exchange uses a one-time cryptographic token as its own
+  // security — CSRF protection is not needed and would break the flow.
+  if (req.path.endsWith("/exchange-oauth-token")) {
+    return next();
+  }
   return csrfUtilities.doubleCsrfProtection(req, res, next);
 }
 

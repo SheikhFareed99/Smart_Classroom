@@ -2,16 +2,18 @@ import { useState, useRef, useEffect } from "react";
 import { useTheme } from "./ThemeToggle";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
-import { Search, Bell, Sun, Moon, ChevronDown, LogOut } from "lucide-react";
+import { Search, Sun, Moon, ChevronDown, LogOut, Menu } from "lucide-react";
 import Icon from "./ui/Icon";
 import Avatar from "./ui/Avatar";
 import "./Navbar.css";
 
 type NavbarProps = {
-  user: any;
+  user: unknown;
+  onMenuToggle?: () => void;
+  sidebarOpen?: boolean;
 };
 
-export default function Navbar({ user }: NavbarProps) {
+export default function Navbar({ user, onMenuToggle, sidebarOpen = false }: NavbarProps) {
   const { darkMode, toggleTheme } = useTheme();
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -27,18 +29,10 @@ export default function Navbar({ user }: NavbarProps) {
     }
   }
 
-const profileName = user?.name 
-  ? user.name.split(" ").slice(0, 2).join(" ") 
-  : (user?.email || "");
-
-  const profileInitials = profileName
-    ? profileName
-        .split(" ")
-        .map((s: string) => s[0])
-        .slice(0, 2)
-        .join("")
-        .toUpperCase()
-    : "";
+const u = user as { name?: string; email?: string } | null | undefined;
+const profileName = u?.name
+  ? u.name.split(" ").slice(0, 2).join(" ")
+  : (u?.email || "");
 
   // close dropdown when clicking outside
   useEffect(() => {
@@ -56,6 +50,17 @@ const profileName = user?.name
     <nav className="navbar">
       {/* Left */}
       <div className="navbar-left">
+        {onMenuToggle && (
+          <button
+            type="button"
+            className="nav-menu-btn"
+            onClick={onMenuToggle}
+            aria-label={sidebarOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={sidebarOpen}
+          >
+            <Icon icon={Menu} size={22} />
+          </button>
+        )}
         <Link to="/dashboard" className="navbar-logo">
           <div className="logo-icon">AI</div>
           AI<span>Co</span>
