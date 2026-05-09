@@ -2,6 +2,7 @@ app = "smart-classroom-rag"
 primary_region = "iad"
 
 [build]
+  context = "ai_backend"
   dockerfile = "Dockerfile"
 
 [http_service]
