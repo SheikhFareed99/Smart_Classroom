@@ -1,7 +1,22 @@
 import { Request, Response, NextFunction } from "express";
 import passport from "passport";
+import crypto from "crypto";
+import User from "../models/users.model";
 import { findUserByEmail, createLocalUser } from "../services/user.service";
 import { generateCsrfToken } from "../security/csrf";
+
+// ── One-time OAuth token store (in-memory, 60s TTL) ─────────────────────────
+// Solves cross-site cookie blocking (Safari ITP / Edge) by having the frontend
+// exchange this token in a direct fetch instead of relying on a cross-site cookie.
+type OAuthEntry = { userId: string; expires: number };
+const oauthTokens = new Map<string, OAuthEntry>();
+
+function generateOAuthToken(userId: string): string {
+  const token = crypto.randomBytes(32).toString("hex");
+  oauthTokens.set(token, { userId, expires: Date.now() + 60_000 }); // 60s TTL
+  return token;
+}
+
 
 const sanitizeUser = (user: any) => {
   if (!user) return null;
@@ -74,9 +89,48 @@ export const login = (req: Request, res: Response, next: NextFunction) => {
   })(req, res, next);
 };
 
-// GET /api/auth/google/callback
+// GET /auth/google/callback
+// Instead of redirecting straight to /dashboard (which sets a cross-site session
+// cookie that mobile browsers block), we issue a short-lived one-time token and
+// redirect to /auth/callback?token=xxx. The frontend then POSTs the token back
+// to exchange it for a session — the session cookie is set in a direct fetch,
+// which browsers allow even under strict ITP / 3rd-party cookie blocking.
 export const googleCallback = (req: Request, res: Response) => {
-  res.redirect(`${process.env.APP_BASE_URL || "http://localhost:5173"}/dashboard`);
+  const user = req.user as any;
+  if (!user?._id) {
+    return res.redirect(`${process.env.APP_BASE_URL || "http://localhost:5173"}/login?error=oauth_failed`);
+  }
+  const token = generateOAuthToken(String(user._id));
+  return res.redirect(`${process.env.APP_BASE_URL || "http://localhost:5173"}/auth/callback?token=${token}`);
+};
+
+// POST /auth/exchange-oauth-token
+// Frontend calls this with the one-time token received from googleCallback redirect.
+// We look up the user, log them into a session, and return user data as JSON.
+export const exchangeOAuthToken = async (req: Request, res: Response) => {
+  const { token } = req.body as { token?: string };
+  if (!token) return res.status(400).json({ message: "Token required" });
+
+  const entry = oauthTokens.get(token);
+  if (!entry || entry.expires < Date.now()) {
+    oauthTokens.delete(token);
+    return res.status(401).json({ message: "Token expired or invalid" });
+  }
+  oauthTokens.delete(token); // one-time use
+
+  try {
+    const user = await User.findById(entry.userId).select("_id name email createdAt updatedAt");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    await new Promise<void>((resolve, reject) => {
+      req.login(user, (err) => (err ? reject(err) : resolve()));
+    });
+
+    return res.json({ user: sanitizeUser(user) });
+  } catch (err) {
+    console.error("exchangeOAuthToken error:", err);
+    return res.status(500).json({ message: "Session error" });
+  }
 };
 
 // GET /api/auth/user
