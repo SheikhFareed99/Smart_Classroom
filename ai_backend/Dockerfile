@@ -12,10 +12,10 @@ RUN apt-get update \
 
 WORKDIR /app
 
-COPY requirements.txt ./
+COPY ai_backend/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY ai_backend/ ./
 
 EXPOSE 8000
 
