@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 
-const FRONTEND = import.meta.env.VITE_API_BASE_URL ?? "";
+
 
 export default function AuthCallback() {
   const [searchParams] = useSearchParams();
