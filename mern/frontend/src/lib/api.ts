@@ -21,7 +21,7 @@ export const clearStoredToken = ()               => localStorage.removeItem(TOKE
 function resolveUrl(input: RequestInfo | URL): string {
   const url = typeof input === "string" ? input : input.toString();
   if (url.startsWith("http://") || url.startsWith("https://")) return url;
-  return ${API_BASE_URL}${url};
+  return `${API_BASE_URL}${url}`;
 }
 
 /**
@@ -34,7 +34,7 @@ export async function apiFetch(input: RequestInfo | URL, init: RequestInit = {})
 
   const token = getStoredToken();
   if (token) {
-    headers.set("Authorization", Bearer ${token});
+    headers.set("Authorization", `Bearer ${token}`);
   }
 
   const response = await fetch(resolveUrl(input), {
