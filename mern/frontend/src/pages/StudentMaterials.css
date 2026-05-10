@@ -121,9 +121,15 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 14px var(--space-6);
-  transition: background var(--transition-fast);
-  border-bottom: 1px solid var(--border-light);
+  flex-wrap: nowrap;
+  border-radius: 0 !important;
+  margin-bottom: 0 !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-top: none !important;
+  border-bottom: 1px solid var(--border-light) !important;
+  padding: 14px var(--space-6) !important;
+  justify-content: space-between;
 }
 .sm-material-row:last-child { border-bottom: none; }
 .sm-material-row:hover { background: var(--card); }
@@ -143,7 +149,21 @@
   color: var(--text-primary); margin: 0 0 4px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.sm-mat-meta { font-size: var(--text-xs); color: var(--text-muted); display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.sm-mat-meta {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sm-mat-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
 
 /* Type badges */
 .sm-badge {
@@ -174,7 +194,21 @@
   color: var(--primary);
   background: var(--primary-bg);
 }
-.sm-download-btn { flex-shrink: 0; }
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+.btn-ghost:hover {
+  background: var(--border-light);
+  color: var(--text-primary);
+}
+.btn-sm { padding: 6px 12px; font-size: 0.8125rem; }
+.sm-download-btn {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  font-size: 0.8125rem;
+  line-height: 1.3;
+}
 
 /* Empty / error states */
 .sm-empty-state {
@@ -207,6 +241,7 @@
 /* Responsive */
 @media (max-width: 768px) {
   .main-content { margin-left: 0; padding: var(--space-5); margin-top: var(--navbar-height); }
-  .sm-material-row { flex-wrap: wrap; }
-  .sm-download-btn { width: 100%; justify-content: center; margin-top: var(--space-2); }
+  .sm-material-row { flex-wrap: nowrap; }
+  .sm-mat-actions { width: auto; }
+  .sm-download-btn { width: auto; justify-content: center; margin-top: 0; }
 }

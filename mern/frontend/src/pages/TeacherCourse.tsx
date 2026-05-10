@@ -1040,9 +1040,22 @@ export default function TeacherCourse() {
                           }
                           const blob = await r.blob();
                           const disp = r.headers.get('Content-Disposition') || '';
-                          let filename = `marksheet_${courseId}.csv`;
-                          const m = disp.match(/filename="?([^";]+)"?/);
-                          if (m && m[1]) filename = m[1];
+                          const safeCourseName = (courseName || "course")
+                            .trim()
+                            .replace(/[\\/:*?"<>|]+/g, "")
+                            .replace(/\s+/g, "_");
+                          // Default to course_name_marksheet.xlsx.
+                          let filename = `${safeCourseName || "course"}_marksheet.xlsx`;
+                          const encodedName = disp.match(/filename\*=UTF-8''([^;]+)/i);
+                          if (encodedName?.[1]) {
+                            filename = decodeURIComponent(encodedName[1]);
+                          } else {
+                            const plainName = disp.match(/filename="?([^";]+)"?/i);
+                            if (plainName?.[1]) filename = plainName[1];
+                          }
+                          if (!filename.toLowerCase().endsWith('.xlsx')) {
+                            filename = `${filename.replace(/\.[^/.]+$/, '')}.xlsx`;
+                          }
                           const url = URL.createObjectURL(blob);
                           const a = document.createElement('a');
                           a.href = url;

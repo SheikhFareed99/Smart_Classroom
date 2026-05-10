@@ -36,15 +36,6 @@ function typeLabel(type: Material["type"]): string {
   return type.toUpperCase();
 }
 
-function typeBadgeClass(type: Material["type"]): string {
-  switch (type) {
-    case "pdf":   return "sm-badge sm-badge-pdf";
-    case "video": return "sm-badge sm-badge-video";
-    case "image": return "sm-badge sm-badge-image";
-    default:      return "sm-badge sm-badge-doc";
-  }
-}
-
 function FileTypeIcon({ type }: { type: Material["type"] }) {
   if (type === "video") {
     return (
@@ -229,35 +220,32 @@ export default function StudentMaterials() {
                       <p className="sm-no-materials">No files uploaded to this module yet.</p>
                     ) : (
                       mats.map((mat) => (
-                        <div key={mat._id} className="sm-material-row">
-                          <div className="sm-mat-icon-wrap">
+                        <div key={mat._id} className="material-item sm-material-row">
+                          <div className="material-icon sm-mat-icon-wrap">
                             <FileTypeIcon type={mat.type} />
                           </div>
-                          <div className="sm-mat-info">
-                            <p className="sm-mat-title">{mat.title}</p>
-                            <p className="sm-mat-meta">
-                              <span className={typeBadgeClass(mat.type)}>{typeLabel(mat.type)}</span>
+                          <div className="material-info sm-mat-info">
+                            <p className="material-title sm-mat-title">{mat.title}</p>
+                            <p className="material-meta sm-mat-meta">
+                              {typeLabel(mat.type)}
                               {mat.sizeBytes ? ` · ${formatBytes(mat.sizeBytes)}` : ""}
-                              {" · "}
+                              {" · Uploaded "}
                               {new Date(mat.uploadedAt).toLocaleDateString("en-US", {
                                 month: "short", day: "numeric", year: "numeric"
                               })}
                             </p>
                           </div>
+                          <div className="sm-mat-actions">
                           <a
                             href={mat.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="btn btn-outline sm-download-btn"
+                            className="btn btn-ghost btn-sm sm-download-btn"
                             download
                           >
-                            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                              <polyline points="7 10 12 15 17 10" />
-                              <line x1="12" y1="15" x2="12" y2="3" />
-                            </svg>
                             Download
                           </a>
+                          </div>
                         </div>
                       ))
                     )}

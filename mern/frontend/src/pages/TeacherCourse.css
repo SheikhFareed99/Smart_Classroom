@@ -295,7 +295,7 @@
   margin-left: auto;
 }
 #create_module{
-  width: 8%;
+  width: 14%;
 
 }
 #creare_assignment{
@@ -680,7 +680,7 @@
 /* ── Buttons ───────────────────────────────────────────────────── */
 .btn {
   display: inline-flex; align-items: center; justify-content: center;
-  gap: 6px; padding: 0px 12px; border-radius: var(--radius-sm);
+  gap: 1px; padding: 0px 12px; border-radius: var(--radius-sm);
   font-weight: 500; font-size: 0.875rem; transition: all 0.15s ease;
   white-space: nowrap; cursor: pointer; border: none;
   font-family: inherit; text-decoration: none; line-height: 1.4;
